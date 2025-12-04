@@ -1,0 +1,131 @@
+{% extends 'base.html' %}
+
+{% block title %} Register Vehicle {% endblock title %}
+
+{% block content %}
+
+{% load static %} 
+
+    <link rel="stylesheet" href="{% static 'css/forms.css' %}">
+
+    <div class="create-search">
+        <a href="{% url 'vehicle_forms' %}" class="create-new-btn">Register New Vehicle</a>
+        <a href="{% url 'import-forms' %}" class="create-new-btn">Import Vehicle</a>
+
+        <a href="{% url 'vehicles' %}?archive=true" class="create-new-btn">Archive</a>
+
+        {% comment %} <div class="search-container">
+            <input type="text" id="tableSearch" placeholder="Search..." onkeyup="filterTable()">
+            <span class="search-icon">&#128269;</span> <!-- Unicode for a magnifying glass -->
+        </div> {% endcomment %}
+    </div>
+
+    <!-- Vehicle Registrations Table -->
+
+    <div class="table-container">
+        <table class="form-table" id="registered_vehicle">
+            <thead>
+                <tr>
+                    <th>Date of Application</th>
+                    <th>Student Name</th>
+                    <th>Student Number</th>
+                    <th>Sticker Number</th>
+                    <th>Cellphone Number</th>
+                    <th>Type of Vehicle</th>
+                    <th>Plate Number</th>
+                    <th>Guardian Name</th>
+                    <th>Details</th>
+                    <th></th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for vehicle in registered_vehicle %}
+                    <tr>
+                        <td>{{ vehicle.date_joined }}</td>
+                        <input type="hidden" name="vehicle_id" value="{{ vehicle.id }}" >
+                        <td>{{ vehicle.first_name }}</td>
+                        <td>{{ vehicle.id_number }}</td>
+                        <td>{{ vehicle.sticker_number }}</td>
+                        <td>{{ vehicle.contact_number }}</td>
+                        <td>{{ vehicle.vehicle_type }}</td>
+                        <td>{{ vehicle.plate_number  }}</td>
+                        <td>{{ vehicle.guardian_name }}</td>
+                        <td><a href="{% url 'vehicle_details' vehicle.id %}">Details</a></td>
+                        <td>
+                            <form method="POST" action="">
+                                {% csrf_token %}
+                                <input type="hidden" name="vehicle_id" value="{{ vehicle.id }}">
+                                <button name="{% if is_archived %}restore{% else %}delete{% endif %}" 
+                                    class="form-input delete-btn" 
+                                    value="{{ vehicle.id }}" 
+                                    onclick="return {% if is_archived %}confirmRestore(){% else %}confirmDelete(){% endif %};"
+                                    {% if not is_archived %}disabled{% endif %}>
+                                    {% if is_archived %}RESTORE{% else %}DELETE{% endif %}
+                                </button>
+                            </form>
+                        </td>
+
+                      
+                    
+                    <td><button onclick="toggleEditFields(this)" class="custom-toggle-btn">TOGGLE</button></td>
+                    </tr>
+                {% empty %}
+               
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <script type="text/javascript">
+     
+         function toggleEditFields(button) {
+            const row = button.closest('tr');
+            const inputs = row.querySelectorAll('.form-input');
+        
+            inputs.forEach(input => {
+                input.disabled = !input.disabled;
+                input.style.cursor = input.disabled ? "not-allowed" : "auto";
+            });
+        }
+        
+        function confirmDelete() {
+            return confirm('Do you really want to delete this user?');
+        }
+        
+        
+        function toggleEditFields(button) {
+            const row = button.closest('tr'); // Get the closest row of the clicked button
+            const inputs = row.querySelectorAll('.form-input'); // Select all input fields in the row
+            
+            inputs.forEach(input => {
+                input.disabled = !input.disabled;
+                input.style.cursor = input.disabled ? "not-allowed" : "auto";
+            });
+        }
+
+        function confirmDelete() {
+            return confirm('Do you really want to delete this user?');
+        }
+
+        function confirmRestore() {
+    return confirm("Are you sure you want to restore this item?");
+}
+
+    </script>
+
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css" />
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script type="text/javascript">
+    $(document).ready(function() {
+         $("#registered_vehicle").DataTable({
+                "searching": true,
+                "ordering": true,
+                "paging": true,
+                "info": false
+            });
+    })
+</script>
+    
+{% endblock content %}
