@@ -1,0 +1,75 @@
+{% extends "reset.html" %}
+
+{% block content %}
+
+{% load static %}
+
+  <link rel="stylesheet" href="{% static 'css/login.css' %}">
+
+  <!-- Background Image -->
+  <img src="{% static 'images/background.jpg' %}" alt="Background" class="background-image">
+
+  <!-- Gradient Overlay -->
+  <div class="gradient-overlay"></div>
+
+  <div class="login-container">
+
+    <!-- Logo -->
+    <div class="logo-container">
+      <img 
+          src="{% static 'images/pup-logo.png' %}" 
+          alt="Logo" 
+          class="logo"
+      >            
+    </div>
+
+    <h2 class="login-title">Set a New Password</h2>
+
+    <form method="post">
+
+      {% csrf_token %}
+
+      <div class="form-group">
+        <input class="form-input" type="password" name="new_password1" placeholder="New Password" id="password1" required>
+        <!-- Eye Icon -->
+        <i class="fa-solid fa-eye absolute left-80 top-11 text-gray-500 cursor-pointer" id="togglePassword1"></i>
+
+        <input class="form-input" type="password" name="new_password2" placeholder="Confirm Password" id="password2" required>
+        <!-- Eye Icon -->
+        <i class="fa-solid fa-eye absolute left-80 bottom-24 text-gray-500 cursor-pointer" id="togglePassword2"></i>
+      </div>
+
+      <button class="reset-button" type="submit">Reset Password</button>
+    </form>
+    
+  </div>
+
+  <script>
+    const passwordInput1 = document.getElementById('password1');
+    const togglePassword1 = document.getElementById('togglePassword1');
+
+    togglePassword1.addEventListener('click', function () {
+        // Toggle password visibility
+        const type = passwordInput1.getAttribute('type') === 'password' ? 'text' : 'password';
+        passwordInput1.setAttribute('type', type);
+
+        // Toggle eye icon (eye/eye-slash)
+        this.classList.toggle('fa-eye');
+        this.classList.toggle('fa-eye-slash');
+    });
+
+    const passwordInput2 = document.getElementById('password2');
+    const togglePassword2 = document.getElementById('togglePassword2');
+
+    togglePassword2.addEventListener('click', function () {
+        // Toggle password visibility
+        const type = passwordInput2.getAttribute('type') === 'password' ? 'text' : 'password';
+        passwordInput2.setAttribute('type', type);
+
+        // Toggle eye icon (eye/eye-slash)
+        this.classList.toggle('fa-eye');
+        this.classList.toggle('fa-eye-slash');
+    });
+  </script>
+
+{% endblock %}
