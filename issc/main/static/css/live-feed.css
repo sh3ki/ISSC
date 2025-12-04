@@ -1,0 +1,84 @@
+
+:root {
+    --primary-color: rgba(64, 0, 0, 0.9); 
+    --secondary-color: rgba(230, 230, 230, 1); 
+    --background-gradient: linear-gradient(135deg, rgba(200, 200, 200, 1), rgba(64, 0, 0, 1));
+    --text-color: #333333; 
+    --hover-color: rgba(128, 0, 0, 0.9); 
+    --link-color: rgba(64, 0, 0, 1); 
+}
+
+
+.grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr); 
+    gap: 2px; 
+    width: 100%;
+    position: relative; 
+}
+
+
+.camera-card {
+    border-radius: 3px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    padding: 5px;
+    transition: transform 0.3s ease, box-shadow 0.3s ease, filter 0.3s ease;
+    margin-top: 60px;
+}
+
+
+.camera-card:hover {
+    transform: scale(1.1); 
+    z-index: 10; 
+    box-shadow: 0 6px 15px rgba(64, 0, 0, 0.5); 
+}
+
+
+.grid:hover .camera-card:not(:hover) {
+    filter: blur(4px); 
+    opacity: 0.6; 
+}
+
+
+.camera-card h3 {
+    text-align: center;
+    font-size: 1.2rem;
+    margin-bottom: 5px;
+    color: var(--primary-color);
+}
+
+
+.camera-frame {
+    width: 100%;
+    height: 300px; 
+    object-fit: cover;
+    border-radius: 5px;
+    border: 1px solid var(--hover-color); 
+}
+
+
+.no-cameras {
+    text-align: center;
+    font-size: 1rem;
+    color: var(--text-color);
+    font-style: italic;
+}
+
+
+@media (max-width: 1024px) {
+    .grid {
+        grid-template-columns: repeat(2, 1fr); 
+    }
+    .camera-frame {
+        height: 250px; 
+    }
+}
+
+@media (max-width: 768px) {
+    .grid {
+        grid-template-columns: 1fr; 
+    }
+    .camera-frame {
+        height: 220px;
+    }
+}
