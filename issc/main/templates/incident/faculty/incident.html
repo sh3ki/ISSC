@@ -1,0 +1,278 @@
+{% extends 'base.html' %}
+
+{% block title %} Incident {% endblock title %}
+
+{% block content %}
+
+{% load static %} 
+
+    <link rel="stylesheet" href="{% static 'css/forms.css' %}">
+
+    <div class="create-search">
+        <a href="{% url 'incident_forms' %}" class="create-new-btn">File New Incident</a>
+        <a href="{% url 'incidents' %}?archive=true" class="create-new-btn">Archive</a>
+    </div>
+
+    <div class="p-4 mt-2 mb-4rounded">
+        <div class="flex justify-end mb-4 space-x-2">
+            <button onclick="showSection('open')" class="px-4 py-2 bg-red-900 text-white rounded-xl transition-all duration-300 transform shadow-md hover:shadow-xl hover:translate-y-[-3px] active:translate-y-[0px] active:shadow-sm">Open Cases</button>
+            <button onclick="showSection('pending')" class="px-4 py-2 bg-red-900 text-white rounded-xl transition-all duration-300 transform shadow-md hover:shadow-xl hover:translate-y-[-3px] active:translate-y-[0px] active:shadow-sm">Ongoing Cases</button>
+            <button onclick="showSection('closed')" class="px-4 py-2 bg-red-900 text-white rounded-xl transition-all duration-300 transform shadow-md hover:shadow-xl hover:translate-y-[-3px] active:translate-y-[0px] active:shadow-sm">Closed Cases</button>
+        </div>
+
+        <!-- Open Cases Section -->
+        <div id="open-section" class="section">
+            <div class="table-container">
+            <table class="form-table" id="open">
+                <thead>
+                    <tr>
+                        <th>Date Time</th>
+                        <th>First Name</th>
+                        <th>Last Name</th>
+                        <th>Subject</th>
+                        <th>Location</th>
+                        <th>Reported By</th>
+                        <th>Department</th>
+                        <th>Phone Number</th>
+                        <th>Status</th>
+                        <th>Last Updated By</th>
+                        <th>Details</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for data in open_incident %}
+                    <tr>
+                        <form method="POST" action="">
+                            {% csrf_token %}
+                            <td>{{ data.date_joined }}</td>
+                            <input type="hidden" name="incident_id" value="{{ data.id }}">
+                            <td>{{ data.first_name }}</td>
+                            <td>{{ data.last_name }}</td>
+                            <td>{{ data.subject }}</td>
+                            <td>{{ data.location }}</td>
+                            <td>{{ data.reported_by }}</td>
+                            <td>{{ data.department }}</td>
+                            <td>{{ data.phone_number }}</td>
+                            <td>
+                                <select class="form-input" name="status" style="width: 140px;" disabled>
+                                    <option value="open" {% if data.status == 'open' %}selected{% endif %}>Open</option>
+                                    <option value="pending" {% if data.status == 'pending' %}selected{% endif %}>Ongoing</option>
+                                    <option value="closed" {% if data.status == 'closed' %}selected{% endif %}>Closed</option>
+                                </select>
+                            </td>
+                            <td>{{ data.last_updated_by }}</td>
+                            <td><a href="{% url 'incident_details' data.id %}" >Details</a></td>
+                            <td style="text-align: center;">
+                                <button name="approve" class="form-input update-btn" value="{{ data.id }}" style="background-color: #28a745; color: white; padding: 8px 15px; margin: 3px; border: none; border-radius: 4px; cursor: pointer; display: block; width: 120px;">Validate</button>
+                                <button type="button" onclick="showInvalidateModal({{ data.id }})" class="form-input delete-btn" style="background-color: #dc3545; color: white; padding: 8px 15px; margin: 3px; border: none; border-radius: 4px; cursor: pointer; display: block; width: 120px;">Invalidate</button>
+                            </td>
+                        </form>
+                    </tr>
+                    {% empty %} 
+                    
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Pending Cases Section -->
+    <div id="pending-section" class="section hidden">
+        <div class="table-container">
+        <table class="form-table" id="pending">
+            <thead>
+               
+                <tr>
+                    <th>Date Time</th>
+                    <th>First Name</th>
+                    <th>Last Name</th>
+                    <th>Subject</th>
+                    <th>Location</th>
+                    <th>Reported By</th>
+                    <th>Department</th>
+                    <th>Phone Number</th>
+                    <th>Status</th>
+                    <th>Last Updated By</th>
+                    <th>Details</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for data in pending_incident %}
+                <tr>
+                    <form method="POST" action="">
+                        {% csrf_token %}
+                        <td>{{ data.date_joined }}</td>
+                        <input type="hidden" name="incident_id" value="{{ data.id }}">
+                        <td>{{ data.first_name }}</td>
+                        <td>{{ data.last_name }}</td>
+                        <td>{{ data.subject }}</td>
+                        <td>{{ data.location }}</td>
+                        <td>{{ data.reported_by }}</td>
+                        <td>{{ data.department }}</td>
+                        <td>{{ data.phone_number }}</td>
+                        <td>
+                            <select class="form-input" name="status" style="width: 140px;" disabled>
+                                <option value="open" {% if data.status == 'open' %}selected{% endif %}>Open</option>
+                                <option value="pending" {% if data.status == 'pending' %}selected{% endif %}>Ongoing</option>
+                                <option value="closed" {% if data.status == 'closed' %}selected{% endif %}>Closed</option>
+                            </select>
+                        </td>
+                        <td>{{ data.last_updated_by }}</td>
+                        <td><a href="{% url 'incident_details' data.id %}" >Details</a></td>
+                    </form>
+                </tr>
+                {% empty %} 
+                
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    </div>
+
+    <!-- Closed Cases Section -->
+    <div id="closed-section" class="section hidden">
+        <div class="table-container">
+        <table class="form-table" id="closed">
+            <thead>
+                <tr>
+                    <th>Date Time</th>
+                    <th>First Name</th>
+                    <th>Last Name</th>
+                    <th>Subject</th>
+                    <th>Location</th>
+                    <th>Reported By</th>
+                    <th>Department</th>
+                    <th>Phone Number</th>
+                    <th>Status</th>
+                    <th>Last Updated By</th>
+                    <th>Details</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for data in closed_incident %}
+                <tr>
+                    <form method="POST" action="">
+                        {% csrf_token %}
+                        <td>{{ data.date_joined }}</td>
+                        <input type="hidden" name="incident_id" value="{{ data.id }}">
+                        <td>{{ data.first_name }}</td>
+                        <td>{{ data.last_name }}</td>
+                        <td>{{ data.subject }}</td>
+                        <td>{{ data.location }}</td>
+                        <td>{{ data.reported_by }}</td>
+                        <td>{{ data.department }}</td>
+                        <td>{{ data.phone_number }}</td>
+                        <td>
+                            <select class="form-input" name="status" style="width: 140px;" disabled>
+                                <option value="open" {% if data.status == 'open' %}selected{% endif %}>Open</option>
+                                <option value="pending" {% if data.status == 'pending' %}selected{% endif %}>Ongoing</option>
+                                <option value="closed" {% if data.status == 'closed' %}selected{% endif %}>Closed</option>
+                            </select>
+                        </td>
+                        <td>{{ data.last_updated_by }}</td>
+                        <td><a href="{% url 'incident_details' data.id %}" >Details</a></td>
+                    </form>
+                </tr>
+                {% empty %} 
+                
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    </div>
+</div>
+
+<!-- Invalidate Modal -->
+<div id="invalidateModal" style="display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.4);">
+    <div style="background-color: #fefefe; margin: 5% auto; padding: 20px; border: 1px solid #888; width: 80%; max-width: 600px; border-radius: 8px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h2 style="margin: 0; color: #dc3545;">Invalidate Case</h2>
+            <span onclick="closeInvalidateModal()" style="cursor: pointer; font-size: 28px; font-weight: bold; color: #aaa;">&times;</span>
+        </div>
+        
+        <form id="invalidateForm" method="POST" action="">
+            {% csrf_token %}
+            <input type="hidden" name="incident_id" id="invalidate_incident_id" value="">
+            
+            <div style="margin-bottom: 20px;">
+                <label for="invalidate_reason" style="display: block; margin-bottom: 8px; font-weight: bold;">Reason for Invalidation:</label>
+                <textarea name="invalidate_reason" id="invalidate_reason" required style="width: 100%; min-height: 150px; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-family: inherit; resize: vertical;" placeholder="Please provide a detailed reason for invalidating this case..."></textarea>
+            </div>
+            
+            <div style="display: flex; justify-content: flex-end; gap: 10px;">
+                <button type="button" onclick="closeInvalidateModal()" style="background-color: #6c757d; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer;">Cancel</button>
+                <button type="submit" name="invalidate" style="background-color: #dc3545; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer;">Invalidate Case</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    function showSection(type) {
+        // Hide all
+        document.getElementById('open-section').classList.add('hidden');
+        document.getElementById('pending-section').classList.add('hidden');
+        document.getElementById('closed-section').classList.add('hidden');
+
+        // Show selected
+        if (type === 'open') {
+            document.getElementById('open-section').classList.remove('hidden');
+        } else if (type === 'pending') {
+            document.getElementById('pending-section').classList.remove('hidden');
+        } else if (type === 'closed') {
+            document.getElementById('closed-section').classList.remove('hidden');
+        }
+    }
+
+    function showInvalidateModal(incidentId) {
+        document.getElementById('invalidate_incident_id').value = incidentId;
+        document.getElementById('invalidate_reason').value = '';
+        document.getElementById('invalidateModal').style.display = 'block';
+    }
+
+    function closeInvalidateModal() {
+        document.getElementById('invalidateModal').style.display = 'none';
+    }
+
+    // Close modal when clicking outside of it
+    window.onclick = function(event) {
+        const modal = document.getElementById('invalidateModal');
+        if (event.target == modal) {
+            closeInvalidateModal();
+        }
+    }
+</script>
+
+
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css" />
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+
+
+<script type="text/javascript">
+    $(document).ready(function(){
+        $("#open").DataTable({
+                "searching": true,
+                "ordering": true,
+                "paging": true,
+                "info": false
+            });
+
+        $("#pending").DataTable({
+                "searching": true,
+                "ordering": true,
+                "paging": true,
+                "info": false
+            });
+
+        $("#closed").DataTable({
+                "searching": true,
+                "ordering": true,
+                "paging": true,
+                "info": false
+            });
+    })
+</script>
+
+{% endblock content %}
