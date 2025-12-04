@@ -1,0 +1,630 @@
+{% extends 'base.html' %}
+
+{% block title %} Live Feed {% endblock title %}
+
+{% block content %}
+
+{% load static %} 
+
+<link rel="stylesheet" type="text/css" href="{% static 'css/live-feed.css' %}">
+
+<!-- Control buttons -->
+<div class="controls" style="margin-bottom: 20px;">
+    <a href="{% url 'recording_archive' %}" class="btn" style="background-color: var(--primary-color); color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; margin-right: 10px;">
+        <i class="fas fa-archive"></i> Archive
+    </a>
+    <a href="{% url 'face_logs' %}" class="btn" style="background-color: var(--primary-color); color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; margin-right: 10px;">
+        <i class="fas fa-user"></i> Face Logs
+    </a>
+    <span style="color: var(--primary-color); font-weight: bold; margin-left: 20px;">
+        Status: {{ recording_status }}
+    </span>
+</div>
+
+<!-- Improved Camera Grid Layout -->
+<div class="grid">
+    {% for camera_id in camera_ids %}
+        <div class="camera-card" id="camera-card-{{ camera_id }}">
+            <div class="camera-wrapper">
+                <img class="camera-frame" 
+                     id="camera-frame-{{ camera_id }}"
+                     data-src="{% url 'enhanced_video_feed' camera_id=camera_id %}" 
+                     alt="Camera {{ camera_id }}"
+                     onload="handleCameraLoad({{ camera_id }})"
+                     onerror="handleCameraError({{ camera_id }})">
+                <div class="camera-overlay" id="camera-overlay-{{ camera_id }}">
+                    <div class="loading-spinner"></div>
+                    <div class="loading-text">Loading Camera {{ camera_id }}...</div>
+                    <div class="loading-progress">
+                        <div class="progress-bar" id="progress-{{ camera_id }}"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% endfor %}
+</div>
+
+{% if not camera_ids %}
+    <div class="no-cameras">
+        <h3>No cameras are currently available.</h3>
+        <p>Please check your camera connections and refresh the page.</p>
+        <button onclick="location.reload()" class="btn" style="background-color: var(--primary-color); color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer;">
+            <i class="fas fa-refresh"></i> Refresh
+        </button>
+    </div>
+{% endif %}
+
+<script>
+let cameraStates = {};
+let faceEmbeddings = [];
+let isInitialized = false;
+let fastLoadEnabled = true;
+
+// Initialize camera states - always 4 cameras (0, 1, 2, 3)
+const cameraIds = [0, 1, 2, 3];
+
+// Build camera states object
+cameraIds.forEach(cameraId => {
+    cameraStates[cameraId] = {
+        id: cameraId,
+        name: `Camera ${cameraId}`,
+        faceCount: 0,
+        status: 'initializing',
+        lastUpdate: Date.now(),
+        isLoaded: false,
+        errorCount: 0,
+        loadStartTime: null,
+        progressTimer: null
+    };
+});
+
+// Fast loading initialization
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Fast loading live feed with', cameraIds.length, 'cameras...');
+    
+    // Start loading cameras with delay for better UX
+    setTimeout(() => {
+        cameraIds.forEach(cameraId => {
+            loadCameraWithProgress(cameraId);
+        });
+    }, 100); // Small delay to show loading state
+    
+    // Pre-load face embeddings in background
+    loadFaceEmbeddings();
+});
+
+function loadCameraWithProgress(cameraId) {
+    const overlay = document.getElementById(`camera-overlay-${cameraId}`);
+    const progressBar = document.getElementById(`progress-${cameraId}`);
+    const loadingText = document.querySelector(`#camera-overlay-${cameraId} .loading-text`);
+    
+    if (overlay) overlay.style.display = 'flex';
+    if (loadingText) loadingText.textContent = `Connecting to Camera ${cameraId}...`;
+    
+    cameraStates[cameraId].loadStartTime = Date.now();
+    
+    // Simulate progress for better UX
+    let progress = 0;
+    cameraStates[cameraId].progressTimer = setInterval(() => {
+        progress += Math.random() * 15;
+        progress = Math.min(progress, 85); // Don't complete until actual load
+        
+        if (progressBar) {
+            progressBar.style.width = progress + '%';
+        }
+        
+        if (progress > 50 && loadingText) {
+            loadingText.textContent = `Loading Camera ${cameraId}...`;
+        }
+    }, 200);
+    
+    // Start actual camera loading with event handlers
+    const img = document.getElementById(`camera-frame-${cameraId}`);
+    if (img && img.dataset.src) {
+        // Add event listeners for load/error handling
+        img.onload = () => handleImageLoad(cameraId);
+        img.onerror = () => handleImageError(cameraId);
+        
+        // Add smooth loading to prevent flickering
+        img.style.opacity = '0';
+        img.style.transition = 'opacity 0.3s ease';
+        
+        // Start loading
+        img.src = img.dataset.src;
+    }
+}
+
+// Enhanced camera loading handler
+function handleCameraLoad(cameraId) {
+    console.log(`Camera ${cameraId} loaded successfully`);
+    cameraStates[cameraId].isLoaded = true;
+    cameraStates[cameraId].status = 'active';
+    cameraStates[cameraId].errorCount = 0;
+    
+    // Hide loading overlay
+    const overlay = document.getElementById(`camera-overlay-${cameraId}`);
+    if (overlay) {
+        overlay.style.display = 'none';
+    }
+    
+    // Update status display
+    updateCameraStatus(cameraId, 'Active', 'success');
+    
+    // Start monitoring this camera
+    startCameraMonitoring(cameraId);
+}
+
+// Enhanced camera error handler
+function handleCameraError(cameraId) {
+    console.log(`Camera ${cameraId} failed to load`);
+    cameraStates[cameraId].errorCount++;
+    
+    if (cameraStates[cameraId].errorCount < 3) {
+        // Try to reload the camera feed
+        setTimeout(() => {
+            const img = document.getElementById(`camera-frame-${cameraId}`);
+            if (img) {
+                console.log(`Retrying camera ${cameraId} (attempt ${cameraStates[cameraId].errorCount + 1})`);
+                img.src = img.src.split('?')[0] + '?t=' + Date.now();
+            }
+        }, 2000 * cameraStates[cameraId].errorCount); // Exponential backoff
+    } else {
+        // Too many errors, mark as failed
+        cameraStates[cameraId].status = 'error';
+        updateCameraStatus(cameraId, 'Error', 'error');
+        
+        // Show error overlay
+        const overlay = document.getElementById(`camera-overlay-${cameraId}`);
+        if (overlay) {
+            overlay.innerHTML = `
+                <div class="error-icon">⚠️</div>
+                <div class="error-text">Camera ${cameraId} Unavailable</div>
+                <button onclick="retryCameraInitialization(${cameraId})" class="retry-btn">Retry</button>
+            `;
+            overlay.style.display = 'flex';
+        }
+    }
+}
+
+// Update camera status display
+function updateCameraStatus(cameraId, statusText, statusType) {
+    const statusElement = document.getElementById(`camera-${cameraId}-status`);
+    if (statusElement) {
+        statusElement.textContent = statusText;
+        statusElement.className = `stat-value status-indicator status-${statusType}`;
+    }
+}
+
+// Retry camera initialization
+function retryCameraInitialization(cameraId) {
+    console.log(`Retrying initialization for camera ${cameraId}`);
+    cameraStates[cameraId].errorCount = 0;
+    cameraStates[cameraId].status = 'initializing';
+    
+    // Show loading overlay
+    const overlay = document.getElementById(`camera-overlay-${cameraId}`);
+    if (overlay) {
+        overlay.innerHTML = `
+            <div class="loading-spinner"></div>
+            <div class="loading-text">Reconnecting Camera ${cameraId}...</div>
+        `;
+        overlay.style.display = 'flex';
+    }
+    
+    // Update status
+    updateCameraStatus(cameraId, 'Reconnecting...', 'initializing');
+    
+    // Reload camera feed
+    const img = document.getElementById(`camera-frame-${cameraId}`);
+    if (img) {
+        img.src = img.src.split('?')[0] + '?t=' + Date.now();
+    }
+}
+
+// Start monitoring camera for face detection updates
+function startCameraMonitoring(cameraId) {
+    // This function would typically connect to a WebSocket or poll for updates
+    // For now, we'll use a polling mechanism to get face detection updates
+    setInterval(() => {
+        // In a real implementation, you would fetch face detection data from the server
+        // updateFaceCount(cameraId, detectedFaces.length);
+    }, 1000);
+}
+
+// Update face count display - now overlaid on camera feed
+function updateFaceCount(cameraId, count) {
+    if (cameraStates[cameraId].faceCount !== count) {
+        cameraStates[cameraId].faceCount = count;
+        cameraStates[cameraId].lastUpdate = Date.now();
+        
+        // Face count will now be overlaid directly on the camera feed by the backend
+        // No need for separate HTML elements
+        console.log(`Camera ${cameraId} face count updated: ${count}`);
+    }
+}
+
+// Load face embeddings on page initialization
+async function loadFaceEmbeddings() {
+    try {
+        console.log('Loading face embeddings...');
+        const response = await fetch('/api/face-embeddings/');
+        if (response.ok) {
+            const data = await response.json();
+            faceEmbeddings = data.embeddings || data || [];
+            console.log(`Loaded ${faceEmbeddings.length || 0} face embeddings`);
+            return true;
+        } else {
+            console.error('Failed to load face embeddings:', response.statusText);
+            return false;
+        }
+    } catch (error) {
+        console.error('Error loading face embeddings:', error);
+        return false;
+    }
+}
+
+// Initialize the page
+async function initializePage() {
+    if (isInitialized) return;
+    
+    console.log('Initializing live feed page...');
+    
+    // Step 1: Load face embeddings first
+    const embeddingsLoaded = await loadFaceEmbeddings();
+    if (!embeddingsLoaded) {
+        console.warn('Face embeddings not loaded, recognition may not work properly');
+    }
+    
+    // Step 2: Initialize cameras (they will load automatically via img tags)
+    console.log('Cameras will initialize automatically...');
+    
+    // Step 3: Set up periodic status checks
+    setInterval(checkCameraHealth, 5000);
+    
+    isInitialized = true;
+    console.log('Live feed page initialization complete');
+}
+
+// Handle optimized image loading events
+function handleImageLoad(cameraId) {
+    console.log(`Camera ${cameraId} loaded successfully`);
+    cameraStates[cameraId].isLoaded = true;
+    cameraStates[cameraId].status = 'active';
+    cameraStates[cameraId].errorCount = 0;
+    cameraStates[cameraId].lastUpdate = Date.now(); // Important: update timestamp
+    
+    const img = document.getElementById(`camera-frame-${cameraId}`);
+    const progressBar = document.getElementById(`progress-${cameraId}`);
+    const overlay = document.getElementById(`camera-overlay-${cameraId}`);
+    
+    // Smooth fade-in to prevent flickering
+    if (img) {
+        img.style.opacity = '1';
+    }
+    
+    if (progressBar) progressBar.style.width = '100%';
+    
+    // Clear progress timer
+    if (cameraStates[cameraId].progressTimer) {
+        clearInterval(cameraStates[cameraId].progressTimer);
+        cameraStates[cameraId].progressTimer = null;
+    }
+    
+    // Hide overlay with smooth transition
+    setTimeout(() => {
+        if (overlay) {
+            overlay.style.opacity = '0';
+            setTimeout(() => {
+                overlay.style.display = 'none';
+            }, 300);
+        }
+    }, 500);
+    
+    updateCameraStatus(cameraId, 'Connected', 'success');
+    
+    // Calculate load time
+    if (cameraStates[cameraId].loadStartTime) {
+        const loadTime = Date.now() - cameraStates[cameraId].loadStartTime;
+        console.log(`Camera ${cameraId} load time: ${loadTime}ms`);
+    }
+}
+
+function handleImageError(cameraId) {
+    console.log(`Camera ${cameraId} failed to load`);
+    cameraStates[cameraId].errorCount++;
+    
+    const overlay = document.getElementById(`camera-overlay-${cameraId}`);
+    const loadingText = document.querySelector(`#camera-overlay-${cameraId} .loading-text`);
+    const progressBar = document.getElementById(`progress-${cameraId}`);
+    
+    // Clear progress timer
+    if (cameraStates[cameraId].progressTimer) {
+        clearInterval(cameraStates[cameraId].progressTimer);
+        cameraStates[cameraId].progressTimer = null;
+    }
+    
+    if (cameraStates[cameraId].errorCount >= 3) {
+        // Too many failures - show NO INPUT permanently
+        cameraStates[cameraId].status = 'no-input';
+        if (loadingText) loadingText.textContent = `Camera ${cameraId} - No Input`;
+        if (progressBar) progressBar.style.width = '100%';
+        
+        // Hide overlay and show no input frame
+        setTimeout(() => {
+            if (overlay) overlay.style.display = 'none';
+            showNoInputFrame(cameraId);
+            updateCameraStatus(cameraId, 'No Input', 'error');
+        }, 1000);
+        
+    } else {
+        // Still retrying
+        cameraStates[cameraId].status = 'error';
+        if (loadingText) loadingText.textContent = `Camera ${cameraId} - Retrying...`;
+        if (progressBar) progressBar.style.width = '0%';
+        
+        // Retry after delay
+        setTimeout(() => {
+            console.log(`Retrying camera ${cameraId} (attempt ${cameraStates[cameraId].errorCount + 1})...`);
+            loadCameraWithProgress(cameraId);
+        }, 2000);
+    }
+}
+
+// Check camera health periodically
+function checkCameraHealth() {
+    Object.keys(cameraStates).forEach(cameraId => {
+        const state = cameraStates[cameraId];
+        const img = document.getElementById(`camera-frame-${cameraId}`);
+        
+        // Only check if image exists and is supposed to be active
+        if (img && state.isLoaded) {
+            // Check if image is actually updating (not stalled)
+            if (img.complete && img.naturalWidth > 0) {
+                // Image is loading properly
+                if (state.status !== 'active') {
+                    state.status = 'active';
+                    updateCameraStatus(cameraId, 'Connected', 'success');
+                }
+            } else if (state.errorCount > 5) {
+                // Multiple failures - show no input
+                state.status = 'no-input';
+                updateCameraStatus(cameraId, 'No Input', 'error');
+                showNoInputFrame(cameraId);
+            }
+        }
+    });
+}
+
+// Show no input frame for cameras that aren't working
+function showNoInputFrame(cameraId) {
+    const img = document.getElementById(`camera-frame-${cameraId}`);
+    if (img) {
+        // Create a static "NO INPUT" image
+        const canvas = document.createElement('canvas');
+        canvas.width = 640;
+        canvas.height = 480;
+        const ctx = canvas.getContext('2d');
+        
+        // Dark background
+        ctx.fillStyle = '#1a1a1a';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        // "NO INPUT" text
+        ctx.fillStyle = '#666';
+        ctx.font = 'bold 36px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText('NO INPUT', canvas.width/2, canvas.height/2 - 20);
+        
+        // Camera ID
+        ctx.fillStyle = '#999';
+        ctx.font = '24px Arial';
+        ctx.fillText(`Camera ${cameraId}`, canvas.width/2, canvas.height/2 + 30);
+        
+        // Convert to blob and set as image source
+        canvas.toBlob(blob => {
+            const url = URL.createObjectURL(blob);
+            img.src = url;
+        });
+    }
+}
+
+// Update camera status display
+function updateCameraStatus(cameraId, statusText, statusType = 'info') {
+    const statusElement = document.querySelector(`#camera-${cameraId} .camera-status`);
+    if (statusElement) {
+        statusElement.textContent = statusText;
+        statusElement.className = `camera-status status-${statusType}`;
+    }
+}
+
+// Anti-flickering mechanism for camera images
+function setupAntiFlickering() {
+    cameraIds.forEach(cameraId => {
+        const img = document.getElementById(`camera-frame-${cameraId}`);
+        if (img) {
+            let lastValidSrc = null;
+            let errorCount = 0;
+            
+            img.addEventListener('load', function() {
+                lastValidSrc = this.src;
+                errorCount = 0;
+                cameraStates[cameraId].lastUpdate = Date.now();
+            });
+            
+            img.addEventListener('error', function() {
+                errorCount++;
+                cameraStates[cameraId].errorCount = errorCount;
+                
+                if (errorCount > 3) {
+                    // Too many errors, show no input
+                    showNoInputFrame(cameraId);
+                } else if (lastValidSrc) {
+                    // Try to restore last valid frame
+                    this.src = lastValidSrc;
+                }
+            });
+        }
+    });
+}
+
+// Initialize when DOM is ready
+document.addEventListener('DOMContentLoaded', function() {
+    // Small delay to ensure all elements are rendered
+    setTimeout(() => {
+        initializePage();
+        setupAntiFlickering();
+    }, 500);
+});
+
+// Handle page visibility changes to manage resources
+document.addEventListener('visibilitychange', function() {
+    if (document.hidden) {
+        console.log('Page hidden - reducing resource usage');
+    } else {
+        console.log('Page visible - resuming normal operation');
+        // Refresh camera feeds to ensure they're current
+        Object.keys(cameraStates).forEach(cameraId => {
+            if (cameraStates[cameraId].status === 'active') {
+                const img = document.getElementById(`camera-frame-${cameraId}`);
+                if (img) {
+                    img.src = img.src.split('?')[0] + '?t=' + Date.now();
+                }
+            }
+        });
+    }
+});
+</script>
+
+<style>
+.camera-card {
+    position: relative;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #f9f9f9;
+    transition: all 0.3s ease;
+}
+
+.camera-card:hover {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    transform: translateY(-2px);
+}
+
+/* Removed purple header box - no longer needed */
+
+.camera-wrapper {
+    position: relative;
+    width: 100%;
+    height: 300px;
+    overflow: hidden;
+}
+
+.camera-frame {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: opacity 0.3s ease;
+}
+
+.camera-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.8);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    color: white;
+    z-index: 3;
+}
+
+.loading-spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid rgba(255,255,255,0.3);
+    border-top: 4px solid white;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-bottom: 16px;
+}
+
+.loading-text {
+    font-size: 1.1em;
+    font-weight: 500;
+    text-align: center;
+}
+
+.error-icon {
+    font-size: 3em;
+    margin-bottom: 16px;
+}
+
+.error-text {
+    font-size: 1.1em;
+    font-weight: 500;
+    margin-bottom: 16px;
+    text-align: center;
+}
+
+.retry-btn {
+    background: #4CAF50;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: background 0.3s ease;
+}
+
+.retry-btn:hover {
+    background: #45a049;
+}
+
+.no-cameras {
+    text-align: center;
+    padding: 60px 20px;
+    color: #666;
+}
+
+.no-cameras h3 {
+    margin-bottom: 16px;
+    color: #333;
+}
+
+.no-cameras p {
+    margin-bottom: 24px;
+    font-size: 1.1em;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.6; }
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .camera-stats {
+        grid-template-columns: 1fr;
+        gap: 4px;
+    }
+    
+    .camera-wrapper {
+        height: 250px;
+    }
+    
+    .stat-item {
+        font-size: 0.85em;
+    }
+}
+</style>
+
+{% endblock content %}
