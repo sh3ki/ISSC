@@ -4,90 +4,524 @@
   <meta charset="UTF-8">
   <title>Incident Report Graphs</title>
   <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
     body {
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      margin: 40px;
-      background-color: #f4f4f6;
-      color: #333;
-    }
-
-    .graph-wrapper {
-      background: white;
-      border-radius: 8px;
-      padding: 20px;
-      margin-bottom: 30px;
-      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
-      page-break-inside: avoid;
-    }
-
-    .graph-wrapper img {
-      display: block;
-      max-width: 100%;
-      height: auto;
-      margin: 0 auto;
-    }
-
-    .graph-title {
-      font-size: 18px;
-      font-weight: 600;
-      margin-bottom: 15px;
-      text-align: center;
+      font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
       color: #2c3e50;
+      padding: 30px 20px;
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+      overflow: hidden;
+    }
+
+    .header {
+      background: linear-gradient(135deg, #800000 0%, #a00000 100%);
+      padding: 30px 40px;
+      color: white;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .header h2 {
+      font-size: 28px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+    }
+
+    .header-buttons {
+      display: flex;
+      gap: 12px;
+    }
+
+    .btn {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      font-size: 14px;
+      text-decoration: none;
+      display: inline-block;
+    }
+
+    .btn-back {
+      background: rgba(255, 255, 255, 0.2);
+      color: white;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+    }
+
+    .btn-back:hover {
+      background: rgba(255, 255, 255, 0.3);
+      transform: translateY(-2px);
+    }
+
+    .btn-excel {
+      background: #28a745;
+      color: white;
+    }
+
+    .btn-excel:hover {
+      background: #218838;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(40, 167, 69, 0.4);
+    }
+
+    .content {
+      padding: 40px;
+    }
+
+    .filter-section {
+      margin-bottom: 30px;
+    }
+
+    .filter-buttons {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      margin-bottom: 25px;
+    }
+
+    .filter-btn {
+      padding: 12px 24px;
+      background: #f8f9fa;
+      color: #495057;
+      border: 2px solid #dee2e6;
+      border-radius: 10px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      font-size: 14px;
+    }
+
+    .filter-btn:hover {
+      background: #e9ecef;
+      border-color: #adb5bd;
+      transform: translateY(-2px);
+    }
+
+    .filter-btn.active {
+      background: #800000;
+      color: white;
+      border-color: #800000;
+      box-shadow: 0 4px 12px rgba(128, 0, 0, 0.3);
+    }
+
+    .filter-form-container {
+      background: #f8f9fa;
+      padding: 25px;
+      border-radius: 12px;
+      box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.05);
+    }
+
+    .filter-form {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 15px;
+      flex-wrap: wrap;
+    }
+
+    .filter-form label {
+      font-weight: 600;
+      color: #495057;
+    }
+
+    .filter-form input,
+    .filter-form select {
+      padding: 10px 15px;
+      border: 2px solid #dee2e6;
+      border-radius: 8px;
+      font-size: 14px;
+      transition: all 0.3s ease;
+    }
+
+    .filter-form input:focus,
+    .filter-form select:focus {
+      outline: none;
+      border-color: #800000;
+      box-shadow: 0 0 0 3px rgba(128, 0, 0, 0.1);
+    }
+
+    .btn-apply {
+      padding: 10px 24px;
+      background: #800000;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .btn-apply:hover {
+      background: #a00000;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(128, 0, 0, 0.3);
+    }
+
+    .filter-status {
+      text-align: center;
+      padding: 15px;
+      background: linear-gradient(135deg, #fff3cd 0%, #ffe69c 100%);
+      border-left: 4px solid #ffc107;
+      border-radius: 8px;
+      margin-bottom: 25px;
+      font-weight: 600;
+      color: #856404;
+    }
+
+    .table-wrapper {
+      overflow-x: auto;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      background: white;
+    }
+
+    thead {
+      background: linear-gradient(135deg, #800000 0%, #a00000 100%);
+      color: white;
+    }
+
+    th {
+      padding: 16px 12px;
+      text-align: left;
+      font-weight: 700;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      white-space: nowrap;
+    }
+
+    tbody tr {
+      border-bottom: 1px solid #e9ecef;
+      transition: all 0.2s ease;
+    }
+
+    tbody tr:hover {
+      background: #f8f9fa;
+    }
+
+    tbody tr:last-child {
+      border-bottom: none;
+    }
+
+    td {
+      padding: 14px 12px;
+      font-size: 12px;
+      color: #495057;
+    }
+
+    .status-badge {
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+      display: inline-block;
+    }
+
+    .status-open {
+      background: #fff3cd;
+      color: #856404;
+    }
+
+    .status-pending {
+      background: #cfe2ff;
+      color: #084298;
+    }
+
+    .status-closed {
+      background: #d1e7dd;
+      color: #0f5132;
+    }
+
+    .update-item {
+      background: #f8f9fa;
+      padding: 8px 10px;
+      border-radius: 6px;
+      margin-bottom: 6px;
+      border-left: 3px solid #6c757d;
+      font-size: 11px;
+    }
+
+    .update-date {
+      font-weight: 600;
+      color: #495057;
+      margin-bottom: 3px;
+    }
+
+    .invalidation-box {
+      background: #fff3cd;
+      padding: 8px 12px;
+      border-radius: 6px;
+      border-left: 3px solid #ffc107;
+      color: #856404;
+      font-size: 11px;
+    }
+
+    .print-title {
+      display: none;
+    }
+
+    @media print {
+      .no-print {
+        display: none !important;
+      }
+      
+      .print-title {
+        display: block;
+        text-align: center;
+        padding: 20px 0;
+        font-size: 20px;
+        font-weight: 700;
+        color: #800000;
+        border-bottom: 3px solid #800000;
+        margin-bottom: 20px;
+      }
+      
+      body {
+        background: white;
+        padding: 10px;
+      }
+      
+      .container {
+        box-shadow: none;
+        border-radius: 0;
+      }
+      
+      .header {
+        background: white !important;
+        color: #800000 !important;
+        border-bottom: 2px solid #800000;
+      }
+      
+      table {
+        font-size: 9px;
+      }
+      
+      th, td {
+        padding: 6px 4px !important;
+      }
+      
+      tbody tr:hover {
+        background: white;
+      }
     }
   </style>
 </head>
 <body>
 
-    <div style="display:flex; align-items:center; justify-content:flex-end; margin-bottom:20px; gap:10px;">
-      <button onclick="window.location.href='/';" style="background:#800000; color:#fff; border:none; padding:8px 16px; border-radius:6px; cursor:pointer;">Back</button>
-      <button onclick="window.location.href='?export=excel'" style="background:#800000; color:#fff; border:none; padding:8px 16px; border-radius:6px; cursor:pointer;">Export to Excel</button>
+  <div class="container">
+    <div class="header no-print">
+      <h2>Incident Reports Dashboard</h2>
+      <div class="header-buttons">
+        <button onclick="window.location.href='/dashboard/';" class="btn btn-back">← Back to Dashboard</button>
+        <button onclick="exportToExcel()" class="btn btn-excel">📊 Export to Excel</button>
+      </div>
     </div>
-    <h2 style="text-align:center; margin-bottom:20px;">Incident Reports</h2>
-    <div style="display:flex; justify-content:center; gap:12px; margin-bottom:24px;">
-      <button onclick="window.location.href='?filter=day'" style="background:#800000; color:#fff; border:none; padding:8px 18px; border-radius:6px; cursor:pointer;">Per Day</button>
-      <button onclick="window.location.href='?filter=month'" style="background:#800000; color:#fff; border:none; padding:8px 18px; border-radius:6px; cursor:pointer;">Per Month</button>
-      <button onclick="window.location.href='?filter=semester'" style="background:#800000; color:#fff; border:none; padding:8px 18px; border-radius:6px; cursor:pointer;">Per Semester</button>
-      <button onclick="window.location.href='?filter=year'" style="background:#800000; color:#fff; border:none; padding:8px 18px; border-radius:6px; cursor:pointer;">Per Yearly</button>
+
+    <script>
+      function exportToExcel() {
+        const params = new URLSearchParams(window.location.search);
+        params.set('export', 'excel');
+        window.location.href = '?' + params.toString();
+      }
+    </script>
+
+    <div class="print-title">
+      Polytechnic University of the Philippines - Calauan Campus<br>
+      Integrated Safety and Security System<br>
+      Incident Reports
     </div>
-    {% if request.GET.filter == 'day' %}
-      <div style="text-align:center; margin-bottom:10px; font-weight:500; color:#800000;">Showing incidents for today ({{ now|date:'M d, Y' }})</div>
-    {% elif request.GET.filter == 'month' %}
-      <div style="text-align:center; margin-bottom:10px; font-weight:500; color:#800000;">Showing incidents for this month ({{ now|date:'F Y' }})</div>
-    {% elif request.GET.filter == 'semester' %}
-      <div style="text-align:center; margin-bottom:10px; font-weight:500; color:#800000;">Showing incidents for this semester ({{ now|date:'Y' }})</div>
-    {% elif request.GET.filter == 'year' %}
-      <div style="text-align:center; margin-bottom:10px; font-weight:500; color:#800000;">Showing incidents for this year ({{ now|date:'Y' }})</div>
-    {% endif %}
-    <table style="width:100%; border-collapse:collapse; background:#fff; font-size:15px;">
-      <thead style="background:#800000; color:#fff;">
-        <tr>
-          <th style="padding:10px;">DATE TIME</th>
-          <th style="padding:10px;">FIRST NAME</th>
-          <th style="padding:10px;">LAST NAME</th>
-          <th style="padding:10px;">SUBJECT</th>
-          <th style="padding:10px;">LOCATION</th>
-          <th style="padding:10px;">REPORTED BY</th>
-          <th style="padding:10px;">DEPARTMENT</th>
-          <th style="padding:10px;">PHONE NUMBER</th>
-          <th style="padding:10px;">STATUS</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for incident in incidents %}
-        <tr style="border-bottom:1px solid #eee;">
-          <td style="padding:8px;">{{ incident.date_joined|date:'M. d, Y, h:i a' }}</td>
-          <td style="padding:8px;">{{ incident.first_name }}</td>
-          <td style="padding:8px;">{{ incident.last_name }}</td>
-          <td style="padding:8px;">{{ incident.subject }}</td>
-          <td style="padding:8px;">{{ incident.location }}</td>
-          <td style="padding:8px;">{{ incident.reported_by }}</td>
-          <td style="padding:8px;">{{ incident.department }}</td>
-          <td style="padding:8px;">{{ incident.phone_number }}</td>
-          <td style="padding:8px;">{{ incident.status }}</td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+
+    <div class="content">
+      <!-- Filter Section -->
+      <div class="filter-section no-print">
+        <div class="filter-buttons">
+          <button onclick="showFilter('day')" class="filter-btn {% if request.GET.filter == 'day' %}active{% endif %}">📅 Daily</button>
+          <button onclick="showFilter('month')" class="filter-btn {% if request.GET.filter == 'month' %}active{% endif %}">📆 Monthly</button>
+          <button onclick="showFilter('semester')" class="filter-btn {% if request.GET.filter == 'semester' %}active{% endif %}">📚 Semester</button>
+          <button onclick="showFilter('year')" class="filter-btn {% if request.GET.filter == 'year' %}active{% endif %}">🗓️ Yearly</button>
+        </div>
+
+        <!-- Date Filters -->
+        <div class="filter-form-container">
+          <!-- Per Day Filter -->
+          <div id="dayFilter" style="display:{% if request.GET.filter == 'day' %}block{% else %}none{% endif %};">
+            <form method="get" class="filter-form">
+              <input type="hidden" name="filter" value="day">
+              <label>Select Day:</label>
+              <input type="date" name="date" value="{{ request.GET.date|default:'' }}" required>
+              <button type="submit" class="btn-apply">Apply Filter</button>
+            </form>
+          </div>
+
+          <!-- Per Month Filter -->
+          <div id="monthFilter" style="display:{% if request.GET.filter == 'month' %}block{% else %}none{% endif %};">
+            <form method="get" class="filter-form">
+              <input type="hidden" name="filter" value="month">
+              <label>Select Month:</label>
+              <input type="month" name="month" value="{{ request.GET.month|default:'' }}" required>
+              <button type="submit" class="btn-apply">Apply Filter</button>
+            </form>
+          </div>
+
+          <!-- Per Semester Filter -->
+          <div id="semesterFilter" style="display:{% if request.GET.filter == 'semester' %}block{% else %}none{% endif %};">
+
+            <form method="get" class="filter-form">
+              <input type="hidden" name="filter" value="semester">
+              <label>Select Year:</label>
+              <select name="year" required>
+                {% for y in years %}
+                <option value="{{ y }}" {% if request.GET.year == y|stringformat:"s" %}selected{% endif %}>{{ y }}</option>
+                {% endfor %}
+              </select>
+              <label>Semester:</label>
+              <select name="semester" required>
+                <option value="1" {% if request.GET.semester == "1" %}selected{% endif %}>1st Semester (Jan-Jun)</option>
+                <option value="2" {% if request.GET.semester == "2" %}selected{% endif %}>2nd Semester (Jul-Dec)</option>
+              </select>
+              <button type="submit" class="btn-apply">Apply Filter</button>
+            </form>
+          </div>
+
+          <!-- Per Year Filter -->
+          <div id="yearFilter" style="display:{% if request.GET.filter == 'year' %}block{% else %}none{% endif %};">
+            <form method="get" class="filter-form">
+              <input type="hidden" name="filter" value="year">
+              <label>Select Year:</label>
+              <select name="year" required>
+                {% for y in years %}
+                <option value="{{ y }}" {% if request.GET.year == y|stringformat:"s" %}selected{% endif %}>{{ y }}</option>
+                {% endfor %}
+              </select>
+              <button type="submit" class="btn-apply">Apply Filter</button>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      {% if request.GET.filter %}
+        <div class="filter-status no-print">
+          {% if request.GET.filter == 'day' and request.GET.date %}
+            📅 Showing incidents for {{ request.GET.date }}
+          {% elif request.GET.filter == 'month' and request.GET.month %}
+            📆 Showing incidents for {{ request.GET.month }}
+          {% elif request.GET.filter == 'semester' and request.GET.semester and request.GET.year %}
+            📚 Showing incidents for {% if request.GET.semester == "1" %}1st Semester (Jan-Jun){% else %}2nd Semester (Jul-Dec){% endif %} {{ request.GET.year }}
+          {% elif request.GET.filter == 'year' and request.GET.year %}
+            🗓️ Showing incidents for year {{ request.GET.year }}
+          {% endif %}
+        </div>
+      {% endif %}
+
+    <script>
+      function showFilter(type) {
+        document.getElementById('dayFilter').style.display = 'none';
+        document.getElementById('monthFilter').style.display = 'none';
+        document.getElementById('semesterFilter').style.display = 'none';
+        document.getElementById('yearFilter').style.display = 'none';
+        
+        if (type === 'day') document.getElementById('dayFilter').style.display = 'block';
+        else if (type === 'month') document.getElementById('monthFilter').style.display = 'block';
+        else if (type === 'semester') document.getElementById('semesterFilter').style.display = 'block';
+        else if (type === 'year') document.getElementById('yearFilter').style.display = 'block';
+      }
+    </script>
+
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>Date Time</th>
+              <th>First Name</th>
+              <th>Last Name</th>
+              <th>ID Number</th>
+              <th>Contact</th>
+              <th>Subject</th>
+              <th>Location</th>
+              <th>Incident</th>
+              <th>People Involved</th>
+              <th>Reported By</th>
+              <th>Department</th>
+              <th>Phone Number</th>
+              <th>Status</th>
+              <th>Last Updated</th>
+              <th>Updates</th>
+              <th>Invalidation Reason</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for incident in incidents %}
+            <tr>
+              <td>{{ incident.date_joined|date:'M. d, Y, h:i a' }}</td>
+              <td>{{ incident.first_name }}</td>
+              <td>{{ incident.last_name }}</td>
+              <td>{{ incident.id_number }}</td>
+              <td>{{ incident.contact_number }}</td>
+              <td>{{ incident.subject }}</td>
+              <td>{{ incident.location }}</td>
+              <td style="max-width:150px; word-wrap:break-word;">{{ incident.incident|truncatewords:10 }}</td>
+              <td style="max-width:120px; word-wrap:break-word;">{{ incident.people_involved|truncatewords:8|default:"-" }}</td>
+              <td>{{ incident.reported_by }}</td>
+              <td>{{ incident.department }}</td>
+              <td>{{ incident.phone_number }}</td>
+              <td>
+                <span class="status-badge status-{{ incident.status }}">{{ incident.status }}</span>
+              </td>
+              <td>{{ incident.last_updated|date:'M. d, Y' }}<br><small>by {{ incident.last_updated_by }}</small></td>
+              <td style="max-width:150px;">
+                {% if incident.updates.all %}
+                  {% for update in incident.updates.all %}
+                    <div class="update-item">
+                      <div class="update-date">{{ update.created_at|date:'M d, Y' }}</div>
+                      {{ update.reason|truncatewords:8 }}
+                    </div>
+                  {% endfor %}
+                {% else %}
+                  <span style="color:#999;">No updates</span>
+                {% endif %}
+              </td>
+              <td style="max-width:150px;">
+                {% if incident.invalidation_reason %}
+                  <div class="invalidation-box">
+                    {{ incident.invalidation_reason|truncatewords:10 }}
+                  </div>
+                {% else %}
+                  <span style="color:#999;">-</span>
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
 
 </body>
 </html>
