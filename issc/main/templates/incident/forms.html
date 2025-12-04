@@ -117,8 +117,8 @@
 
             <div class="form-field subject">
                 <label>Subject</label>
-                <div style="display:flex;align-items:center;gap:8px;position:relative;">
-                    <select name="subject" required id="subject-select" style="flex:1;">
+                <div style="position:relative;">
+                    <select name="subject" required id="subject-select" style="width:100%;">
                         <option value="Theft">Theft</option>
                         <option value="Missing">Missing</option>
                         <option value="Damage of Property">Damage of Property</option>
@@ -132,13 +132,7 @@
                         <option value="Building Maintenance Issues">Building Maintenance Issues</option>
                         <option value="Other/s">Other/s</option>
                     </select>
-                    
-                    <!-- Hover tooltip container -->
-                    <div id="subject-tooltip" style="display:none;position:fixed;z-index:2000;background:#fff;border:2px solid #4b0000;border-radius:8px;padding:12px;box-shadow:0 4px 12px rgba(0,0,0,0.15);max-width:400px;pointer-events:none;">
-                        <div style="font-size:14px;font-weight:700;color:#4b0000;margin-bottom:6px;" id="tooltip-title"></div>
-                        <div style="font-size:13px;color:#666;margin-bottom:8px;" id="tooltip-summary"></div>
-                        <div style="font-size:13px;color:#333;line-height:1.5;" id="tooltip-detail"></div>
-                    </div>
+                    <div id="sanction-tooltip" style="display:none;position:absolute;left:100%;top:0;margin-left:10px;background:#fff;border:1px solid #4b0000;border-radius:8px;padding:12px;min-width:300px;max-width:400px;box-shadow:0 4px 12px rgba(0,0,0,0.15);z-index:1000;"></div>
                 </div>
 
                 <input type="text" name="subject_other" id="subject-other" placeholder="Please specify subject" style="display:none;margin-top:8px;" />
@@ -355,51 +349,54 @@
             renderRuleCard($(this).val());
         });
 
-        // Tooltip hover functionality
-        var $tooltip = $('#subject-tooltip');
-        var $tooltipTitle = $('#tooltip-title');
-        var $tooltipSummary = $('#tooltip-summary');
-        var $tooltipDetail = $('#tooltip-detail');
+        // Tooltip functionality for hovering over select options
+        var $tooltip = $('#sanction-tooltip');
         var currentHoveredOption = null;
 
-        // Show tooltip on dropdown open and option hover
-        $select.on('mouseenter', 'option', function(e){
-            var val = $(this).val();
-            var r = rules[val];
-            if(r){
-                currentHoveredOption = val;
-                $tooltipTitle.text(r.title);
-                $tooltipSummary.text(r.summary);
-                $tooltipDetail.html(r.detail);
+        // When dropdown is opened, track mouse position over options
+        $select.on('mousedown', function(){
+            setTimeout(function(){
+                // Get all option elements
+                var options = $select.find('option');
                 
-                // Position tooltip near mouse
-                var x = e.pageX + 15;
-                var y = e.pageY + 15;
-                $tooltip.css({left: x + 'px', top: y + 'px'}).show();
-            }
+                // Track which option is being hovered
+                $select.on('mousemove', function(e){
+                    var selectedIndex = this.selectedIndex;
+                    var hoveredOption = options[selectedIndex];
+                    
+                    if(hoveredOption && hoveredOption.value !== currentHoveredOption){
+                        currentHoveredOption = hoveredOption.value;
+                        showTooltip(hoveredOption.value);
+                    }
+                });
+            }, 50);
         });
 
-        // Track mouse movement for tooltip positioning
-        $(document).on('mousemove', function(e){
-            if($tooltip.is(':visible')){
-                var x = e.pageX + 15;
-                var y = e.pageY + 15;
-                $tooltip.css({left: x + 'px', top: y + 'px'});
-            }
+        // Alternative: show tooltip when hovering/changing selection
+        $select.on('change focus mouseenter', function(){
+            var val = $(this).val();
+            if(val) showTooltip(val);
         });
 
-        // Hide tooltip when mouse leaves select or dropdown closes
-        $select.on('mouseleave', function(){
+        $select.on('mouseleave blur', function(){
             $tooltip.hide();
             currentHoveredOption = null;
         });
 
-        $select.on('blur', function(){
-            $tooltip.hide();
-            currentHoveredOption = null;
-        });
+        function showTooltip(subjectKey){
+            if(!subjectKey) return $tooltip.hide();
+            var r = rules[subjectKey];
+            if(!r) return $tooltip.hide();
+            
+            var content = `
+                <div style="font-size:14px;font-weight:700;color:#4b0000;margin-bottom:8px;">${r.title}</div>
+                <div style="font-size:12px;color:#666;margin-bottom:8px;">${r.summary}</div>
+                <div style="font-size:12px;color:#333;">${r.detail}</div>
+            `;
+            $tooltip.html(content).show();
+        }
 
-        // Handle "Other/s" field toggle
+        // Handle Other/s option
         $select.on('change', function(){
             var val = $(this).val();
             if(val === 'Other/s'){
