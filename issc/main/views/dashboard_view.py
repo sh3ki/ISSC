@@ -219,52 +219,85 @@ def base(request):
 
 @login_required(login_url='/login')
 def base_print(request):
-
+    from datetime import datetime
     filter_type = request.GET.get('filter')
     export_excel = request.GET.get('export') == 'excel'
     from django.utils import timezone
     now = timezone.now()
     incidents = IncidentReport.objects.all()
 
-    def filter_per_day(queryset):
-        return queryset.filter(date=now.date())
-
-    def filter_per_month(queryset):
-        return queryset.filter(date__year=now.year, date__month=now.month)
-
-    def filter_per_semester(queryset):
-        # Semester 1: Jan-Jun, Semester 2: Jul-Dec
-        if now.month <= 6:
-            return queryset.filter(date__year=now.year, date__month__lte=6)
-        else:
-            return queryset.filter(date__year=now.year, date__month__gte=7)
-
-    def filter_per_year(queryset):
-        return queryset.filter(date__year=now.year)
+    # Generate years list for dropdowns (last 10 years)
+    current_year = now.year
+    years = list(range(current_year - 10, current_year + 1))
+    years.reverse()
 
     if filter_type == 'day':
-        incidents = filter_per_day(incidents)
+        selected_date = request.GET.get('date')
+        if selected_date:
+            try:
+                date_obj = datetime.strptime(selected_date, '%Y-%m-%d').date()
+                incidents = incidents.filter(date=date_obj)
+            except ValueError:
+                pass
     elif filter_type == 'month':
-        incidents = filter_per_month(incidents)
+        selected_month = request.GET.get('month')
+        if selected_month:
+            try:
+                # Format: YYYY-MM
+                year, month = selected_month.split('-')
+                incidents = incidents.filter(date__year=int(year), date__month=int(month))
+            except (ValueError, IndexError):
+                pass
     elif filter_type == 'semester':
-        incidents = filter_per_semester(incidents)
+        selected_year = request.GET.get('year')
+        selected_semester = request.GET.get('semester')
+        if selected_year and selected_semester:
+            try:
+                year = int(selected_year)
+                semester = int(selected_semester)
+                if semester == 1:
+                    # Jan-Jun
+                    incidents = incidents.filter(date__year=year, date__month__gte=1, date__month__lte=6)
+                elif semester == 2:
+                    # Jul-Dec
+                    incidents = incidents.filter(date__year=year, date__month__gte=7, date__month__lte=12)
+            except (ValueError, TypeError):
+                pass
     elif filter_type == 'year':
-        incidents = filter_per_year(incidents)
+        selected_year = request.GET.get('year')
+        if selected_year:
+            try:
+                incidents = incidents.filter(date__year=int(selected_year))
+            except (ValueError, TypeError):
+                pass
 
     if export_excel:
         import pandas as pd
         data = []
         for i in incidents:
+            # Get all updates for this incident
+            updates_list = []
+            for update in i.updates.all():
+                updates_list.append(f"{update.created_at.strftime('%b %d, %Y')}: {update.reason}")
+            updates_text = '\n'.join(updates_list) if updates_list else 'No updates'
+            
             data.append({
                 'Date Time': i.date_joined.strftime('%b. %d, %Y, %I:%M %p'),
                 'First Name': i.first_name,
                 'Last Name': i.last_name,
+                'ID Number': i.id_number,
+                'Contact': i.contact_number,
                 'Subject': i.subject,
                 'Location': i.location,
+                'Incident': i.incident,
+                'People Involved': i.people_involved if i.people_involved else 'None',
                 'Reported By': i.reported_by,
                 'Department': i.department,
                 'Phone Number': i.phone_number,
                 'Status': i.status,
+                'Last Updated': f"{i.last_updated.strftime('%b. %d, %Y')} by {i.last_updated_by}",
+                'Updates': updates_text,
+                'Invalidation Reason': i.invalidation_reason if hasattr(i, 'invalidation_reason') and i.invalidation_reason else '-',
             })
         df = pd.DataFrame(data)
         response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
@@ -276,6 +309,7 @@ def base_print(request):
         'incidents': incidents,
         'now': now,
         'request': request,
+        'years': years,
     }
     html_string = render_to_string('dashboard/print.html', context)
     response = HttpResponse(html_string, content_type='text/html')
