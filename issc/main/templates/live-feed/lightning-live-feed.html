@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lightning Live Feed</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background: #0a0a0a;
+            color: white;
+            overflow-x: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #1e3c72, #2a5298);
+            padding: 10px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+        }
+        
+        .header h1 {
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+        
+        .status-bar {
+            display: flex;
+            gap: 15px;
+            font-size: 0.9rem;
+        }
+        
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #00ff00;
+            animation: pulse 1.5s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .camera-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: 1fr 1fr;
+            gap: 2px;
+            height: calc(100vh - 70px);
+            padding: 0;
+        }
+        
+        .camera-container {
+            position: relative;
+            background: #1a1a1a;
+            overflow: hidden;
+            border: 1px solid #333;
+        }
+        
+        .camera-feed {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+        
+        .camera-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.8);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            z-index: 10;
+        }
+        
+        .camera-info {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(0,0,0,0.7);
+            padding: 5px 10px;
+            border-radius: 3px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            z-index: 5;
+        }
+        
+        .camera-status {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            background: rgba(0,0,0,0.7);
+            padding: 3px 8px;
+            border-radius: 3px;
+            font-size: 0.7rem;
+            z-index: 5;
+        }
+        
+        .status-connected { color: #00ff00; }
+        .status-loading { color: #ffaa00; }
+        .status-error { color: #ff4444; }
+        
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid #333;
+            border-top: 3px solid #0088ff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 10px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* Performance optimizations */
+        .camera-feed {
+            will-change: auto;
+            transform: translateZ(0);
+        }
+        
+        /* Mobile responsive */
+        @media (max-width: 768px) {
+            .camera-grid {
+                grid-template-columns: 1fr;
+                grid-template-rows: repeat(4, 1fr);
+                height: calc(100vh - 60px);
+            }
+            
+            .header h1 {
+                font-size: 1.2rem;
+            }
+            
+            .status-bar {
+                gap: 10px;
+                font-size: 0.8rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>⚡ Lightning Live Feed</h1>
+        <div class="status-bar">
+            <div class="status-item">
+                <div class="status-dot"></div>
+                <span id="system-status">Initializing...</span>
+            </div>
+            <div class="status-item">
+                <span id="face-count">Faces: 0</span>
+            </div>
+            <div class="status-item">
+                <span id="fps-counter">FPS: --</span>
+            </div>
+        </div>
+    </div>
+    
+    <div class="camera-grid">
+        {% for camera_id in camera_ids %}
+        <div class="camera-container" id="container-{{ camera_id }}">
+            <img id="camera-{{ camera_id }}" 
+                 class="camera-feed" 
+                 src="/lightning-video-feed/{{ camera_id }}/"
+                 alt="Camera {{ camera_id }}"
+                 onload="handleCameraLoad({{ camera_id }})"
+                 onerror="handleCameraError({{ camera_id }})">
+            
+            <div class="camera-overlay" id="overlay-{{ camera_id }}">
+                <div class="loading-spinner"></div>
+                <div>Loading Camera {{ camera_id }}...</div>
+            </div>
+            
+            <div class="camera-info" id="info-{{ camera_id }}">
+                Camera {{ camera_id }}
+            </div>
+            
+            <div class="camera-status status-loading" id="status-{{ camera_id }}">
+                Loading...
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <script>
+        // Lightning-fast JavaScript - optimized for performance
+        let cameraStates = {};
+        let totalFaces = 0;
+        let fpsCounter = 0;
+        let lastFpsUpdate = Date.now();
+        
+        // Initialize camera states
+        const cameraIds = [{% for camera_id in camera_ids %}{{ camera_id }}{% if not forloop.last %}, {% endif %}{% endfor %}];
+        
+        cameraIds.forEach(cameraId => {
+            cameraStates[cameraId] = {
+                loaded: false,
+                error: false,
+                startTime: Date.now()
+            };
+        });
+        
+        // Lightning-fast camera load handler
+        function handleCameraLoad(cameraId) {
+            console.log(`⚡ Camera ${cameraId} loaded`);
+            
+            const overlay = document.getElementById(`overlay-${cameraId}`);
+            const status = document.getElementById(`status-${cameraId}`);
+            const info = document.getElementById(`info-${cameraId}`);
+            
+            // Hide loading overlay instantly
+            if (overlay) overlay.style.display = 'none';
+            
+            // Update status
+            if (status) {
+                status.textContent = 'Connected';
+                status.className = 'camera-status status-connected';
+            }
+            
+            // Update camera info
+            if (info) {
+                const loadTime = Date.now() - cameraStates[cameraId].startTime;
+                info.textContent = `Camera ${cameraId} (${loadTime}ms)`;
+            }
+            
+            cameraStates[cameraId].loaded = true;
+            cameraStates[cameraId].error = false;
+            
+            updateSystemStatus();
+        }
+        
+        // Lightning-fast camera error handler
+        function handleCameraError(cameraId) {
+            console.log(`❌ Camera ${cameraId} error`);
+            
+            const overlay = document.getElementById(`overlay-${cameraId}`);
+            const status = document.getElementById(`status-${cameraId}`);
+            
+            // Update overlay to show NO INPUT
+            if (overlay) {
+                overlay.innerHTML = `
+                    <div style="font-size: 1.2rem; font-weight: bold; color: #666;">NO INPUT</div>
+                    <div style="font-size: 0.9rem; margin-top: 10px;">Camera ${cameraId}</div>
+                `;
+                overlay.style.display = 'flex';
+            }
+            
+            // Update status
+            if (status) {
+                status.textContent = 'No Input';
+                status.className = 'camera-status status-error';
+            }
+            
+            cameraStates[cameraId].loaded = false;
+            cameraStates[cameraId].error = true;
+            
+            updateSystemStatus();
+        }
+        
+        // Update system status
+        function updateSystemStatus() {
+            const connectedCameras = cameraIds.filter(id => cameraStates[id].loaded).length;
+            const systemStatus = document.getElementById('system-status');
+            
+            if (systemStatus) {
+                if (connectedCameras > 0) {
+                    systemStatus.textContent = `${connectedCameras} Camera${connectedCameras > 1 ? 's' : ''} Active`;
+                } else {
+                    systemStatus.textContent = 'No Cameras Connected';
+                }
+            }
+        }
+        
+        // FPS Counter (lightweight)
+        function updateFPS() {
+            fpsCounter++;
+            const now = Date.now();
+            if (now - lastFpsUpdate >= 1000) {
+                const fpsElement = document.getElementById('fps-counter');
+                if (fpsElement) {
+                    fpsElement.textContent = `FPS: ${fpsCounter}`;
+                }
+                fpsCounter = 0;
+                lastFpsUpdate = now;
+            }
+        }
+        
+        // Start FPS monitoring
+        setInterval(updateFPS, 100);
+        
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('⚡ Lightning Live Feed initialized');
+            updateSystemStatus();
+            
+            // Performance optimization - preload images
+            cameraIds.forEach(cameraId => {
+                const img = document.getElementById(`camera-${cameraId}`);
+                if (img) {
+                    img.style.willChange = 'auto';
+                }
+            });
+        });
+        
+        // Page visibility optimization
+        document.addEventListener('visibilitychange', function() {
+            if (document.hidden) {
+                console.log('⚡ Page hidden - maintaining performance');
+            } else {
+                console.log('⚡ Page visible - full performance');
+            }
+        });
+        
+        // Performance monitoring
+        window.addEventListener('load', function() {
+            const loadTime = performance.now();
+            console.log(`⚡ Page loaded in ${loadTime.toFixed(2)}ms`);
+        });
+    </script>
+</body>
+</html>
