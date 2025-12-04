@@ -36,7 +36,8 @@ urlpatterns = [
 
 
     path("", dashboard_view.base, name="dashboard"),
-    path("print", dashboard_view.base_print, name="dashboard_print") ,
+    path("dashboard/", dashboard_view.base, name="dashboard"),
+    path("dashboard/print", dashboard_view.base_print, name="dashboard_print") ,
 
 
 
