@@ -1,0 +1,295 @@
+{% extends 'base.html' %}
+
+{% block title %} Incident {% endblock title %}
+
+{% block content %} 
+
+{% load static %} 
+
+    <link rel="stylesheet" href="{% static 'css/details.css' %}">
+
+    <div class="container">
+        <!-- Transparent Header -->
+        <div class="header">
+            <h2>Incident Details</h2>
+            <div style="font-size:13px;color:#666;margin-top:6px;">
+                {% if incident_number %}
+                    <span>Incident <strong>#{{ incident_number }}</strong> of <strong>{{ total_incidents }}</strong></span>
+                {% endif %}
+                {% if incident_status_number %}
+                    <span style="margin-left:12px;">{{ incident.status|title }} #<strong>{{ incident_status_number }}</strong> of <strong>{{ status_count_for_incident }}</strong></span>
+                {% endif %}
+            </div>
+
+        </div>
+
+        <!-- Form Section -->
+        {% if user_role != 'student' %}
+        <form method="POST" enctype="multipart/form-data" class="form">
+            {% csrf_token %}
+            {% endif %}
+        <div class="details">
+            <div class="details-grid">
+                <div class="col">
+                    <div class="detail-field">
+                        <label><strong>First Name:</strong></label>
+                        {% if user_role in 'student admin faculty' or incident.status == 'closed' %}
+                            <input type="text" name="first_name" value="{{ incident.first_name }}" readonly tabindex="-1" style="background-color:#f5f5f5;pointer-events:none;">
+                        {% else %}
+                            <input type="text" name="first_name" value="{{ incident.first_name }}">
+                        {% endif %}
+                    </div>
+
+                    <div class="detail-field">
+                        <label><strong>Middle Name:</strong></label>
+                        {% if user_role in 'student admin faculty' or incident.status == 'closed' %}
+                            <input type="text" name="middle_name" value="{{ incident.middle_name }}" readonly tabindex="-1" style="background-color:#f5f5f5;pointer-events:none;">
+                        {% else %}
+                            <input type="text" name="middle_name" value="{{ incident.middle_name }}">
+                        {% endif %}
+                    </div>
+
+                    <div class="detail-field">
+                        <label><strong>Last Name:</strong></label>
+                        {% if user_role in 'student admin faculty' or incident.status == 'closed' %}
+                            <input type="text" name="last_name" value="{{ incident.last_name }}" readonly tabindex="-1" style="background-color:#f5f5f5;pointer-events:none;">
+                        {% else %}
+                            <input type="text" name="last_name" value="{{ incident.last_name }}">
+                        {% endif %}
+                    </div>
+
+                    <div class="detail-field">
+                        <label><strong>Contact Number:</strong></label>
+                        {% if user_role in 'student admin faculty' or incident.status == 'closed' %}
+                            <input type="text" name="contact_number" value="{{ incident.contact_number }}" readonly tabindex="-1" style="background-color:#f5f5f5;pointer-events:none;">
+                        {% else %}
+                            <input type="text" name="contact_number" value="{{ incident.contact_number }}">
+                        {% endif %}
+                    </div>
+
+                    <div class="detail-field">
+                        <label><strong>ID Number:</strong></label>
+                        {% if user_role in 'student admin faculty' or incident.status == 'closed' %}
+                            <input type="text" name="id_number" value="{{ incident.id_number }}" readonly tabindex="-1" style="background-color:#f5f5f5;pointer-events:none;">
+                        {% else %}
+                            <input type="text" name="id_number" value="{{ incident.id_number }}">
+                        {% endif %}
+                    </div>
+
+                    <div class="detail-field">
+                        <label><strong>Subject:</strong></label>
+                        <input type="text" name="subject" value="{{ incident.subject }}" readonly tabindex="-1" style="background-color:#f5f5f5;pointer-events:none;">
+                    </div>
+
+                    <div class="detail-field">
+                        <label><strong>Location:</strong></label>
+                        <input type="text" name="location" value="{{ incident.location }}" readonly tabindex="-1" style="background-color:#f5f5f5;pointer-events:none;">
+                    </div>
+                </div>
+
+                <div class="col">
+                    <div class="detail-field">
+                        <label><strong>Incident:</strong></label>
+                        <input type="text" name="incident" value="{{ incident.incident }}" readonly tabindex="-1" style="background-color:#f5f5f5;pointer-events:none;">
+                    </div>
+
+                    <div class="detail-field">
+                        <label><strong>Request for Action:</strong></label>
+                        <input type="text" name="request_for_action" value="{{ incident.request_for_action }}" readonly tabindex="-1" style="background-color:#f5f5f5;pointer-events:none;">
+                    </div>
+
+                    <div class="detail-field">
+                        <label><strong>People Involved:</strong></label>
+                        <input type="text" name="people_involved" value="{{ incident.people_involved }}" readonly tabindex="-1" style="background-color:#f5f5f5;pointer-events:none;">
+                    </div>
+
+                    <div class="detail-field">
+                        <label><strong>Reported By:</strong></label>
+                        {% if user_role in 'student admin faculty' or incident.status == 'closed' %}
+                            <input type="text" name="reported_by" value="{{ incident.reported_by }}" readonly tabindex="-1" style="background-color:#f5f5f5;pointer-events:none;">
+                        {% else %}
+                            <input type="text" name="reported_by" value="{{ incident.reported_by }}">
+                        {% endif %}
+                    </div>
+
+                    <div class="detail-field">
+                        <label><strong>Position:</strong></label>
+                        {% if user_role in 'student admin faculty' or incident.status == 'closed' %}
+                            <input type="text" name="position" value="{{ incident.position }}" readonly tabindex="-1" style="background-color:#f5f5f5;pointer-events:none;">
+                        {% else %}
+                            <input type="text" name="position" value="{{ incident.position }}">
+                        {% endif %}
+                    </div>
+
+                    <div class="detail-field">
+                        <label><strong>Department:</strong></label>
+                        {% if user_role in 'student admin faculty' or incident.status == 'closed' %}
+                            <input type="text" name="department" value="{{ incident.department }}" readonly tabindex="-1" style="background-color:#f5f5f5;pointer-events:none;">
+                        {% else %}
+                            <input type="text" name="department" value="{{ incident.department }}">
+                        {% endif %}
+                    </div>
+
+                    <div class="detail-field">
+                        <label><strong>Phone Number:</strong></label>
+                        <input type="text" name="phone_number" value="{{ incident.phone_number }}" readonly tabindex="-1" style="background-color:#f5f5f5;pointer-events:none;">
+                    </div>
+
+                    <div class="detail-field">
+                        <label><strong>File:</strong></label>
+                        {% if incident.file %}
+                            <input type="text" value="Attached: {{ incident.file.name }}" disabled>
+                            <p>
+                                <a href="{{ incident.file.url }}" download="{{ incident.file.name }}" style="display:inline-block;padding:8px 14px;background:#2b6cb0;color:#fff;border-radius:999px;text-decoration:none;font-weight:600;" rel="noopener">Download attached file</a>
+                            </p>
+                        {% else %}
+                            <input type="text" value="No file attached" disabled>
+                        {% endif %}
+                    </div>
+
+                    <div class="detail-field small-info">
+                        <p><strong>Status:</strong> {{ incident.status }}</p>
+                        <p><strong>Date Joined:</strong> {{ incident.date_joined }}</p>
+                        <p><strong>Date:</strong> {{ incident.date }}</p>
+                        <p><strong>Time:</strong> {{ incident.time }}</p>
+                        <p><strong>Last Updated:</strong> {{ incident.last_updated }}</p>
+                        <p><strong>Last Updated By:</strong> {{ incident.last_updated_by }}</p>
+                        <p><strong>Archived:</strong> {{ incident.is_archived }}</p>
+                        {% if incident.invalidation_reason %}
+                        <div style="margin-top: 12px; padding: 12px; background-color: #fff3cd; border: 1px solid #ffc107; border-radius: 4px;">
+                            <p style="margin: 0 0 6px 0;"><strong style="color: #856404;">Invalidation Reason:</strong></p>
+                            <p style="margin: 0; color: #856404; white-space: pre-wrap;">{{ incident.invalidation_reason }}</p>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        
+        {% if user_role != 'student' %}
+            {% if incident.status == 'open' %}
+                <!-- When status is OPEN: do not show status dropdown, submit button, or print -->
+            {% elif incident.status != 'closed' %}
+                <!-- Pending case: show an Update Case button that opens a modal with the update form -->
+                <input type="text" name="incident_id" value="{{ incident.id }}" hidden>
+
+                <button type="button" id="open-update-modal" class="btn btn-primary">Update Case</button>
+
+                <a href="#" id="print-link" class=" text-center inline-block px-6 py-2 bg-blue-500 text-white font-semibold rounded-full shadow-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400">
+                    Print
+                </a>
+
+                <!-- Modal (hidden by default) -->
+                <div id="update-modal" class="modal" role="dialog" aria-hidden="true" style="display:none;">
+                    <div class="modal-overlay" id="modal-overlay" style="position:fixed;inset:0;background:rgba(0,0,0,0.4);"></div>
+                    <div class="modal-content" style="position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);background:#fff;padding:18px;border-radius:6px;max-width:600px;width:90%;z-index:1001;box-shadow:0 10px 30px rgba(0,0,0,0.2);">
+                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+                            <h3 style="margin:0;">Update Case</h3>
+                            <button type="button" id="close-update-modal" aria-label="Close modal" style="background:none;border:0;font-size:18px;cursor:pointer;">✕</button>
+                        </div>
+
+                        <div>
+                            <label><strong>Status</strong></label>
+                            <select name="status">
+                                <option value="open" {% if incident.status == 'open' %}selected{% endif %}>Open</option>
+                                <option value="pending" {% if incident.status == 'pending' %}selected{% endif %}>Ongoing</option>
+                                <option value="closed" {% if incident.status == 'closed' %}selected{% endif %}>Closed</option>
+                            </select>
+                        </div>
+
+                        <div style="margin-top:12px;">
+                            <label><strong>Update Reason</strong></label>
+                            <textarea name="update_reason" rows="4" placeholder="Describe the update or actions taken" required style="width:100%;"></textarea>
+                        </div>
+
+                        <div style="margin-top:12px;">
+                            <label><strong>Attachment</strong></label>
+                            <input type="file" name="update_file">
+                        </div>
+
+                        <!-- Removed the 'Close the case' checkbox per request -->
+
+                        <div style="margin-top:14px;display:flex;gap:8px;justify-content:flex-end;">
+                            <button type="button" id="cancel-update" class="btn">Cancel</button>
+                            <button type="submit" name="update_case" class="btn btn-primary">Save Update</button>
+                        </div>
+                    </div>
+                </div>
+            {% else %}
+                <p style="color: #721c24; background-color: #f8d7da; padding: 10px; border-radius: 5px; border: 1px solid #f5c6cb; margin-top: 10px;">
+                    <strong>Note:</strong> This incident is closed and cannot be edited.
+                </p>
+
+                <a href="#" id="print-link" class=" text-center inline-block px-6 py-2 bg-blue-500 text-white font-semibold rounded-full shadow-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400">
+                    Print
+                </a>
+            {% endif %}
+        </div>
+        
+            </form>
+        {% endif %}
+
+    <script>
+    // Set print link if present
+    (function(){
+        var printLink = document.getElementById('print-link');
+        if(printLink){
+            printLink.href = window.location.href + 'print';
+        }
+
+        // Modal open/close behavior
+        var openBtn = document.getElementById('open-update-modal');
+        var modal = document.getElementById('update-modal');
+        var closeBtn = document.getElementById('close-update-modal');
+        var cancelBtn = document.getElementById('cancel-update');
+        var overlay = document.getElementById('modal-overlay');
+
+        function showModal(){
+            if(modal){
+                modal.style.display = 'block';
+                modal.setAttribute('aria-hidden','false');
+                // focus first textarea for accessibility
+                var ta = modal.querySelector('textarea'); if(ta) ta.focus();
+            }
+        }
+
+        function hideModal(){
+            if(modal){
+                modal.style.display = 'none';
+                modal.setAttribute('aria-hidden','true');
+            }
+        }
+
+        if(openBtn){ openBtn.addEventListener('click', function(e){ e.preventDefault(); showModal(); }); }
+        if(closeBtn){ closeBtn.addEventListener('click', function(){ hideModal(); }); }
+        if(cancelBtn){ cancelBtn.addEventListener('click', function(){ hideModal(); }); }
+        if(overlay){ overlay.addEventListener('click', function(){ hideModal(); }); }
+
+        // close on Esc
+        document.addEventListener('keydown', function(e){ if(e.key === 'Escape'){ hideModal(); } });
+    })();
+    </script>
+    
+    <!-- Case updates history -->
+    <div class="updates-history" style="margin-top:24px;padding:16px;border-top:1px solid #e6e6e6;">
+        <h3 style="margin-bottom:12px;">Case Updates</h3>
+        {% if incident.updates.all %}
+            <ul style="list-style:none;padding:0;">
+            {% for u in incident.updates.all %}
+                <li style="padding:10px 0;border-bottom:1px solid #f0f0f0;">
+                    <div style="font-size:13px;color:#666;margin-bottom:6px;"><strong>{{ u.created_at }}</strong> by {{ u.created_by }} {% if u.close_case %}<span style="color:#a00;margin-left:8px;">(Closed case)</span>{% endif %}</div>
+                    <div style="margin-bottom:6px;white-space:pre-wrap;">{{ u.reason }}</div>
+                    {% if u.file %}
+                        <div>
+                            <a href="{{ u.file.url }}" download="{{ u.file.name }}" style="display:inline-block;padding:6px 12px;background:#6c757d;color:#fff;border-radius:6px;text-decoration:none;font-weight:600;font-size:13px;" rel="noopener">Download attachment</a>
+                        </div>
+                    {% endif %}
+                </li>
+            {% endfor %}
+            </ul>
+        {% else %}
+            <p style="color:#666;">No updates yet.</p>
+        {% endif %}
+    </div>
+{% endblock %}
