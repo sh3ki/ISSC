@@ -1,0 +1,216 @@
+{% extends 'base.html' %}
+
+{% block title %} Recording Archive {% endblock title %}
+
+{% block content %}
+
+{% load static %} 
+
+    <link rel="stylesheet" href="{% static 'css/recording_archive.css' %}">
+
+    <div class="content-container">
+        
+        <!-- Camera Selection Dropdown -->
+        <label for="camera-select">Select Camera:</label>
+        <select id="camera-select" onchange="showSelectedTable()" class="camera-select">
+            <option value="">Choose a Camera</option>
+            {% for cam_id in categorized_recordings.keys %}
+                <option value="table-{{ cam_id }}">Camera {{ cam_id }}</option>
+            {% endfor %}
+        </select>
+
+        <div class="table-container">
+            {% for cam_id, years in categorized_recordings.items %}
+                
+                <div id="table-{{ cam_id }}" class="camera-table" style="display: none;">
+                    <h3>Camera {{ cam_id }}</h3>
+
+                    <!-- Date Picker for Filtering -->
+                    <input type="date" class="date-filter" data-camera="{{ cam_id }}" onchange="filterTable('{{ cam_id }}')">
+                    
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Year</th>
+                                <th>Month</th>
+                                <th>Day</th>
+                                <th>Recordings</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for year, months in years.items %}
+                                {% for month, days in months.items %}
+                                    {% for day, files in days.items %}
+                                        <tr class="recording-row" data-camera="{{ cam_id }}" data-date="{{ year }}-{{ month|default:"01" }}-{{ day|default:"01" }}">
+                                            <td>{{ year }}</td>
+                                            <td>{{ month }}</td>
+                                            <td>{{ day }}</td>
+                                            <td>
+                                                <ul>
+                                                    {% for file in files %}
+                                                        <li>
+                                                            <a href="javascript:void(0);" onclick="showPreview('{{ file }}')">
+                                                                {{ file }}
+                                                            </a>
+                                                        </li>
+                                                    {% endfor %}
+                                                </ul>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                {% endfor %}
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+            {% endfor %}
+            
+            <a href="{% url 'reset_recordings' %}" class="reset-btn">Reset</a>
+        </div>
+    </div>
+
+    <!-- Fixed Preview Sidebar -->
+    <div id="previewSidebar">
+        <h3>Video Preview</h3>
+        <div id="videoContainer">
+            <video id="videoPreview" controls muted>
+                <source id="videoSource" src="" type="video/mp4">
+                Your browser does not support the video tag.
+            </video>
+            <div id="loadingOverlay" style="display: none;">
+                <div class="spinner"></div>
+                <p>Converting video...</p>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        #videoContainer {
+            position: relative;
+            width: 100%;
+            height: 100%;
+        }
+        
+        #loadingOverlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.7);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            z-index: 10;
+        }
+        
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+
+    <script>
+        function showPreview(fileName) {
+            var videoSource = document.getElementById('videoSource');
+            var videoPreview = document.getElementById('videoPreview');
+            var loadingOverlay = document.getElementById('loadingOverlay');
+            
+            // Hide video, show loading overlay
+            videoPreview.style.display = 'none';
+            loadingOverlay.style.display = 'flex';
+            
+            // Check if it's an AVI file that needs conversion
+            if (fileName.toLowerCase().endsWith('.avi')) {
+                // Make API call to convert video
+                fetch('/api/convert-video/?filename=' + encodeURIComponent(fileName))
+                    .then(response => {
+                        // Check if response is OK before trying to parse JSON
+                        if (!response.ok) {
+                            throw new Error(`Server returned ${response.status}: ${response.statusText}`);
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        if (data.success) {
+                            // Update source to the MP4 file
+                            videoSource.src = "/recordings/" + data.mp4_file;
+                            videoPreview.load();
+                            
+                            // Hide loading overlay, show video
+                            loadingOverlay.style.display = 'none';
+                            videoPreview.style.display = 'block';
+                            
+                            // Auto-play video after loading
+                            videoPreview.addEventListener('loadeddata', function() {
+                                videoPreview.play();
+                            }, { once: true });
+                        } else {
+                            alert('Error converting video: ' + (data.error || 'Unknown error'));
+                            loadingOverlay.style.display = 'none';
+                            videoPreview.style.display = 'block';
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert('Error converting video: ' + error.message);
+                        loadingOverlay.style.display = 'none';
+                        videoPreview.style.display = 'block';
+                    });
+            } else {
+                // For MP4 files, just play directly
+                videoSource.src = "/recordings/" + fileName;
+                videoPreview.load();
+                
+                // Hide loading overlay, show video
+                loadingOverlay.style.display = 'none';
+                videoPreview.style.display = 'block';
+            }
+        }
+
+        function closePreview() {
+            document.getElementById('videoSource').src = "";
+        }
+
+        function filterTable(cameraId) {
+            var input = document.querySelector(`.date-filter[data-camera="${cameraId}"]`);
+            var selectedDate = input.value;
+            var rows = document.querySelectorAll(`tr.recording-row[data-camera="${cameraId}"]`);
+
+            rows.forEach(row => {
+                var rowDate = row.getAttribute("data-date");
+
+                if (selectedDate === rowDate) {
+                    row.style.display = "";
+                } else {
+                    row.style.display = "none";
+                }
+            });
+        }
+
+        function showSelectedTable() {
+            var selectedTableId = document.getElementById("camera-select").value;
+            var tables = document.querySelectorAll(".camera-table");
+
+            tables.forEach(table => {
+                table.style.display = "none"; // Hide all tables
+            });
+
+            if (selectedTableId) {
+                document.getElementById(selectedTableId).style.display = "block"; // Show selected table
+            }
+        }
+    </script>
+
+{% endblock content %}
