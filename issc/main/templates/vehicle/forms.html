@@ -1,0 +1,139 @@
+{% extends 'base.html' %}
+
+{% block title %} Register Vehicle {% endblock title %}
+
+{% block content %}
+
+{% load static %} 
+
+<link rel="stylesheet" href="{% static 'css/forms.css' %}">
+
+<!-- Vehicle Registration Template ## REMOVE <H1> -->
+    <div class="forms">
+        <form method="POST" enctype="multipart/form-data" class="space-y-4">
+            {% csrf_token %}
+            <div class="form-group">
+                <div class="form-field id-number">
+                    <label>ID Number</label>
+                    <input type="text" id="id_number" name="id_number" class="w-full p-2 border rounded-md" required>
+                </div>
+                <div class="form-field first-name">
+                    <label>First Name</label>
+                    <input type="text" name="first_name" class="w-full p-2 border rounded-md" required>
+                </div>
+                <div class="form-field middle-name">
+                    <label>Middle Name</label>
+                    <input type="text" name="middle_name" class="w-full p-2 border rounded-md">
+                </div>
+                <div class="form-field last-name">
+                    <label>Last Name</label>
+                    <input type="text" name="last_name" class="w-full p-2 border rounded-md" required>
+                </div>
+                <div class="form-field contact-number">
+                    <label>Contact Number</label>
+                    <input type="tel" name="contact_number" class="w-full p-2 border rounded-md" required>
+                </div>
+            
+                <div class="form-field email">
+                    <label>Email Address</label>
+                    <input type="email" name="email_address" class="w-full p-2 border rounded-md" required>
+                </div>
+                <div class="form-field role">
+                    <label>Role</label>
+                    <input type="text" name="role" class="w-full p-2 border rounded-md" required>
+                </div>
+            
+                <div class="form-field vehicle-type">
+                    <label>Vehicle Type</label>
+                    <input type="text" name="vehicle_type" class="w-full p-2 border rounded-md" required>
+                </div>
+                <div class="form-field color">
+                    <label>Color</label>
+                    <input type="text" name="color" class="w-full p-2 border rounded-md" required>
+                </div>
+                <div class="form-field model">
+                    <label>Model</label>
+                    <input type="text" name="model" class="w-full p-2 border rounded-md" required>
+                </div>
+            
+                <div class="form-field plate-number">
+                    <label>Plate Number</label>
+                    <input type="text" name="plate_number" class="w-full p-2 border rounded-md" required>
+                </div>
+                <div class="form-field sticker-number">
+                    <label>Sticker Number</label>
+                    <input type="text" name="sticker_number" class="w-full p-2 border rounded-md" required value="{{ sticker_number }}" readonly>
+                </div>
+                <div class="form-field drivers-license">
+                    <label>Driver's License</label>
+                    <input type="text" name="drivers_license" class="w-full p-2 border rounded-md" required>
+                </div>
+            
+                <div class="form-field guardian-name">
+                    <label>Guardian Name</label>
+                    <input type="text" name="guardian_name" class="w-full p-2 border rounded-md" required>
+                </div>
+                <div class="form-field guardian-contact-number">
+                    <label>Guardian Contact Number</label>
+                    <input type="tel" name="guardian_number" class="w-full p-2 border rounded-md" required>
+                </div>
+                <div class="form-field upload-image">
+                    <label>Upload Image</label>
+                    <input type="file" name="image" class="w-full p-2 border rounded-md" required>
+                </div>
+              
+                <div class="form-field status">
+                    <label>Status</label>
+                    <select name="status">
+                        <option value="allowed">Allowed</option>
+                    </select>
+                </div>
+            </div>
+            <div class="register-btn">
+                <button type="submit">Submit</button>
+            </div>
+        </form>
+    </div>
+
+
+<script>
+  $(document).ready(function() {
+    $('#id_number').on('blur', function() {
+      console.log('id_number input lost focus. Value:', $(this).val());
+
+       $.ajax({
+        url: '/api/getUser/',
+        type: 'GET',
+        data: { id: $(this).val() },
+        success: function (data) {
+          // $('#user_result').html(`
+          //   <strong>User Info:</strong><br>
+          //   ID: ${data.id}<br>
+          //   Username: ${data.username}<br>
+          //   Email: ${data.email}<br>
+          //   Name: ${data.first_name} ${data.last_name}
+          // `);
+
+            console.log(data)
+            $('input[name="first_name"]').val(data.first_name)
+            $('input[name="middle_name"]').val(data.middle_name)
+            $('input[name="last_name"]').val(data.last_name)
+            $('input[name="contact_number"]').val(data.contact_number)
+            $('input[name="email_address"]').val(data.email)
+        },
+        error: function (xhr) {
+          if (xhr.status === 404) {
+            $('#user_result').html("User not found.");
+          } else if (xhr.status === 400) {
+            $('#user_result').html("Missing user ID.");
+          } else {
+            $('#user_result').html("An error occurred.");
+          }
+        }
+      });
+
+    });
+  });
+</script>
+
+{% endblock content %}
