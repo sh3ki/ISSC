@@ -1,0 +1,496 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Unauthorized Faces Archive{% endblock %}
+
+{% block extra_css %}
+<style>
+    .archive-container {
+        padding: 20px;
+        max-width: 1400px;
+        margin: 0 auto;
+    }
+
+    .archive-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 30px;
+        padding-bottom: 15px;
+        border-bottom: 3px solid var(--primary-color);
+    }
+
+    .archive-header h1 {
+        color: var(--primary-color);
+        font-size: 28px;
+        margin: 0;
+    }
+
+    .total-count {
+        background-color: var(--primary-color);
+        color: white;
+        padding: 8px 15px;
+        border-radius: 20px;
+        font-weight: bold;
+    }
+
+    .detections-table {
+        width: 100%;
+        background: white;
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        margin-bottom: 20px;
+    }
+
+    .detections-table table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+        table-layout: fixed;
+    }
+
+    .detections-table thead {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+    }
+
+    .detections-table th {
+        background-color: var(--primary-color);
+        color: white;
+        padding: 18px 15px;
+        text-align: left;
+        font-weight: 600;
+        text-transform: uppercase;
+        font-size: 13px;
+        letter-spacing: 0.5px;
+        white-space: nowrap;
+    }
+
+    .detections-table th:first-child {
+        border-top-left-radius: 10px;
+    }
+
+    .detections-table th:last-child {
+        border-top-right-radius: 10px;
+    }
+
+    .detections-table tbody tr {
+        transition: all 0.2s ease;
+    }
+
+    .detections-table tbody tr:hover {
+        background-color: #f8f9fa;
+    }
+
+    .detections-table td {
+        padding: 20px 15px;
+        border-bottom: 1px solid #e9ecef;
+        vertical-align: middle;
+    }
+
+    .detections-table tbody tr:last-child td {
+        border-bottom: none;
+    }
+
+    /* Column widths */
+    .image-cell {
+        width: 130px !important;
+        text-align: center;
+        padding: 10px !important;
+    }
+
+    .camera-cell {
+        width: 180px !important;
+    }
+
+    .time-cell {
+        width: 250px !important;
+    }
+
+    .notes-cell {
+        width: auto;
+    }
+
+    .face-thumbnail {
+        width: 100px !important;
+        height: 100px !important;
+        max-width: 100px !important;
+        max-height: 100px !important;
+        min-width: 100px !important;
+        min-height: 100px !important;
+        object-fit: cover;
+        border-radius: 10px;
+        border: 3px solid #dee2e6;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: block;
+        margin: 0 auto;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+
+    .face-thumbnail:hover {
+        transform: scale(1.2);
+        border-color: var(--primary-color);
+        box-shadow: 0 4px 12px rgba(139, 26, 26, 0.3);
+        z-index: 100;
+        position: relative;
+    }
+
+    .image-cell {
+        text-align: center !important;
+        width: 130px !important;
+        max-width: 130px !important;
+        min-width: 130px !important;
+    }
+
+    .image-cell img {
+        width: 100px !important;
+        height: 100px !important;
+        max-width: 100px !important;
+        max-height: 100px !important;
+    }
+
+    .camera-cell {
+        width: 180px !important;
+        max-width: 180px !important;
+    }
+
+    .camera-badge {
+        background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
+        color: white;
+        padding: 8px 16px;
+        border-radius: 20px;
+        font-size: 13px;
+        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .camera-badge i {
+        font-size: 14px;
+    }
+
+    .timestamp {
+        color: #495057;
+        font-size: 14px;
+        line-height: 1.8;
+    }
+
+    .date-part {
+        font-weight: 600;
+        color: var(--primary-color);
+        margin-bottom: 6px;
+        display: block;
+    }
+
+    .date-part i {
+        margin-right: 5px;
+    }
+
+    .time-part {
+        color: #6c757d;
+        font-size: 13px;
+        display: block;
+    }
+
+    .time-part i {
+        margin-right: 5px;
+    }
+
+    .time-cell {
+        width: 220px;
+    }
+
+    .notes-cell {
+        color: #495057;
+        font-size: 14px;
+    }
+
+    .notes-text {
+        color: #6c757d;
+        font-style: italic;
+    }
+
+    /* Pagination styles */
+    .pagination-container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        margin-top: 40px;
+        gap: 12px;
+        flex-wrap: wrap;
+    }
+
+    .pagination-btn {
+        padding: 12px 24px;
+        background: linear-gradient(135deg, var(--primary-color) 0%, #a01d1d 100%);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        text-decoration: none;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        font-weight: 600;
+        font-size: 14px;
+        box-shadow: 0 2px 6px rgba(139, 26, 26, 0.2);
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .pagination-btn:hover:not(:disabled) {
+        background: linear-gradient(135deg, #a01d1d 0%, var(--primary-color) 100%);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(139, 26, 26, 0.3);
+    }
+
+    .pagination-btn:disabled {
+        background: #e9ecef;
+        color: #adb5bd;
+        cursor: not-allowed;
+        box-shadow: none;
+    }
+
+    .pagination-info {
+        color: #495057;
+        font-weight: 700;
+        font-size: 15px;
+        padding: 0 15px;
+        background: white;
+        border-radius: 8px;
+        padding: 12px 24px;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+    }
+
+    /* Image modal */
+    .image-modal {
+        display: none;
+        position: fixed;
+        z-index: 9999;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0,0,0,0.95);
+        justify-content: center;
+        align-items: center;
+        animation: fadeIn 0.3s ease;
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+
+    .image-modal.active {
+        display: flex;
+    }
+
+    .modal-content-img {
+        max-width: 80%;
+        max-height: 80%;
+        border-radius: 15px;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+        animation: zoomIn 0.3s ease;
+    }
+
+    @keyframes zoomIn {
+        from { 
+            transform: scale(0.8);
+            opacity: 0;
+        }
+        to { 
+            transform: scale(1);
+            opacity: 1;
+        }
+    }
+
+    .close-modal {
+        position: absolute;
+        top: 30px;
+        right: 50px;
+        color: white;
+        font-size: 50px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-shadow: 0 2px 10px rgba(0,0,0,0.5);
+        width: 50px;
+        height: 50px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(255,255,255,0.1);
+        border-radius: 50%;
+    }
+
+    .close-modal:hover {
+        background: rgba(255,255,255,0.2);
+        transform: rotate(90deg);
+    }
+
+    .no-data {
+        text-align: center;
+        padding: 60px 20px;
+        color: #6c757d;
+    }
+
+    .no-data i {
+        font-size: 80px;
+        color: #dee2e6;
+        margin-bottom: 20px;
+    }
+
+    .back-btn {
+        background-color: var(--primary-color);
+        color: white;
+        padding: 10px 20px;
+        text-decoration: none;
+        border-radius: 5px;
+        display: inline-block;
+        margin-bottom: 20px;
+    }
+
+    .back-btn:hover {
+        background-color: #7d1a1a;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="archive-container">
+    <a href="{% url 'multiple_streams' %}" class="back-btn">
+        <i class="fas fa-arrow-left"></i> Back to Live Feed
+    </a>
+
+    <div class="archive-header">
+        <h1><i class="fas fa-user-secret"></i> Unauthorized Faces Archive</h1>
+        <span class="total-count">Total: {{ total_count }} Detection{{ total_count|pluralize }}</span>
+    </div>
+
+    {% if detections %}
+    <div class="detections-table">
+        <table>
+            <thead>
+                <tr>
+                    <th class="image-cell">Image</th>
+                    <th class="camera-cell">Camera</th>
+                    <th class="time-cell">Detection Time</th>
+                    <th class="notes-cell">Notes</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for detection in detections %}
+                <tr>
+                    <td class="image-cell">
+                        <img src="{{ MEDIA_URL }}{{ detection.image_path }}" 
+                             alt="Unauthorized Face" 
+                             class="face-thumbnail"
+                             style="width: 100px !important; height: 100px !important; max-width: 100px !important; max-height: 100px !important; object-fit: cover !important;"
+                             onclick="openModal('{{ MEDIA_URL }}{{ detection.image_path }}')">
+                    </td>
+                    <td class="camera-cell">
+                        <span class="camera-badge">
+                            <i class="fas fa-video"></i> Camera {{ detection.camera_box_id }}
+                        </span>
+                    </td>
+                    <td class="time-cell">
+                        <div class="timestamp">
+                            <span class="date-part">
+                                <i class="fas fa-calendar-alt"></i>
+                                {{ detection.detection_timestamp|date:"F d, Y" }}
+                            </span>
+                            <span class="time-part">
+                                <i class="fas fa-clock"></i>
+                                {{ detection.detection_timestamp|time:"g:i:s A" }}
+                            </span>
+                        </div>
+                    </td>
+                    <td class="notes-cell">
+                        <span class="notes-text">{{ detection.notes|default:"No notes" }}</span>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination -->
+    <div class="pagination-container">
+        {% if detections.has_previous %}
+            <a href="?page=1" class="pagination-btn">
+                <i class="fas fa-angle-double-left"></i> First
+            </a>
+            <a href="?page={{ detections.previous_page_number }}" class="pagination-btn">
+                <i class="fas fa-angle-left"></i> Previous
+            </a>
+        {% else %}
+            <button class="pagination-btn" disabled>
+                <i class="fas fa-angle-double-left"></i> First
+            </button>
+            <button class="pagination-btn" disabled>
+                <i class="fas fa-angle-left"></i> Previous
+            </button>
+        {% endif %}
+
+        <span class="pagination-info">
+            Page {{ detections.number }} of {{ detections.paginator.num_pages }}
+        </span>
+
+        {% if detections.has_next %}
+            <a href="?page={{ detections.next_page_number }}" class="pagination-btn">
+                Next <i class="fas fa-angle-right"></i>
+            </a>
+            <a href="?page={{ detections.paginator.num_pages }}" class="pagination-btn">
+                Last <i class="fas fa-angle-double-right"></i>
+            </a>
+        {% else %}
+            <button class="pagination-btn" disabled>
+                Next <i class="fas fa-angle-right"></i>
+            </button>
+            <button class="pagination-btn" disabled>
+                Last <i class="fas fa-angle-double-right"></i>
+            </button>
+        {% endif %}
+    </div>
+
+    {% else %}
+    <div class="no-data">
+        <i class="fas fa-check-circle"></i>
+        <h2>No Unauthorized Faces Detected</h2>
+        <p>All detected faces have been authorized so far.</p>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Image Modal -->
+<div id="imageModal" class="image-modal" onclick="closeModal()">
+    <span class="close-modal">&times;</span>
+    <img id="modalImage" class="modal-content-img">
+</div>
+
+<script>
+function openModal(imageSrc) {
+    const modal = document.getElementById('imageModal');
+    const modalImg = document.getElementById('modalImage');
+    modal.classList.add('active');
+    modalImg.src = imageSrc;
+}
+
+function closeModal() {
+    const modal = document.getElementById('imageModal');
+    modal.classList.remove('active');
+}
+
+// Close modal with Escape key
+document.addEventListener('keydown', function(event) {
+    if (event.key === 'Escape') {
+        closeModal();
+    }
+});
+</script>
+{% endblock %}
