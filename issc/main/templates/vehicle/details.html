@@ -1,0 +1,77 @@
+{% extends 'base.html' %}
+
+{% block title %} Register Vehicle {% endblock title %} 
+
+{% block content %} 
+
+{% load static %} 
+
+    <link rel="stylesheet" href="{% static 'css/details.css' %}">
+
+
+    <div class="container">
+
+      <div class="header">
+        <h2>Registered Vehicles</h2>
+   
+
+      </div>
+
+          {% if user_role != 'student' %}
+
+      <form method="POST" action="">
+        {% csrf_token %}
+          {% endif %}
+        
+        <div class="details">
+          <p><strong>First Name:</strong> <input type="text" name="first_name" value="{{ vehicle.first_name }}" {% if user_role == 'student' %}disabled{% endif %}></p>
+          <p><strong>Middle Name:</strong> <input type="text" name="middle_name" value="{{ vehicle.middle_name }}" {% if user_role == 'student' %}disabled{% endif %}></p>
+          <p><strong>Last Name:</strong> <input type="text" name="last_name" value="{{ vehicle.last_name }}" {% if user_role == 'student' %}disabled{% endif %}></p>
+          <p><strong>ID Number:</strong> <input type="text" name="id_number" value="{{ vehicle.id_number }}" {% if user_role == 'student' %}disabled{% endif %}></p>
+          <p><strong>Contact Number:</strong> <input type="text" name="contact_number" value="{{ vehicle.contact_number }}" {% if user_role == 'student' %}disabled{% endif %}></p>
+          <p><strong>Email Address:</strong> <input type="email" name="email_address" value="{{ vehicle.email_address }}" {% if user_role == 'student' %}disabled{% endif %}></p>
+          <p><strong>Role:</strong> <input type="text" name="role" value="{{ vehicle.role }}" {% if user_role == 'student' %}disabled{% endif %}></p>
+          <p><strong>Vehicle Type:</strong> <input type="text" name="vehicle_type" value="{{ vehicle.vehicle_type }}" {% if user_role == 'student' %}disabled{% endif %}></p>
+          <p><strong>Color:</strong> <input type="text" name="color" value="{{ vehicle.color }}" {% if user_role == 'student' %}disabled{% endif %}></p>
+          <p><strong>Model:</strong> <input type="text" name="model" value="{{ vehicle.model }}" {% if user_role == 'student' %}disabled{% endif %}></p>
+          <p><strong>Plate Number:</strong> <input type="text" name="plate_number" value="{{ vehicle.plate_number }}" {% if user_role == 'student' %}disabled{% endif %}></p>
+          <p><strong>Sticker Number:</strong> <input type="text" name="sticker_number" value="{{ vehicle.sticker_number }}" {% if user_role == 'student' %}disabled{% endif %}></p>
+          <p><strong>Guardian Name:</strong> <input type="text" name="guardian_name" value="{{ vehicle.guardian_name }}" {% if user_role == 'student' %}disabled{% endif %}></p>
+          <p><strong>Guardian Number:</strong> <input type="text" name="guardian_number" value="{{ vehicle.guardian_number }}" {% if user_role == 'student' %}disabled{% endif %}></p>
+          <p><strong>Driver's License:</strong> <input type="text" name="drivers_license" value="{{ vehicle.drivers_license }}" {% if user_role == 'student' %}disabled{% endif %}></p>
+
+
+         
+
+          {% if user_role != 'student' %}
+          <select name="status">
+            <option value="allowed" {% if vehicle.status == 'allowed' %}selected{% endif %}>allowed</option>
+            <option value="restricted" {% if vehicle.status == 'restricted' %}selected{% endif %}>restricted</option>
+          </select>
+
+
+          <button type="submit" style="margin-top: 20px;">Submit</button>
+          {% endif %}
+        </div>
+      </form>
+    </div>
+
+  <script type="text/javascript">
+    function toggleEditFields(button) {
+      const row = button.closest('tr'); // Get the closest row of the clicked button
+      const inputs = row.querySelectorAll('.form-input'); // Select all input fields in the row
+      inputs.forEach(input => {
+        input.disabled = !input.disabled;
+        input.style.cursor = input.disabled ? "not-allowed" : "auto";
+      });
+    }
+
+    function confirmDelete() {
+      return confirm('Do you really want to delete this user?');
+    }
+
+
+  </script> 
+
+
+{% endblock content %}
