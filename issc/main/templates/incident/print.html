@@ -1,0 +1,84 @@
+{% extends 'base.html' %}
+
+{% block title %}Incident Report - Print{% endblock %}
+
+{% block content %}
+  <style>
+    /* Hide navigation and footer when printing */
+    .navbar, .secondary-navbar, footer { display: none !important; }
+    /* Print container styles */
+    .print-card { background: #fff; padding: 28px 32px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); max-width: 900px; margin: 24px auto; }
+    .print-header { display:flex; align-items:center; gap:16px; margin-bottom:18px }
+    .print-logo { width:56px; height:56px; background:var(--primary-color); color:#fff; display:flex; align-items:center; justify-content:center; border-radius:6px; font-weight:700 }
+    .print-title { font-size:20px; font-weight:700; color:var(--primary-color) }
+    .print-meta { color:#666; margin-top:6px }
+    .info-table { width:100%; border-collapse:collapse; margin-top:12px }
+    .info-table td { padding:10px 12px; vertical-align:top }
+    .info-table td.label { width:28%; font-weight:700; color:#333; background:#f7f7f7 }
+    .info-table td.value { width:72%; background:#fff }
+    .section-title { font-size:16px; font-weight:700; margin-top:18px; color:#222; border-bottom:1px solid #eee; padding-bottom:6px }
+    .updates { margin-top:10px }
+    .update { padding:10px 0; border-bottom:1px solid #f0f0f0 }
+    .update .meta { font-size:13px; color:#666 }
+    @media print { body { background: #fff } .container { padding:0 } .print-card { box-shadow:none; border-radius:0; margin:0; } }
+  </style>
+
+  <div class="print-card">
+    <div class="print-header">
+      <div class="print-logo">PUP</div>
+      <div>
+        <div class="print-title">Incident Report</div>
+        <div class="print-meta">Incident ID: <strong>{{ incident.id }}</strong> · Status: <strong>{{ incident.status|capfirst }}</strong></div>
+      </div>
+    </div>
+
+    <div class="section-title">Incident Details</div>
+    <table class="info-table">
+      <tr><td class="label">Subject</td><td class="value">{{ incident.subject }}</td></tr>
+      <tr><td class="label">Date Reported</td><td class="value">{{ incident.date_joined }} {{ incident.time }}</td></tr>
+      <tr><td class="label">Location</td><td class="value">{{ incident.location }}</td></tr>
+      <tr><td class="label">Incident Description</td><td class="value" style="white-space:pre-wrap">{{ incident.incident }}</td></tr>
+      <tr><td class="label">Request for Action</td><td class="value" style="white-space:pre-wrap">{{ incident.request_for_action }}</td></tr>
+    </table>
+
+    <div class="section-title">Reported By</div>
+    <table class="info-table">
+      <tr><td class="label">Name</td><td class="value">{{ incident.first_name }} {% if incident.middle_name %}{{ incident.middle_name }}{% endif %} {{ incident.last_name }}</td></tr>
+      <tr><td class="label">ID Number</td><td class="value">{{ incident.id_number }}</td></tr>
+      <tr><td class="label">Contact Number</td><td class="value">{{ incident.contact_number }}</td></tr>
+      <tr><td class="label">Position / Department</td><td class="value">{{ incident.position }} / {{ incident.department }}</td></tr>
+    </table>
+
+    <div class="section-title">Status & Metadata</div>
+    <table class="info-table">
+      <tr><td class="label">Current Status</td><td class="value">{{ incident.status|capfirst }}</td></tr>
+      <tr><td class="label">Last Updated</td><td class="value">{{ incident.last_updated }} by {{ incident.last_updated_by }}</td></tr>
+      <tr><td class="label">Archived</td><td class="value">{{ incident.is_archived }}</td></tr>
+    </table>
+
+    <div class="section-title">Case Updates (History)</div>
+    <div class="updates">
+      {% if incident.updates.all %}
+        {% for u in incident.updates.all %}
+          <div class="update">
+            <div class="meta"><strong>{{ u.created_at }}</strong> — {{ u.created_by }} {% if u.close_case %}· <em>Closed case</em>{% endif %}</div>
+            <div style="margin-top:6px;white-space:pre-wrap">{{ u.reason }}</div>
+          </div>
+        {% endfor %}
+      {% else %}
+        <div>No updates yet.</div>
+      {% endif %}
+    </div>
+
+    <div style="margin-top:18px;" class="no-print">
+      <button onclick="window.print()" class="btn" style="padding:8px 12px;border-radius:6px;background:var(--primary-color);color:#fff;border:0;font-weight:700;">Print / Save as PDF</button>
+      <button onclick="window.history.back()" class="btn" style="padding:8px 12px;border-radius:6px;background:#6c757d;color:#fff;border:0;margin-left:8px;">Back</button>
+    </div>
+  </div>
+
+  <script>
+    // Trigger print dialog when page loads
+    window.addEventListener('load', function(){ setTimeout(function(){ window.print(); }, 350); });
+  </script>
+
+{% endblock %}
