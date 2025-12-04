@@ -1,0 +1,34 @@
+{% extends "reset.html" %}
+
+{% block content %}
+
+{% load static %}
+
+  <link rel="stylesheet" href="{% static 'css/login.css' %}">
+
+  <!-- Background Image -->
+  <img src="{% static 'images/background.jpg' %}" alt="Background" class="background-image">
+
+  <!-- Gradient Overlay -->
+  <div class="gradient-overlay"></div>
+
+  <div  class="login-container">
+
+    <!-- Logo -->
+    <div class="logo-container">
+      <img 
+          src="{% static 'images/pup-logo.png' %}" 
+          alt="Logo" 
+          class="logo"
+      >            
+    </div>
+    
+    <h2 class="login-title">Check Your Email</h2>
+    <p class="sentence">A password reset link has been sent to your email. If you don’t see the email, check your spam folder or try again.</p>
+    {% comment %} <p class="sentence">
+      If you don’t see the email, check your spam folder or try again.
+    </p> {% endcomment %}
+    <a href="{% url 'password_reset' %}" class="try-again">Try Again</a>
+  </div>
+
+{% endblock %}
