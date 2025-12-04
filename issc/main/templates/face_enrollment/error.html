@@ -1,0 +1,17 @@
+{% extends 'base.html' %}
+
+{% block title %} Face Enrollment Error {% endblock title %}
+
+{% block content %}
+{% load static %}
+<div style="display:flex; align-items:center; justify-content:center; height:100vh;">
+    <div style="text-align:center; background-color:#ffffff; padding:40px; border-radius:12px; box-shadow:0 4px 10px rgba(0,0,0,0.1);">
+        <div style="font-size:60px; color:#F44336;">&#10060;</div>  {# Red cross icon #}
+        <div style="font-size:32px; color:#333; margin-top:10px;">An Error Occurred</div>
+        <div style="font-size:16px; color:#666; margin-top:10px;">{{ message }}</div>
+        <div style="margin-top:20px;">
+            <a href="/face-enrollment/enrollee" style="display:inline-block; padding:10px 25px; background-color:#F44336; color:white; text-decoration:none; border-radius:6px; font-size:16px;">Go Back</a>
+        </div>
+    </div>
+</div>
+{% endblock content %}
