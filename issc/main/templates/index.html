@@ -1,0 +1,64 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}PUP-ICSSS{% endblock %}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="{% static 'css/styles.css' %}" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+</head>
+
+<body>
+    <!-- Sidebar -->
+    {% if user_role == 'admin' %}
+        {% include 'components/admin_sidebar.html' with user_role=user_role %}
+    {% elif user_role == 'student' %}
+        {% include 'components/student_sidebar.html' with user_role=user_role %}
+    {% elif user_role == 'faculty' %}
+        {% include 'components/sidebar.html' with user_role=user_role %}
+    {% endif %}
+
+
+
+    <!-- Navbar -->
+    <nav class="navbar">
+        <button class="toggle-btn" onclick="toggleSidebar()">☰</button>
+        <div class="flex items-center space-x-4">
+            <div class="navbar-logo">
+                <img src="{% static 'images/pup-logo.png' %}" alt="Logo" class="w-12 h-12 sm:w-16 sm:h-16">
+            </div>
+            <div>
+                <a href="{% url 'dashboard' %}" class="texttitle">
+                    <span class="font-bold text-lg">Polytechnic University of the Philippines Calauan</span><br>
+                    <span class="font-medium text-sm">Integrated Safety and Security System</span>
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="container">
+        {{ user_data.username }}
+    </div>
+
+    <!-- Footer -->
+    <footer>
+        <p>&copy; 2024 ICSSS-PUP Calauan. All Rights Reserved.</p>
+    </footer>
+
+    <script>
+        function toggleSidebar() {
+            const sidebar = document.querySelector('.sidebar');
+            const container = document.querySelector('.container');
+            sidebar.classList.toggle('collapsed');
+            container.classList.toggle('collapsed');
+        }
+    </script>
+</body>
+
+</html>
