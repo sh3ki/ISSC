@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Incident Report Graphs</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      margin: 40px;
+      background-color: #f4f4f6;
+      color: #333;
+    }
+
+    .graph-wrapper {
+      background: white;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 30px;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+      page-break-inside: avoid;
+    }
+
+    .graph-wrapper img {
+      display: block;
+      max-width: 100%;
+      height: auto;
+      margin: 0 auto;
+    }
+
+    .graph-title {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 15px;
+      text-align: center;
+      color: #2c3e50;
+    }
+  </style>
+</head>
+<body>
+
+    <div style="display:flex; align-items:center; justify-content:flex-end; margin-bottom:20px; gap:10px;">
+      <button onclick="window.location.href='/';" style="background:#800000; color:#fff; border:none; padding:8px 16px; border-radius:6px; cursor:pointer;">Back</button>
+      <button onclick="window.location.href='?export=excel'" style="background:#800000; color:#fff; border:none; padding:8px 16px; border-radius:6px; cursor:pointer;">Export to Excel</button>
+    </div>
+    <h2 style="text-align:center; margin-bottom:20px;">Incident Reports</h2>
+    <div style="display:flex; justify-content:center; gap:12px; margin-bottom:24px;">
+      <button onclick="window.location.href='?filter=day'" style="background:#800000; color:#fff; border:none; padding:8px 18px; border-radius:6px; cursor:pointer;">Per Day</button>
+      <button onclick="window.location.href='?filter=month'" style="background:#800000; color:#fff; border:none; padding:8px 18px; border-radius:6px; cursor:pointer;">Per Month</button>
+      <button onclick="window.location.href='?filter=semester'" style="background:#800000; color:#fff; border:none; padding:8px 18px; border-radius:6px; cursor:pointer;">Per Semester</button>
+      <button onclick="window.location.href='?filter=year'" style="background:#800000; color:#fff; border:none; padding:8px 18px; border-radius:6px; cursor:pointer;">Per Yearly</button>
+    </div>
+    {% if request.GET.filter == 'day' %}
+      <div style="text-align:center; margin-bottom:10px; font-weight:500; color:#800000;">Showing incidents for today ({{ now|date:'M d, Y' }})</div>
+    {% elif request.GET.filter == 'month' %}
+      <div style="text-align:center; margin-bottom:10px; font-weight:500; color:#800000;">Showing incidents for this month ({{ now|date:'F Y' }})</div>
+    {% elif request.GET.filter == 'semester' %}
+      <div style="text-align:center; margin-bottom:10px; font-weight:500; color:#800000;">Showing incidents for this semester ({{ now|date:'Y' }})</div>
+    {% elif request.GET.filter == 'year' %}
+      <div style="text-align:center; margin-bottom:10px; font-weight:500; color:#800000;">Showing incidents for this year ({{ now|date:'Y' }})</div>
+    {% endif %}
+    <table style="width:100%; border-collapse:collapse; background:#fff; font-size:15px;">
+      <thead style="background:#800000; color:#fff;">
+        <tr>
+          <th style="padding:10px;">DATE TIME</th>
+          <th style="padding:10px;">FIRST NAME</th>
+          <th style="padding:10px;">LAST NAME</th>
+          <th style="padding:10px;">SUBJECT</th>
+          <th style="padding:10px;">LOCATION</th>
+          <th style="padding:10px;">REPORTED BY</th>
+          <th style="padding:10px;">DEPARTMENT</th>
+          <th style="padding:10px;">PHONE NUMBER</th>
+          <th style="padding:10px;">STATUS</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for incident in incidents %}
+        <tr style="border-bottom:1px solid #eee;">
+          <td style="padding:8px;">{{ incident.date_joined|date:'M. d, Y, h:i a' }}</td>
+          <td style="padding:8px;">{{ incident.first_name }}</td>
+          <td style="padding:8px;">{{ incident.last_name }}</td>
+          <td style="padding:8px;">{{ incident.subject }}</td>
+          <td style="padding:8px;">{{ incident.location }}</td>
+          <td style="padding:8px;">{{ incident.reported_by }}</td>
+          <td style="padding:8px;">{{ incident.department }}</td>
+          <td style="padding:8px;">{{ incident.phone_number }}</td>
+          <td style="padding:8px;">{{ incident.status }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+</body>
+</html>
+
