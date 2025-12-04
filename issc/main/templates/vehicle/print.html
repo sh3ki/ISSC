@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Vehicle Report</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 40px;
+      color: #333;
+    }
+    h1 {
+      text-align: center;
+      margin-bottom: 40px;
+      text-transform: uppercase;
+      font-size: 24px;
+    }
+    .section {
+      margin-bottom: 30px;
+    }
+    .section h2 {
+      border-bottom: 2px solid #6AAE43;
+      padding-bottom: 5px;
+      margin-bottom: 15px;
+      font-size: 18px;
+    }
+    .info-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    .info-table td {
+      padding: 8px 10px;
+      vertical-align: top;
+    }
+    .info-table td.label {
+      font-weight: bold;
+      width: 30%;
+      color: #444;
+    }
+    .info-table td.value {
+      width: 70%;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Vehicle Registration Report</h1>
+
+  <div class="section">
+    <h2>Owner Information</h2>
+    <table class="info-table">
+      <tr><td class="label">First Name:</td><td class="value">{{ vehicle.first_name }}</td></tr>
+      <tr><td class="label">Middle Name:</td><td class="value">{{ vehicle.middle_name }}</td></tr>
+      <tr><td class="label">Last Name:</td><td class="value">{{ vehicle.last_name }}</td></tr>
+      <tr><td class="label">ID Number:</td><td class="value">{{ vehicle.id_number }}</td></tr>
+      <tr><td class="label">Contact Number:</td><td class="value">{{ vehicle.contact_number }}</td></tr>
+      <tr><td class="label">Email Address:</td><td class="value">{{ vehicle.email_address }}</td></tr>
+      <tr><td class="label">Role:</td><td class="value">{{ vehicle.role }}</td></tr>
+    </table>
+  </div>
+
+  <div class="section">
+    <h2>Vehicle Information</h2>
+    <table class="info-table">
+      <tr><td class="label">Vehicle Type:</td><td class="value">{{ vehicle.vehicle_type }}</td></tr>
+      <tr><td class="label">Color:</td><td class="value">{{ vehicle.color }}</td></tr>
+      <tr><td class="label">Model:</td><td class="value">{{ vehicle.model }}</td></tr>
+      <tr><td class="label">Plate Number:</td><td class="value">{{ vehicle.plate_number }}</td></tr>
+      <tr><td class="label">Sticker Number:</td><td class="value">{{ vehicle.sticker_number }}</td></tr>
+    </table>
+  </div>
+
+  <div class="section">
+    <h2>Emergency Contact</h2>
+    <table class="info-table">
+      <tr><td class="label">Guardian Name:</td><td class="value">{{ vehicle.guardian_name }}</td></tr>
+      <tr><td class="label">Guardian Number:</td><td class="value">{{ vehicle.guardian_number }}</td></tr>
+    </table>
+  </div>
+
+  <div class="section">
+    <h2>Driver's Information</h2>
+    <table class="info-table">
+      <tr><td class="label">Driver's License:</td><td class="value">{{ vehicle.drivers_license }}</td></tr>
+    </table>
+  </div>
+
+</body>
+</html>
