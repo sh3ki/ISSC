@@ -1,0 +1,416 @@
+{% extends 'base.html' %}
+
+{% block title %} Incident Report {% endblock title %}
+
+{% block content %}
+
+{% load static %} 
+
+<link rel="stylesheet" href="{% static 'css/forms.css' %}">
+
+<div class = "forms"> 
+    <form method="POST" enctype="multipart/form-data" class="space-y-4">
+        {% csrf_token %}
+        <div class="form-group">
+
+            <!-- Row 1: ID NUMBER, FIRST NAME, MIDDLE NAME -->
+            <div class="form-field id-number">
+                <label>ID Number</label>
+                {% if user_role in 'student admin faculty' %}
+                    <input type="text" id="id_number" name="id_number" required value="{{ user_data.id_number }}" readonly tabindex="-1" style="background-color:#f5f5f5;pointer-events:none;">
+                {% else %}
+                    <input type="text" id="id_number" name="id_number" required value="{{ user_data.id_number }}">
+                {% endif %}
+            </div>
+
+            <div class="form-field first-name">
+                <label>First Name</label>
+                {% if user_role in 'student admin faculty' %}
+                    <input type="text" name="first_name" required value="{{ user_data.first_name }}" readonly tabindex="-1" style="background-color:#f5f5f5;pointer-events:none;">
+                {% else %}
+                    <input type="text" name="first_name" required value="{{ user_data.first_name }}">
+                {% endif %}
+            </div>
+
+            <div class="form-field middle-name">
+                <label>Middle Name</label>
+                {% if user_role in 'student admin faculty' %}
+                    <input type="text" name="middle_name" value="{{ user_data.middle_name }}" readonly tabindex="-1" style="background-color:#f5f5f5;pointer-events:none;">
+                {% else %}
+                    <input type="text" name="middle_name" value="{{ user_data.middle_name }}">
+                {% endif %}
+            </div>
+
+            <!-- Row 2: LAST NAME, CONTACT NUMBER, POSITION -->
+            <div class="form-field last-name">
+                <label>Last Name</label>
+                {% if user_role in 'student admin faculty' %}
+                    <input type="text" name="last_name" required value="{{ user_data.last_name }}" readonly tabindex="-1" style="background-color:#f5f5f5;pointer-events:none;">
+                {% else %}
+                    <input type="text" name="last_name" required value="{{ user_data.last_name }}">
+                {% endif %}
+            </div>
+
+            <div class="form-field contact-number">
+                <label>Contact Number</label>
+                {% if user_role in 'student admin faculty' %}
+                    <input type="tel" name="contact_number" required value="{{ user_data.contact_number }}" readonly tabindex="-1" style="background-color:#f5f5f5;pointer-events:none;">
+                {% else %}
+                    <input type="tel" name="contact_number" required value="{{ user_data.contact_number }}">
+                {% endif %}
+            </div>
+
+            <div class="form-field position">
+                <label>Position</label>
+                {% if user_role in 'student admin faculty' %}
+                    <input type="text" name="position" required value="{{ user_data.privilege|title }}" readonly tabindex="-1" style="background-color:#f5f5f5;pointer-events:none;">
+                {% else %}
+                    <input type="text" name="position" required value="{{ user_data.privilege|title }}">
+                {% endif %}
+            </div>
+
+            <!-- Row 3: DEPARTMENT, LOCATION, SUBJECT -->
+            <div class="form-field department">
+                <label>Department</label>
+                {% if user_role in 'student admin faculty' %}
+                    <input type="text" name="department" required value="{{ user_data.department }}" readonly tabindex="-1" style="background-color:#f5f5f5;pointer-events:none;">
+                {% else %}
+                    <input type="text" name="department" required value="{{ user_data.department }}">
+                {% endif %}
+            </div>
+
+            <div class="form-field location">
+                <label>Location</label>
+                <select name="location" required>
+                    <optgroup label="1st Floor">
+                        <option value="101">101</option>
+                        <option value="102">102</option>
+                        <option value="103">103</option>
+                        <option value="104">104</option>
+                        <option value="105">105</option>
+                        <option value="Bathroom 1st Floor">Bathroom 1st Floor</option>
+                    </optgroup>
+                    <optgroup label="2nd Floor">
+                        <option value="201">201</option>
+                        <option value="202">202</option>
+                        <option value="203">203</option>
+                        <option value="204">204</option>
+                        <option value="205">205</option>
+                        <option value="Bathroom 2nd Floor">Bathroom 2nd Floor</option>
+                    </optgroup>
+                    <optgroup label="3rd Floor">
+                        <option value="301">301</option>
+                        <option value="302">302</option>
+                        <option value="303">303</option>
+                        <option value="304">304</option>
+                        <option value="305">305</option>
+                        <option value="Bathroom 3rd Floor">Bathroom 3rd Floor</option>
+                    </optgroup>
+                    <optgroup label="Special Rooms">
+                        <option value="AVR">AVR</option>
+                        <option value="Faculty">Faculty</option>
+                        <option value="Admin Office">Admin Office</option>
+                        <option value="TLE Room/Canteen">TLE Room/Canteen</option>
+                    </optgroup>
+                </select>
+            </div>
+
+            <div class="form-field subject">
+                <label>Subject</label>
+                <div style="display:flex;align-items:center;gap:8px;position:relative;">
+                    <select name="subject" required id="subject-select" style="flex:1;">
+                        <option value="Theft">Theft</option>
+                        <option value="Missing">Missing</option>
+                        <option value="Damage of Property">Damage of Property</option>
+                        <option value="Vandalism">Vandalism</option>
+                        <option value="Bullying/Fights">Bullying/Fights</option>
+                        <option value="Accidental Injuries">Accidental Injuries</option>
+                        <option value="Threats/Harassment">Threats/Harassment</option>
+                        <option value="Cheating">Cheating</option>
+                        <option value="Drugs">Drugs</option>
+                        <option value="Suicide Incident">Suicide Incident</option>
+                        <option value="Building Maintenance Issues">Building Maintenance Issues</option>
+                        <option value="Other/s">Other/s</option>
+                    </select>
+                    
+                    <!-- Hover tooltip container -->
+                    <div id="subject-tooltip" style="display:none;position:fixed;z-index:2000;background:#fff;border:2px solid #4b0000;border-radius:8px;padding:12px;box-shadow:0 4px 12px rgba(0,0,0,0.15);max-width:400px;pointer-events:none;">
+                        <div style="font-size:14px;font-weight:700;color:#4b0000;margin-bottom:6px;" id="tooltip-title"></div>
+                        <div style="font-size:13px;color:#666;margin-bottom:8px;" id="tooltip-summary"></div>
+                        <div style="font-size:13px;color:#333;line-height:1.5;" id="tooltip-detail"></div>
+                    </div>
+                </div>
+
+                <input type="text" name="subject_other" id="subject-other" placeholder="Please specify subject" style="display:none;margin-top:8px;" />
+            </div>
+
+            <!-- Row 4: PEOPLE INVOLVED, INCIDENT DESCRIPTION, REQUEST FOR ACTION, UPLOAD FILE -->
+            <div class="form-field people-involved">
+                <label>People Involved</label>
+                <textarea name="people_involved" id="people-involved" rows="4" placeholder="List people involved (names, roles, contact info). Separate entries with new lines." style="width:100%;box-sizing:border-box;"></textarea>
+            </div>
+
+            <div class="form-field incident-description">
+                <label>Incident Description</label>
+                <textarea name="incident" required rows="4" placeholder="Describe the incident in detail"></textarea>
+            </div>
+
+            <div class="form-field request-action">
+                <label>Request for Action</label>
+                <textarea name="request_for_action" required></textarea>
+            </div>
+
+            <div class="form-field upload-file">
+                <label>Upload File</label>
+                <input type="file" name="file">
+            </div>
+
+            <div  class="register-btn">
+                <button type="submit">Submit</button>
+            </div>
+
+        </div>
+    </form>
+</div>
+
+
+<!-- Incident Report Template scripts -->
+<script>
+  $(document).ready(function() {
+    $('#id_number').on('blur', function() {
+      console.log('id_number input lost focus. Value:', $(this).val());
+
+       $.ajax({
+        url: '/api/getUser/',
+        type: 'GET',
+        data: { id: $(this).val() },
+        success: function (data) {
+            console.log(data)
+            $('input[name="first_name"]').val(data.first_name)
+            $('input[name="middle_name"]').val(data.middle_name)
+            $('input[name="last_name"]').val(data.last_name)
+            $('input[name="contact_number"]').val(data.contact_number)
+            $('input[name="department"]').val(data.department)
+        },
+        error: function (xhr) {
+          if (xhr.status === 404) {
+            $('#user_result').html("User not found.");
+          } else if (xhr.status === 400) {
+            $('#user_result').html("Missing user ID.");
+          } else {
+            $('#user_result').html("An error occurred.");
+          }
+        }
+      });
+
+    });
+  });
+</script>
+
+<!-- subject-other toggle handled in the main script -->
+
+<script>
+    // Populate and handle handbook rule display for subjects (inline rule card only)
+    $(document).ready(function(){
+        var $select = $('#subject-select');
+        var $ruleBox = $('#subject-rule');
+
+        // Rich handbook rules mapping (HTML content) — kept centralized for clarity.
+        var rules = {
+            'Theft': {
+                title: 'Theft',
+                summary: 'Progressive sanctions for Theft / Vandalism / Defacing (Sec. 2.21).',
+                detail: `<ul style="margin:8px 0 0 18px;padding:0;color:#333;line-height:1.4">
+                    <li><strong>1st:</strong> Reprimand</li>
+                    <li><strong>2nd:</strong> 1-week suspension</li>
+                    <li><strong>3rd:</strong> 2-week suspension</li>
+                    <li><strong>4th+:</strong> Dismissal</li>
+                </ul>`
+            },
+            'Vandalism': {
+                title: 'Vandalism',
+                summary: 'Consequences mirror Theft / Vandalism rules (Sec. 2.21).',
+                detail: `<ul style="margin:8px 0 0 18px;padding:0;color:#333;line-height:1.4">
+                    <li><strong>1st:</strong> Reprimand</li>
+                    <li><strong>2nd:</strong> 1-week suspension</li>
+                    <li><strong>3rd:</strong> 2-week suspension</li>
+                    <li><strong>4th+:</strong> Dismissal</li>
+                </ul>`
+            },
+            'Missing': {
+                title: 'Missing',
+                summary: 'Not a violation — No sanction.',
+                detail: `<p style="margin:8px 0 0;color:#333;line-height:1.4">Missing incidents are not treated as disciplinary violations under the handbook and therefore do not carry sanctions.</p>`
+            },
+            'Damage of Property': {
+                title: 'Damage of Property',
+                summary: 'Minor damage follows Theft/Vandalism; Major destruction harsher (Sec. 2.22).',
+                detail: `<div style="margin-top:8px;color:#333;line-height:1.4">
+                    <div><strong>Minor Damage</strong> — apply Theft/Vandalism progression:</div>
+                    <ul style="margin:6px 0 0 18px;padding:0;">
+                        <li>1st: Reprimand</li>
+                        <li>2nd: 1-week suspension</li>
+                        <li>3rd: 2-week suspension</li>
+                        <li>4th+: Dismissal</li>
+                    </ul>
+                    <div style="margin-top:8px;"><strong>Major Damage / Destruction (Sec. 2.22)</strong>:</div>
+                    <ul style="margin:6px 0 0 18px;padding:0;">
+                        <li><strong>1st:</strong> 2-week suspension + restitution + administrative case</li>
+                        <li><strong>2nd:</strong> Dismissal + restitution + criminal case</li>
+                    </ul>
+                </div>`
+            },
+            'Bullying/Fights': {
+                title: 'Bullying / Fights',
+                summary: 'Covers Bullying/Harassment and Physical Brawls with separate progressions.',
+                detail: `<div style="margin-top:8px;color:#333;line-height:1.4">
+                    <div><strong>Bullying / Harassment (Sec. 2.32)</strong>:</div>
+                    <ul style="margin:6px 0 0 18px;padding:0;">
+                        <li>1st: Reprimand + 1-day suspension</li>
+                        <li>2nd: 1-week suspension</li>
+                        <li>3rd: 2-week suspension</li>
+                        <li>4th+: Referred to SDB</li>
+                    </ul>
+                    <div style="margin-top:8px;"><strong>Physical Brawls (Sec. 2.27)</strong>:</div>
+                    <ul style="margin:6px 0 0 18px;padding:0;">
+                        <li>1st: 1-week suspension</li>
+                        <li>2nd: Dismissal</li>
+                    </ul>
+                </div>`
+            },
+            'Accidental Injuries': {
+                title: 'Accidental Injuries',
+                summary: 'No sanction if accidental; intentional incidents follow bullying/brawls rules.',
+                detail: `<p style="margin:8px 0 0;color:#333;line-height:1.4">If an injury is clearly accidental, there is normally no disciplinary sanction. If the injury was intentional, follow the Bullying/Fights (Brawls) policy above.</p>`
+            },
+            'Threats/Harassment': {
+                title: 'Threats / Harassment',
+                summary: 'Follow Bullying / Harassment rules (Sec. 2.32).',
+                detail: `<p style="margin:8px 0 0;color:#333;line-height:1.4">Threats or harassing behavior are treated under the Bullying/Harassment policy and carry the same progressive sanctions.</p>`
+            },
+            'Cheating': {
+                title: 'Cheating',
+                summary: 'Academic integrity sanctions escalate with repeated offenses (Sec. 2.29).',
+                detail: `<ul style="margin:8px 0 0 18px;padding:0;color:#333;line-height:1.4">
+                    <li>1st: Failing grade in the exam/quiz</li>
+                    <li>2nd: Failing grade in the subject</li>
+                    <li>3rd: 2-week suspension</li>
+                    <li>4th: Dismissal</li>
+                </ul>`
+            },
+            'Drugs': {
+                title: 'Drugs',
+                summary: 'Zero-tolerance: immediate dismissal and criminal referral (Sec. 2.31).',
+                detail: `<p style="margin:8px 0 0;color:#333;line-height:1.4">Possession, distribution, or use of illegal drugs on campus generally results in dismissal and a criminal case referral.</p>`
+            },
+            'Suicide Incident': {
+                title: 'Suicide Incident',
+                summary: 'Health/safety emergency — no disciplinary sanction; prioritize support.',
+                detail: `<p style="margin:8px 0 0;color:#333;line-height:1.4">Suicide attempts or ideation are treated as health and safety emergencies. No disciplinary action; immediate care and referral to counseling and emergency services required.</p>`
+            },
+            'Building Maintenance Issues': {
+                title: 'Building Maintenance Issues',
+                summary: 'No sanction unless caused by student vandalism.',
+                detail: `<p style="margin:8px 0 0;color:#333;line-height:1.4">If damage was caused by student vandalism, apply the Damage/Vandalism rules above. Routine maintenance reports do not carry sanctions.</p>`
+            },
+            'Other/s': {
+                title: 'Other/s',
+                summary: 'Please specify — follow the most relevant handbook section.',
+                detail: `<p style="margin:8px 0 0;color:#333;line-height:1.4">If you select Other/s, briefly describe the incident. The disciplinary response will follow the handbook section most appropriate to the behavior described.</p>`
+            }
+        };
+
+        function renderRuleCard(subjectKey){
+            if(!subjectKey) return $ruleBox.hide();
+            var r = rules[subjectKey];
+            if(!r) return $ruleBox.hide();
+            var card = `
+                <div style="border-radius:10px;padding:12px;background:#fff;border:1px solid #f0eaea;box-shadow:0 8px 20px rgba(75,0,0,0.04)">
+                    <div style="display:flex;align-items:center;justify-content:space-between">
+                        <div>
+                            <div style="font-size:14px;font-weight:700;color:#4b0000">${r.title}</div>
+                            <div style="font-size:13px;color:#666;margin-top:6px">${r.summary}</div>
+                        </div>
+                    </div>
+                    <div style="margin-top:10px;color:#333">${r.detail}</div>
+                </div>
+            `;
+            $ruleBox.html(card).show();
+        }
+
+        // show rule on change (covers keyboard navigation)
+        $select.on('change', function(){
+            var val = $(this).val();
+            renderRuleCard(val);
+            // Keep subject_other toggle behavior
+            if(val === 'Other/s'){
+                $('#subject-other').show().prop('required', true);
+            } else {
+                $('#subject-other').hide().prop('required', false).val('');
+            }
+        });
+
+        // focus shows current rule
+        $select.on('focus', function(){
+            renderRuleCard($(this).val());
+        });
+
+        // Tooltip hover functionality
+        var $tooltip = $('#subject-tooltip');
+        var $tooltipTitle = $('#tooltip-title');
+        var $tooltipSummary = $('#tooltip-summary');
+        var $tooltipDetail = $('#tooltip-detail');
+        var currentHoveredOption = null;
+
+        // Show tooltip on dropdown open and option hover
+        $select.on('mouseenter', 'option', function(e){
+            var val = $(this).val();
+            var r = rules[val];
+            if(r){
+                currentHoveredOption = val;
+                $tooltipTitle.text(r.title);
+                $tooltipSummary.text(r.summary);
+                $tooltipDetail.html(r.detail);
+                
+                // Position tooltip near mouse
+                var x = e.pageX + 15;
+                var y = e.pageY + 15;
+                $tooltip.css({left: x + 'px', top: y + 'px'}).show();
+            }
+        });
+
+        // Track mouse movement for tooltip positioning
+        $(document).on('mousemove', function(e){
+            if($tooltip.is(':visible')){
+                var x = e.pageX + 15;
+                var y = e.pageY + 15;
+                $tooltip.css({left: x + 'px', top: y + 'px'});
+            }
+        });
+
+        // Hide tooltip when mouse leaves select or dropdown closes
+        $select.on('mouseleave', function(){
+            $tooltip.hide();
+            currentHoveredOption = null;
+        });
+
+        $select.on('blur', function(){
+            $tooltip.hide();
+            currentHoveredOption = null;
+        });
+
+        // Handle "Other/s" field toggle
+        $select.on('change', function(){
+            var val = $(this).val();
+            if(val === 'Other/s'){
+                $('#subject-other').show().prop('required', true);
+            } else {
+                $('#subject-other').hide().prop('required', false).val('');
+            }
+        });
+    });
+</script>
+
+{% endblock content %}
+
+
