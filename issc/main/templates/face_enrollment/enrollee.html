@@ -1,0 +1,70 @@
+{% extends 'base.html' %}
+
+{% block title %} Face Enrollment {% endblock title %}
+{% block content %}
+{% load static %}
+
+<div class="mt-12">
+  <h1 class="text-center text-4xl font-bold text-gray-800 mb-10">Face Enrollee</h1>
+  <div class="overflow-x-auto bg-white rounded-xl shadow-md p-6" style="min-width: 100%;">
+    <table id="enrollmentTable" class="form-table w-full text-sm text-left text-gray-700 border-collapse">
+      <thead class="bg-gray-100 text-xs uppercase text-gray-600">
+        <tr>
+          <th class="px-4 py-3">First Name</th>
+          <th class="px-4 py-3">Middle Name</th>
+          <th class="px-4 py-3">Last Name</th>
+          <th class="px-4 py-3">Email</th>
+          <th class="px-4 py-3">ID Number</th>
+          <th class="px-4 py-3">Contact Number</th>
+          <th class="px-4 py-3">Gender</th>
+          <th class="px-4 py-3">Department</th>
+          <th class="px-4 py-3">Action</th>
+      </thead>
+      <tbody>
+        {% for enrollee in user_data %}
+        <tr class="border-b hover:bg-gray-50">
+          <td class="px-4 py-3">{{ enrollee.first_name }}</td>
+          <td class="px-4 py-3">{{ enrollee.middle_name }}</td>
+          <td class="px-4 py-3">{{ enrollee.last_name }}</td>
+          <td class="px-4 py-3">{{ enrollee.email }}</td>
+          <td class="px-4 py-3">{{ enrollee.id_number }}</td>
+          <td class="px-4 py-3">{{ enrollee.contact_number }}</td>
+          <td class="px-4 py-3">{{ enrollee.gender }}</td>
+          <td class="px-4 py-3">{{ enrollee.department }}</td>
+          {% if enrollee.id_number in enrolled_ids %}
+            <td class="px-4 py-3">
+              <button class="bg-gray-400 text-white px-3 py-1 rounded cursor-not-allowed" disabled>
+                Already Enrolled
+              </button>
+            </td>
+          {% else %}
+            <td class="px-4 py-3">
+              <form method="post" action="{% url 'face_enrollment' id_number=enrollee.id_number %}">
+                {% csrf_token %}
+                <button type="submit" class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded">
+                  Enroll Face
+                </button>
+              </form>
+            </td>
+          {% endif %}
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+  $(document).ready(function() {
+    $('#enrollmentTable').DataTable({
+      search: true,
+      responsive: true,
+      ordering: true,
+      paging: true,
+      info: true
+    });
+  });
+</script>
+
+
+{% endblock content %}
