@@ -182,14 +182,17 @@ sudo systemctl restart ssh
 ### Step 4.1: Install Python 3.12 and Dependencies
 
 ```bash
-# Install Python 3.12 and pip
-sudo apt install -y python3.12 python3.12-venv python3-pip python3.12-dev
+# Install Python 3.12 and pip (default in Ubuntu 24.04)
+sudo apt install -y python3.12 python3.12-venv python3-pip python3.12-dev python3-full
 
 # Install MySQL client libraries
 sudo apt install -y default-libmysqlclient-dev pkg-config
 
+# Install GEOS library (required for shapely geospatial library)
+sudo apt install -y libgeos-dev
+
 # Install OpenCV dependencies (required for face recognition)
-sudo apt install -y libgl1-mesa-glx libglib2.0-0 libsm6 libxext6 libxrender-dev
+sudo apt install -y libgl1 libgl1-mesa-glx libglib2.0-0 libsm6 libxext6 libxrender-dev
 
 # Install additional dependencies for DeepFace and image processing
 sudo apt install -y libhdf5-dev libatlas-base-dev libjasper-dev libqtgui4 libqt4-test
@@ -301,7 +304,7 @@ cd /var/www/issc
 ### Step 6.2: Create Virtual Environment
 
 ```bash
-# Create virtual environment
+# Create virtual environment with Python 3.12
 python3.12 -m venv venv
 
 # Activate virtual environment
@@ -384,7 +387,7 @@ nano .env
 # Django Settings
 SECRET_KEY='your-very-long-random-secret-key-generate-new-one'
 DEBUG=False
-ALLOWED_HOSTS=yourdomain.com,www.yourdomain.com,YOUR_VPS_IP
+ALLOWED_HOSTS=issc.live,www.issc.live,YOUR_VPS_IP
 
 # Database Configuration
 DB_NAME=issc_db
@@ -431,8 +434,8 @@ ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '').split(',')
 
 # Add CSRF trusted origins (add this new setting)
 CSRF_TRUSTED_ORIGINS = [
-    'https://yourdomain.com',
-    'https://www.yourdomain.com',
+    'https://issc.live',
+    'https://www.issc.live',
 ]
 
 # Update STATIC settings (around line 150)
@@ -617,7 +620,7 @@ sudo nano /etc/nginx/sites-available/issc
 ```nginx
 server {
     listen 80;
-    server_name yourdomain.com www.yourdomain.com;
+    server_name issc.live www.issc.live;
 
     client_max_body_size 100M;
 
@@ -701,7 +704,7 @@ sudo apt install -y certbot python3-certbot-nginx
 
 ```bash
 # Get certificate for your domain
-sudo certbot --nginx -d yourdomain.com -d www.yourdomain.com
+sudo certbot --nginx -d issc.live -d www.issc.live
 ```
 
 **Follow the prompts:**
@@ -713,7 +716,7 @@ sudo certbot --nginx -d yourdomain.com -d www.yourdomain.com
 ### Step 10.3: Verify SSL
 
 Visit your site:
-- `https://yourdomain.com`
+- `https://issc.live`
 
 You should see the padlock icon indicating HTTPS is working.
 
@@ -803,7 +806,7 @@ sudo nano /etc/logrotate.d/issc
 
 **Test checklist:**
 - [ ] Homepage loads via HTTPS
-- [ ] Admin panel accessible: `https://yourdomain.com/admin/`
+- [ ] Admin panel accessible: `https://issc.live/admin/`
 - [ ] Login system works
 - [ ] Face recognition system works
 - [ ] File uploads work
@@ -1271,8 +1274,8 @@ mysql -u issc_user -p issc_db
 ## Conclusion
 
 Your ISSC Django system should now be fully deployed and accessible via:
-- **HTTPS:** `https://yourdomain.com`
-- **Admin Panel:** `https://yourdomain.com/admin/`
+- **HTTPS:** `https://issc.live`
+- **Admin Panel:** `https://issc.live/admin/`
 
 **Next Steps:**
 1. Test all features thoroughly
