@@ -1,0 +1,500 @@
+<!-- filepath: d:\Programming\Systems\Web-Systems\Django\ISSC-Django-main\issc\main\templates\face_enrollment\faceenrollment.html -->
+{% extends 'base.html' %} {% block title %} Face Enrollment {% endblock title %}
+{% block content %} {% load static %}
+
+<style>
+/* Enhanced video feed styling */
+#video_feed {
+  box-shadow: 0 0 10px rgba(0,0,0,0.1);
+  transition: border-color 0.3s ease;
+  min-height: 320px;
+}
+
+.video-container {
+  position: relative;
+}
+
+#feedErrorOverlay {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: rgba(0, 0, 0, 0.7);
+  color: white;
+  padding: 10px 20px;
+  border-radius: 5px;
+  font-weight: bold;
+  display: none;
+}
+
+.alert {
+  padding: 10px 15px;
+  margin-bottom: 15px;
+  border-radius: 4px;
+}
+
+.alert-info {
+  background-color: #e0f2ff;
+  border-left: 4px solid #3498db;
+  color: #0c5460;
+}
+</style>
+
+<div class="max-w-7xl mx-auto mt-10 px-4">
+  <h1 class="text-center text-4xl font-bold text-gray-800 mb-10">
+    Face Enrollment for Student with ID Number: {{ user_data.id_number }}
+  </h1>
+  
+  <div class="alert alert-info" role="alert">
+    <i class="fas fa-info-circle"></i>
+    <strong>Instructions:</strong> Capture 3 angles of your face: <br>
+    1️⃣ <strong>Front</strong> - Look straight at camera<br>
+    2️⃣ <strong>Left</strong> - Turn head slightly to the left (doesn't need to be perfect!)<br>
+    3️⃣ <strong>Right</strong> - Turn head slightly to the right (just a little tilt is okay!)
+  </div>
+  
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-10">
+    <div class="bg-white rounded-xl shadow-md p-6">
+      <h3 class="text-2xl font-semibold text-gray-700 mb-4 text-center">
+        Live Video
+      </h3>
+      
+      <!-- Camera Selection Dropdown -->
+      <div class="mb-4">
+        <label for="cameraSelect" class="block text-sm font-medium text-gray-700 mb-2">
+          <i class="fas fa-video mr-1"></i> Select Camera:
+        </label>
+        <select id="cameraSelect" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+          <option value="">Loading cameras...</option>
+        </select>
+        <button id="initializeCameraBtn" class="mt-2 bg-green-600 hover:bg-green-700 text-white text-sm py-2 px-4 rounded-md w-full transition duration-200" disabled>
+          <i class="fas fa-play mr-1"></i> Initialize Camera
+        </button>
+      </div>
+      
+      <div class="video-container">
+        <img
+          id="video_feed"
+          src="{% url 'face_feed' %}"
+          alt="Video Feed"
+          class="rounded-lg w-full aspect-video object-cover border border-gray-300"
+        />
+        <div id="feedErrorOverlay">Camera not available, please check permissions</div>
+      </div>
+
+      <p
+        id="frame_status"
+        class="text-center text-sm mt-2 font-medium text-gray-500"
+      >
+        Analyzing...
+      </p>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-md p-6">
+      <h3 class="text-2xl font-semibold text-gray-700 mb-6 text-center">
+        Captured Faces
+      </h3>
+
+      <button
+        id="captureButton"
+        class="bg-blue-600 hover:bg-blue-700 transition text-white text-lg font-medium py-3 px-6 rounded-md w-full mb-6"
+      >
+        Capture Front
+      </button>
+
+      <div class="flex justify-between gap-4 text-center">
+        <div class="flex flex-col items-center flex-1">
+          <p class="text-sm text-gray-600 mb-2">Left</p>
+          <img
+            id="img-left"
+            src="{% static 'images/left.jpg' %}"
+            class="rounded-md border w-full max-w-[100px]"
+            alt="Left face"
+          />
+          <button
+            id="retake-left"
+            class="bg-red-600 hover:bg-red-700 text-white text-xs py-2 px-4 rounded mt-2 hidden"
+          >
+            Retake
+          </button>
+        </div>
+
+        <div class="flex flex-col items-center flex-1">
+          <p class="text-sm text-gray-600 mb-2">Front</p>
+          <img
+            id="img-front"
+            src="{% static 'images/front.jpg' %}"
+            class="rounded-md border w-full max-w-[100px]"
+            alt="Front face"
+          />
+          <button
+            id="retake-front"
+            class="bg-red-600 hover:bg-red-700 text-white text-xs py-2 px-4 rounded mt-2 hidden"
+          >
+            Retake
+          </button>
+        </div>
+
+        <div class="flex flex-col items-center flex-1">
+          <p class="text-sm text-gray-600 mb-2">Right</p>
+          <img
+            id="img-right"
+            src="{% static 'images/right.jpg' %}"
+            class="rounded-md border w-full max-w-[100px]"
+            alt="Right face"
+          />
+          <button
+            id="retake-right"
+            class="bg-red-600 hover:bg-red-700 text-white text-xs py-2 px-4 rounded mt-2 hidden"
+          >
+            Retake
+          </button>
+        </div>
+      </div>
+
+      <form
+        id="enrollmentForm"
+        method="POST"
+        action="{% url 'face_enrollment' id_number=user_data.id_number %}"
+        enctype="multipart/form-data"
+      >
+        {% csrf_token %}
+        <input type="hidden" name="front_image" id="front_image" />
+        <input type="hidden" name="left_image" id="left_image" />
+        <input type="hidden" name="right_image" id="right_image" />
+        <button
+          type="submit"
+          id="submitButton"
+          class="bg-green-600 hover:bg-green-700 transition text-white text-lg font-medium py-3 px-6 rounded-md w-full mt-6 hidden"
+        >
+          Enroll / Submit
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    const defaultImagePaths = {
+      front: "{% static 'images/front.jpg' %}",
+      left: "{% static 'images/left.jpg' %}",
+      right: "{% static 'images/right.jpg' %}",
+    };
+
+    const video = document.getElementById("video_feed");
+    const feedErrorOverlay = document.getElementById("feedErrorOverlay");
+    const captureBtn = document.getElementById("captureButton");
+    const images = {
+      front: document.getElementById("img-front"),
+      left: document.getElementById("img-left"),
+      right: document.getElementById("img-right"),
+    };
+    const retakeButtons = {
+      front: document.getElementById("retake-front"),
+      left: document.getElementById("retake-left"),
+      right: document.getElementById("retake-right"),
+    };
+    const submitButton = document.getElementById("submitButton");
+    let cameraReloadAttempts = 0;
+
+    // Enhanced video feed error handling
+    video.onload = function() {
+      feedErrorOverlay.style.display = "none";
+      cameraReloadAttempts = 0;
+      captureBtn.disabled = false;
+    };
+
+    video.onerror = function() {
+      feedErrorOverlay.style.display = "block";
+      captureBtn.disabled = true;
+      
+      // Try to reload the camera feed (max 5 attempts)
+      if (cameraReloadAttempts < 5) {
+        setTimeout(function() {
+          video.src = "{% url 'face_feed' %}?t=" + new Date().getTime();
+          cameraReloadAttempts++;
+        }, 2000);
+      }
+    };
+
+    // Reload with cache-busting parameter on page load
+    window.addEventListener('load', function() {
+      video.src = "{% url 'face_feed' %}?t=" + new Date().getTime();
+    });
+
+    const steps = ["front", "left", "right"];
+    const capturedImages = {
+      front: false,
+      left: false,
+      right: false,
+    };
+
+    function getNextCaptureStep() {
+      return steps.find((step) => !capturedImages[step]);
+    }
+
+    let currentFrameStatus = null;
+
+    function updateCaptureButton() {
+      const nextStep = getNextCaptureStep();
+      if (nextStep) {
+        captureBtn.textContent = `Capture ${
+          nextStep.charAt(0).toUpperCase() + nextStep.slice(1)
+        } Face`;
+        // Enable button only if face is ready for capture
+        captureBtn.disabled = !(currentFrameStatus && currentFrameStatus.status === 'ready_to_capture');
+      } else {
+        captureBtn.textContent = "All Captured!";
+        captureBtn.disabled = true;
+      }
+    }
+
+    function updateSubmitButton() {
+      const allCaptured = Object.values(capturedImages).every(
+        (val) => val === true
+      );
+      if (allCaptured) {
+        submitButton.classList.remove("hidden");
+      } else {
+        submitButton.classList.add("hidden");
+      }
+    }
+
+    function captureImage(step) {
+      const canvas = document.createElement("canvas");
+      canvas.width = video.naturalWidth;
+      canvas.height = video.naturalHeight;
+      const ctx = canvas.getContext("2d");
+
+      try {
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        const imgData = canvas.toDataURL("image/png");
+        images[step].src = imgData;
+        capturedImages[step] = true;
+        retakeButtons[step].classList.remove("hidden");
+        updateCaptureButton();
+        updateSubmitButton();
+
+        if (step === "front") {
+          document.getElementById("front_image").value = imgData;
+        } else if (step === "left") {
+          document.getElementById("left_image").value = imgData;
+        } else if (step === "right") {
+          document.getElementById("right_image").value = imgData;
+        }
+      } catch (e) {
+        alert("Unable to capture image from the video feed.");
+        console.error(e);
+      }
+    }
+
+    function handleCapture() {
+      const step = getNextCaptureStep();
+      if (step) {
+        captureImage(step);
+      }
+    }
+
+    function handleRetake(step) {
+      capturedImages[step] = false;
+      images[step].src = defaultImagePaths[step];
+      retakeButtons[step].classList.add("hidden");
+      submitButton.classList.add("hidden");
+      updateCaptureButton();
+    }
+
+    captureBtn.addEventListener("click", handleCapture);
+    retakeButtons.front.addEventListener("click", () => handleRetake("front"));
+    retakeButtons.left.addEventListener("click", () => handleRetake("left"));
+    retakeButtons.right.addEventListener("click", () => handleRetake("right"));
+    submitButton.addEventListener("click", () => {});
+
+    updateCaptureButton();
+    updateSubmitButton();
+
+    document.addEventListener("DOMContentLoaded", function () {
+      const enrollmentForm = document.getElementById("enrollmentForm");
+      const loadingSpinner = document.getElementById("loading-spinner");
+
+      if (enrollmentForm && loadingSpinner) {
+        enrollmentForm.addEventListener("submit", function () {
+          loadingSpinner.style.display = "flex";
+        });
+      }
+    });
+
+    async function checkFrameStatus() {
+      try {
+        // Get the next capture step to send to the API
+        const nextStep = getNextCaptureStep();
+        const url = nextStep ? 
+          `/api/face-status?step=${nextStep}` : 
+          "/api/face-status";
+          
+        const response = await fetch(url);
+        const data = await response.json();
+        
+        // Store current status for capture button logic
+        currentFrameStatus = data;
+
+        const videoFeed = document.getElementById("video_feed");
+        const statusText = document.getElementById("frame_status");
+
+        videoFeed.classList.remove(
+          "border-green-500",
+          "border-yellow-500",
+          "border-red-500",
+          "border-blue-500",
+          "border-gray-300"
+        );
+
+        switch (data.status) {
+          case "ready_to_capture":
+            videoFeed.classList.add("border-green-500");
+            statusText.textContent = `Capture ${data.next_capture.charAt(0).toUpperCase() + data.next_capture.slice(1)}`;
+            statusText.className = "text-center text-sm mt-2 font-bold text-green-600";
+            break;
+          case "wrong_angle":
+            videoFeed.classList.add("border-yellow-500");
+            statusText.textContent = data.message;
+            statusText.className = "text-center text-sm mt-2 font-medium text-yellow-600";
+            break;
+          case "poor_quality":
+            videoFeed.classList.add("border-red-500");
+            statusText.textContent = data.message;
+            statusText.className = "text-center text-sm mt-2 font-medium text-red-600";
+            break;
+          case "no_face":
+            videoFeed.classList.add("border-yellow-500");
+            statusText.textContent = "Analyzing...";
+            statusText.className = "text-center text-sm mt-2 font-medium text-yellow-600";
+            break;
+          case "multiple_faces":
+            videoFeed.classList.add("border-red-500");
+            statusText.textContent = "Multiple faces detected";
+            statusText.className = "text-center text-sm mt-2 font-medium text-red-600";
+            break;
+          case "camera_not_ready":
+            videoFeed.classList.add("border-gray-300");
+            statusText.textContent = "Camera not ready";
+            statusText.className = "text-center text-sm mt-2 font-medium text-gray-500";
+            break;
+          case "camera_ready":
+            videoFeed.classList.add("border-blue-500");
+            statusText.textContent = "Camera ready";
+            statusText.className = "text-center text-sm mt-2 font-medium text-blue-600";
+            break;
+          case "no_frame":
+            videoFeed.classList.add("border-blue-500");
+            statusText.textContent = "Camera ready";
+            statusText.className = "text-center text-sm mt-2 font-medium text-blue-600";
+            break;
+          default:
+            videoFeed.classList.add("border-gray-300");
+            statusText.textContent = "Analyzing...";
+            statusText.className = "text-center text-sm mt-2 font-medium text-gray-500";
+        }
+        
+        // Update capture button based on current status
+        updateCaptureButton();
+        
+      } catch (error) {
+        console.error("Status check error:", error);
+        currentFrameStatus = null;
+        const statusText = document.getElementById("frame_status");
+        statusText.textContent = "Connection error";
+        statusText.className = "text-center text-sm mt-2 font-medium text-red-500";
+        updateCaptureButton();
+      }
+    }
+
+    setInterval(checkFrameStatus, 1000);
+
+    // Camera selection functionality
+    let selectedCameraId = null;
+    
+    async function loadAvailableCameras() {
+      try {
+        const response = await fetch('/api/available-cameras/');
+        const data = await response.json();
+        
+        const cameraSelect = document.getElementById('cameraSelect');
+        const initBtn = document.getElementById('initializeCameraBtn');
+        
+        if (data.success && data.cameras) {
+          cameraSelect.innerHTML = '<option value="">Select a camera...</option>';
+          
+          data.cameras.forEach(camera => {
+            const option = document.createElement('option');
+            option.value = camera.id;
+            // Display actual camera name from system
+            option.textContent = camera.name;
+            cameraSelect.appendChild(option);
+          });
+          
+          cameraSelect.disabled = false;
+          console.log(`✅ Loaded ${data.cameras.length} camera(s):`, data.cameras.map(c => c.name).join(', '));
+        } else {
+          cameraSelect.innerHTML = '<option value="">No cameras available</option>';
+          console.error('Failed to load cameras:', data.error);
+        }
+      } catch (error) {
+        console.error('Error loading cameras:', error);
+        const cameraSelect = document.getElementById('cameraSelect');
+        cameraSelect.innerHTML = '<option value="">Error loading cameras</option>';
+      }
+    }
+    
+    document.getElementById('cameraSelect').addEventListener('change', function() {
+      const initBtn = document.getElementById('initializeCameraBtn');
+      selectedCameraId = this.value;
+      initBtn.disabled = !selectedCameraId;
+    });
+    
+    document.getElementById('initializeCameraBtn').addEventListener('click', async function() {
+      if (!selectedCameraId) return;
+      
+      const btn = this;
+      const originalText = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Initializing...';
+      
+      try {
+        // Call the face enrollment view with selected camera
+        const response = await fetch(`/face-enrollment/{{ user_data.id_number }}?camera=${selectedCameraId}`, {
+          method: 'POST',
+          headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ camera_id: selectedCameraId })
+        });
+        
+        if (response.ok) {
+          // Reload the video feed
+          const videoFeed = document.getElementById('video_feed');
+          const timestamp = new Date().getTime();
+          videoFeed.src = `{% url 'face_feed' %}?t=${timestamp}`;
+          
+          btn.innerHTML = '<i class="fas fa-check mr-1"></i> Camera Initialized';
+          btn.classList.remove('bg-green-600', 'hover:bg-green-700');
+          btn.classList.add('bg-blue-600', 'hover:bg-blue-700');
+          
+          // Hide camera selection after successful initialization
+          document.querySelector('.mb-4').style.display = 'none';
+        } else {
+          throw new Error('Failed to initialize camera');
+        }
+      } catch (error) {
+        console.error('Error initializing camera:', error);
+        btn.innerHTML = '<i class="fas fa-exclamation-triangle mr-1"></i> Error - Try Again';
+        btn.classList.add('bg-red-600', 'hover:bg-red-700');
+        btn.disabled = false;
+      }
+    });
+    
+    // Load available cameras when page loads
+    document.addEventListener('DOMContentLoaded', function() {
+      loadAvailableCameras();
+    });
+  </script>
+{% endblock content %}
