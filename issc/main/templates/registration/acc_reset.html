@@ -1,0 +1,44 @@
+{% extends "reset.html" %}
+
+{% block content %}
+
+{% load static %}
+
+  <link rel="stylesheet" href="{% static 'css/login.css' %}">
+
+  <!-- Background Image -->
+  <img src="{% static 'images/background.jpg' %}" alt="Background" class="background-image">
+
+  <!-- Gradient Overlay -->
+  <div class="gradient-overlay"></div>
+
+  <div class="login-container">
+
+    <!-- Logo -->
+    <div class="logo-container">
+      <img 
+          src="{% static 'images/pup-logo.png' %}" 
+          alt="Logo" 
+          class="logo"
+      >            
+    </div>
+
+    <h2 class="login-title">Reset Password</h2>
+
+    <p class="sentence">Enter your email to receive a reset link.</p>
+
+    <form method="post">
+
+      {% csrf_token %}
+
+      <div class="form-group">
+
+        <input type="email" name="email" placeholder="Enter your email" required class="form-input">
+
+      </div>
+
+      <button type="submit" class="reset-button">Send Reset Link</button>
+
+    </form>
+  </div>
+{% endblock %}
