@@ -1,0 +1,87 @@
+.agreement-container {
+    max-width: 800px;
+    margin: 40px auto;
+    padding: 30px;
+    border-radius: 12px;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+    font-family: 'Segoe UI', sans-serif;
+    color: #333;
+    line-height: 1.7;
+}
+
+.agreement-title {
+    text-align: center;
+    font-size: 28px;
+    font-weight: 600;
+    color: #2c3e50;
+    margin-bottom: 5px;
+}
+
+.agreement-subtitle {
+    text-align: center;
+    font-size: 14px;
+    color: #888;
+    margin-bottom: 30px;
+}
+
+.agreement-container h3 {
+    color: #444;
+    font-size: 18px;
+    margin-top: 25px;
+    margin-bottom: 2px;
+}
+
+.agreement-container p {
+    font-size: 15px;
+    color: #555;
+}
+
+.agreement-container a {
+    color: #007bff;
+    text-decoration: none;
+}
+
+.agreement-container a:hover {
+    text-decoration: underline;
+}
+
+.agreement-footer {
+    font-weight: bold;
+    text-align: center;
+    margin-top: 30px;
+    color: #2c3e50;
+}
+
+.agreement-buttons {
+    text-align: center;
+    margin-top: 25px;
+}
+
+.btn-accept,
+.btn-decline {
+    padding: 10px 25px;
+    font-size: 16px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.3s ease;
+}
+
+.btn-accept {
+    background-color: #28a745;
+    color: white;
+}
+
+.btn-accept:hover {
+    background-color: #218838;
+}
+
+.btn-decline {
+    background-color: #dc3545;
+    color: white;
+    margin-left: 10px;
+}
+
+.btn-decline:hover {
+    background-color: #c82333;
+}
