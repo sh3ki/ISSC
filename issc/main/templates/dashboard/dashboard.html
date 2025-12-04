@@ -1,0 +1,200 @@
+{% extends 'base.html' %}
+
+{% block title %} Dashboard {% endblock title %}
+
+{% block content %}
+
+{% load static %}
+
+<link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+
+<div class="dashboard-wrapper">
+  <h2>Incident Overview</h2>
+  <a href="#" id="print-link" class="inline-block px-6 py-2 bg-blue-500 text-white font-semibold rounded-lg shadow-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400">
+          Print
+  </a>
+
+  <div class="graph-container">
+
+    <div class="graph-section graph1">
+      <h3 class="chart-title">Monthly Incident</h3>
+      <canvas id="monthlyIncidentsChart" class="chart-canvas"></canvas>
+    </div>
+
+    <div class="graph-section graph3">
+      <h3 class="chart-title">Incident Data</h3>
+      <canvas id="incidentRateChart" class="chart-canvas"></canvas>
+    </div>
+
+    <div class="graph-section graph2 wide-centered-graph">
+      <h3 class="chart-title">Incident Type (by Subject)</h3>
+      
+      <form method="get" id="monthFilterForm">
+        <label for="monthPicker">Select Month:</label>
+        <input type="month" id="monthPicker" name="month" value="{{ selected_month }}">
+        <button type="submit">Filter</button>
+      </form>
+
+      <canvas id="incidentTypeChart" class="chart-canvas mt-4"></canvas>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  const monthlyData = {{ monthly_incident_data|safe }};
+  const incidentTypeData = {{ incident_type|safe }};
+  const incidentRate = {{ incident_data|safe }};
+
+  // Graph 1: Monthly Incident (Bar Chart)
+  new Chart(document.getElementById('monthlyIncidentsChart'), {
+    type: 'bar',
+    data: {
+      labels: monthlyData.months,
+      datasets: [{
+        label: 'Monthly Incidents',
+        data: monthlyData.incident_data,
+        backgroundColor: '#800000',
+        borderRadius: 8,
+        hoverBackgroundColor: '#a29bfe'
+      }]
+    },
+    options: {
+      responsive: true,
+      animation: {
+        duration: 1000,
+        easing: 'easeOutBounce'
+      },
+      plugins: {
+        legend: { display: false }
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          ticks: {
+            stepSize: 1,
+            precision: 0
+          }
+        }
+      }
+    }
+  });
+
+  new Chart(document.getElementById('incidentTypeChart'), {
+      type: 'bar',
+      data: {
+        labels: incidentTypeData.subjects,
+        datasets: [{
+          label: 'Incident Count',
+          data: incidentTypeData.counts,
+          backgroundColor: '#d63031',
+          borderRadius: 6,
+          hoverBackgroundColor: '#fceea3'
+        }]
+      },
+      options: {
+        responsive: true,
+        animation: {
+          duration: 1000,
+          easing: 'easeOutQuart'
+        },
+        plugins: {
+          legend: { display: false },
+          tooltip: { mode: 'index' }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: {
+              stepSize: 1,
+              precision: 0
+            },
+            title: {
+              display: true,
+              text: 'Number of Incidents'
+            }
+          }
+        }
+      }
+    });
+
+  // Graph 3: Incident Data (Line Chart)
+  new Chart(document.getElementById('incidentRateChart'), {
+    type: 'line',
+    data: {
+      labels: incidentRate.months,
+      datasets: [
+        {
+          label: 'Total Incidents',
+          data: incidentRate.incident_counts,
+          borderColor: '#800000',
+          backgroundColor: 'rgba(128, 0, 0, 0.1)',
+          tension: 0.3,
+          fill: true,
+          pointRadius: 5,
+          pointHoverRadius: 7
+        },
+        {
+          label: '% Increase',
+          data: incidentRate.percentage_increase,
+          borderColor: '#d63031',
+          backgroundColor: 'rgba(214, 48, 49, 0.1)',
+          borderDash: [5, 5],
+          tension: 0.3,
+          fill: false,
+          yAxisID: 'y1'
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      interaction: {
+        mode: 'index',
+        intersect: false
+      },
+      stacked: false,
+      plugins: {
+        legend: { position: 'top' },
+        tooltip: { mode: 'index' }
+      },
+      scales: {
+        y: { 
+          beginAtZero: true,
+          ticks: {
+            stepSize: 1,
+            precision: 0
+          },
+          title: { display: true, text: 'Number of Incidents' } 
+        },
+        y1: {
+          position: 'right',
+          grid: { drawOnChartArea: false },
+          ticks: {
+            precision: 0
+          },
+          title: { display: true, text: '% Change' }
+        }
+      },
+      animation: {
+        duration: 1000,
+        easing: 'easeOutCirc'
+      }
+    }
+  });
+</script>
+<script>
+document.getElementById('print-link').addEventListener('click', function (e) {
+    const selectedMonth = document.getElementById('monthPicker').value;
+    const baseUrl = window.location.origin + window.location.pathname;
+
+    let queryString = '';
+    if (selectedMonth) {
+        queryString = '?month=' + encodeURIComponent(selectedMonth);
+    }
+
+    // Set the href with month parameter
+    this.href = baseUrl + 'print' + queryString;
+});
+</script>
+
+{% endblock content %}
