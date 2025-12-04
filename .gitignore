@@ -1,0 +1,12 @@
+.env
+media
+recordings
+
+# Virtual environment
+venv/
+env/
+ENV/
+
+**/__pycache__/
+**/*.pyc
+**/*.pyo
