@@ -1,0 +1,192 @@
+{% load static %}
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}{% endblock title %}</title>
+    <link rel="stylesheet" type="text/css" href="{% static 'css/styles.css' %}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400..900&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="{% static 'css/forms.css' %}">
+
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
+
+    <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+
+</head>
+<body>
+    <!-- Main Navbar (Top) -->
+    <nav class="navbar">
+      <div class="flex items-center space-x-4">
+        <button class="toggle-btn">Show</button>
+        <div class="navbar-logo">
+          <img src="{% static 'images/pup-logo.png' %}" alt="Logo">
+        </div>
+        <a href="{% url 'dashboard' %}" class="">
+          <span class="pup">Polytechnic University of the Philippines Calauan</span><br>
+          <span class="issc">Integrated Safety and Security System</span>
+        </a>
+      </div>
+      <div class="user-info">
+        <p>
+          <strong>{{ user_data.privilege}}</strong>
+        </p>
+        <form class="logout-btn" method="POST" action="{% url 'logout' %}">
+            {% csrf_token %}
+            <button type="submit">Logout</button>
+        </form>
+      </div>
+    </nav>
+  
+    <!-- Secondary Navbar (Below Main Navbar) -->
+    <aside class="navbar secondary-navbar">
+        <div class="sticky-logo">
+            <img src="{% static 'images/pup-logo.png' %}" alt="Logo">
+        </div>
+        <ul>
+                
+
+            <aside class="sidebar">
+              <ul class="nav-links">
+                <li>
+                  <a href="{% url 'about' %}">
+                    <span class="icon"></span>
+                    <span class="text">Homepage</span>
+                  </a>
+                </li> 
+                {% if user_role == 'admin' %}
+                <li>
+                  <a href="{% url 'dashboard' %}">
+                    <span class="icon"></span>
+                    <span class="text">Dashboard</span>
+                  </a>
+                </li>
+                <li>
+                  <a href="{% url 'signup' %}">
+                    <span class="icon"></span>
+                    <span class="text">Accounts</span>
+                  </a>
+                </li>
+                {% endif %}
+
+                {% if user_role == 'admin' or user_role == 'faculty' %}
+                <li>
+                  <a href="{% url 'enrollee_view' %}">
+                    <span class="icon"></span>
+                    <span class="text">Face Enrollment</span>
+                  </a>
+                </li>
+                {% endif %}
+
+                <li>
+                  <a href="{% url 'incidents' %}">
+                    <span class="icon"></span>
+                    <span class="text">Incident</span>
+                  </a>
+                </li>
+                {% comment %} <li>
+                  <a href="{% url 'vehicles' %}">
+                    <span class="icon"></span>
+                    <span class="text">Register Vehicle</span>
+                  </a>
+                </li> {% endcomment %}
+
+                {% if user_role == 'admin' %}
+                <li>
+                  <a href="{% url 'multiple_streams' %}">
+                    <span class="icon"></span>
+                    <span class="text">Live Feed</span>
+                  </a>
+                </li>
+                {% endif %}
+              </ul>
+            </aside>
+        </ul>
+    </aside>
+  
+    <!-- Main Content -->
+    <main class="container">
+      {% block content %}
+      {% endblock content %}
+    </main>
+  
+  <!-- Footer -->
+  <footer>
+    <div class="footer-container">
+      <div class="footer-section">
+        <h4>About PUP</h4>
+        <p>PUP Calauan, Laguna Campus<br>
+          Barangay Kanluran, Calauan<br>
+          Laguna, Philippines</p>
+      </div>
+
+      <div class="footer-section">
+        <h4>Contacts</h4>
+        <p>Email: calauan@pup.edu.ph<br>
+          Phone: (+63 49) 566-0623</p>
+      </div>
+
+      <div class="footer-section">
+        <h4>Emergency Hotlines</h4>
+        <p>
+          <strong>Calauan MDRRMO:</strong> 0910-323-1784 / (049) 543-6312<br>
+          <strong>Office of the Mayor:</strong> (049) 568-0017<br>
+          <strong>Rural Health Unit:</strong> (049) 543-6638<br>
+          <strong>Municipal Police Station:</strong> 0915-601-2840 / 0998-598-5643<br>
+          <strong>Fire Station:</strong> 0915-601-6168 / 0951-045-8289 / 0992-350-6152 / (049) 503-5877
+        </p>
+      </div>
+
+      <div class="footer-section">
+        <h4>Get in Touch</h4>
+        <div class="social-icons">
+          <a href="https://www.facebook.com/PUPCalauanOfficial" target="_blank"><i class="fab fa-facebook-f"></i></a>
+          <a href="https://www.instagram.com/thepupofficial/" target="_blank"><i class="fab fa-instagram"></i></a>
+          <a href="https://twitter.com" target="_blank"><i class="fab fa-twitter"></i></a>
+        </div>
+      </div>
+    </div>
+  </footer>
+  
+    <!-- JavaScript -->
+    <script>
+      document.addEventListener('DOMContentLoaded', function () {
+        const toggleBtn = document.querySelector('.toggle-btn');
+        const sidebar = document.querySelector('.sidebar');
+  
+        toggleBtn.addEventListener('click', () => {
+            sidebar.classList.toggle('hidden');
+            });
+        });
+
+        window.addEventListener('scroll', function() {
+            const navbar = document.querySelector('.secondary-navbar');
+            
+            // Add 'sticky-active' class when the navbar reaches the top
+            if (window.scrollY > 50) {
+                navbar.classList.add('sticky-active');
+            } else {
+                navbar.classList.remove('sticky-active');
+            }
+        });
+    </script>
+    
+    <div id="loading-spinner" class="fixed inset-0 bg-black bg-opacity-50 flex flex-col justify-center items-center z-50" style="display: none;">
+      <div class="spinner-border animate-spin rounded-full border-t-4 border-b-4 border-blue-600 w-16 h-16 mb-4"></div>
+      <p id="loading-message" class="text-center text-lg text-white">
+        Extracting face embeddings and saving to the database...
+      </p>
+    </div>
+
+  </body>
+</html>
