@@ -1,0 +1,503 @@
+<!-- filepath: d:\Programming\Systems\Web-Systems\Django\ISSC-Django-main\issc\main\templates\live-feed\live-feed.html -->
+{% extends 'base.html' %}
+
+{% block title %} Live Feed {% endblock title %}
+
+{% block content %}
+
+{% load static %} 
+
+<link rel="stylesheet" type="text/css" href="{% static 'css/live-feed.css' %}">
+
+<style>
+/* Remove default browser dropdown arrow completely */
+.camera-selector {
+    -webkit-appearance: none !important;
+    -moz-appearance: none !important;
+    appearance: none !important;
+}
+
+/* For Internet Explorer */
+.camera-selector::-ms-expand {
+    display: none;
+}
+
+/* Confirmation Modal Styling */
+.modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.6);
+    z-index: 9999;
+    justify-content: center;
+    align-items: center;
+    animation: fadeIn 0.2s ease-in-out;
+}
+
+.modal-overlay.active {
+    display: flex;
+}
+
+.modal-content {
+    background: white;
+    border-radius: 8px;
+    padding: 30px;
+    max-width: 450px;
+    width: 90%;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+    text-align: center;
+    animation: slideIn 0.3s ease-out;
+}
+
+.modal-header {
+    color: #800000;
+    font-size: 22px;
+    font-weight: bold;
+    margin-bottom: 15px;
+}
+
+.modal-body {
+    color: #333;
+    font-size: 16px;
+    margin-bottom: 25px;
+    line-height: 1.5;
+}
+
+.modal-camera-name {
+    color: #800000;
+    font-weight: bold;
+}
+
+.modal-buttons {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+}
+
+.modal-btn {
+    padding: 12px 30px;
+    border: none;
+    border-radius: 5px;
+    font-size: 15px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.modal-btn-confirm {
+    background-color: #800000;
+    color: white;
+}
+
+.modal-btn-confirm:hover {
+    background-color: #a00000;
+    transform: scale(1.05);
+}
+
+.modal-btn-cancel {
+    background-color: #e0e0e0;
+    color: #333;
+}
+
+.modal-btn-cancel:hover {
+    background-color: #d0d0d0;
+    transform: scale(1.05);
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes slideIn {
+    from { 
+        opacity: 0;
+        transform: translateY(-30px); 
+    }
+    to { 
+        opacity: 1;
+        transform: translateY(0); 
+    }
+}
+</style>    
+
+<!-- Control buttons -->
+<div class="controls" style="margin-bottom: 20px;">
+    <a href="{% url 'recording_archive' %}" class="btn" style="background-color: var(--primary-color); color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; margin-right: 10px;">
+        <i class="fas fa-archive"></i> Archive
+    </a>
+    <a href="{% url 'face_logs' %}" class="btn" style="background-color: var(--primary-color); color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; margin-right: 10px;">
+        <i class="fas fa-user"></i> Face Logs
+    </a>
+    <a href="{% url 'unauthorized_faces_archive' %}" class="btn" style="background-color: var(--primary-color); color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; margin-right: 10px;">
+        <i class="fas fa-user-secret"></i> Unauthorized Faces
+    </a>
+    
+</div>
+
+<!-- Original Camera Grid Layout -->
+<div class="grid">
+    {% for camera_id in camera_ids %}
+        <div class="camera-card">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; padding: 5px 10px; background-color: #f8f9fa; border-radius: 5px;">
+                <h3 style="margin: 0; font-size: 16px; color: #333;">Box {{ forloop.counter }}</h3>
+                <div style="position: relative; min-width: 200px;">
+                    <select class="camera-selector" data-box-id="{{ forloop.counter0 }}" style="padding: 8px 35px 8px 12px; border-radius: 5px; border: 2px solid #800000; background-color: white; cursor: pointer; font-weight: bold; color: #800000; width: 100%; appearance: none; -webkit-appearance: none; -moz-appearance: none; background-image: none !important;">
+                        <option value="">Loading cameras...</option>
+                    </select>
+                    <div style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); pointer-events: none; color: #800000;">
+                        <svg width="12" height="8" viewBox="0 0 12 8" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M1 1L6 6L11 1" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+            <div class="camera-wrapper">
+                <img class="camera-frame" id="camera-frame-{{ forloop.counter0 }}" src="{% url 'video_feed' camera_id=camera_id %}" alt="Camera {{ camera_id }}">
+            </div>
+        </div>
+    {% endfor %}
+</div>
+
+{% if not camera_ids %}
+    <p class="no-cameras">No cameras are currently available. Please check back later.</p>
+{% endif %}
+
+<!-- Confirmation Modal -->
+<div id="cameraConfirmModal" class="modal-overlay">
+    <div class="modal-content">
+        <div class="modal-header">
+            <i class="fas fa-video"></i> Confirm Camera Selection
+        </div>
+        <div class="modal-body">
+            Switch to <span class="modal-camera-name" id="modalCameraName"></span> for <span class="modal-camera-name" id="modalBoxName"></span>?
+        </div>
+        <div class="modal-buttons">
+            <button class="modal-btn modal-btn-confirm" id="modalConfirmBtn">
+                <i class="fas fa-check"></i> Yes, Switch Camera
+            </button>
+            <button class="modal-btn modal-btn-cancel" id="modalCancelBtn">
+                <i class="fas fa-times"></i> Cancel
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+// Store initial camera assignments
+const initialCameras = {{ camera_ids|safe }};
+
+// Track which cameras are currently assigned to which boxes
+let cameraAssignments = {}; // { boxId: cameraId }
+let availableCamerasData = []; // Store all cameras from API
+
+// Fetch available cameras and populate dropdowns (same logic as face-enrollment)
+async function loadAvailableCameras() {
+    try {
+        const response = await fetch('/api/available-cameras/');
+        const data = await response.json();
+        
+        if (data.success && data.cameras) {
+            availableCamerasData = data.cameras; // Store for later use
+            updateAllDropdowns();
+            
+            console.log(`✅ Loaded ${data.cameras.length} camera(s) for live-feed dropdowns:`, 
+                        data.cameras.map(c => `${c.name} (ID: ${c.id})`).join(', '));
+        } else {
+            console.error('Failed to load cameras:', data);
+            // Fallback: show error message in dropdowns
+            document.querySelectorAll('.camera-selector').forEach(selector => {
+                selector.innerHTML = '<option value="">No cameras available</option>';
+            });
+        }
+    } catch (error) {
+        console.error('Error loading available cameras:', error);
+        // Fallback: show error message in dropdowns
+        document.querySelectorAll('.camera-selector').forEach(selector => {
+            selector.innerHTML = '<option value="">Error loading cameras</option>';
+        });
+    }
+}
+
+// Update all dropdowns based on current camera assignments
+function updateAllDropdowns() {
+    const selectors = document.querySelectorAll('.camera-selector');
+    
+    // Get list of cameras currently in use by other boxes (convert to numbers for comparison)
+    const camerasInUse = Object.values(cameraAssignments).map(id => parseInt(id));
+    
+    console.log('🔄 Updating all dropdowns. Cameras in use:', camerasInUse);
+    console.log('Current assignments:', cameraAssignments);
+    
+    selectors.forEach((selector, index) => {
+        const currentBoxId = String(selector.getAttribute('data-box-id')); // Ensure string key
+        // Fix: Check for undefined/null explicitly, not falsy (because 0 is falsy!)
+        const currentSelection = (currentBoxId in cameraAssignments) ? parseInt(cameraAssignments[currentBoxId]) : null;
+        
+        console.log(`Updating Box ${currentBoxId}: current selection = ${currentSelection}`);
+        
+        // Clear existing options
+        selector.innerHTML = '';
+        
+        // Add default "Select camera" option
+        const defaultOption = document.createElement('option');
+        defaultOption.value = '';
+        defaultOption.textContent = 'Select a camera...';
+        if (currentSelection === null) {
+            defaultOption.selected = true;
+        }
+        selector.appendChild(defaultOption);
+        
+        // Add options for each available camera
+        availableCamerasData.forEach(camera => {
+            const cameraIdNum = parseInt(camera.id);
+            const option = document.createElement('option');
+            option.value = camera.id;
+            option.textContent = camera.name;
+            
+            // Disable if camera is in use by another box
+            if (camerasInUse.includes(cameraIdNum) && cameraIdNum !== currentSelection) {
+                option.disabled = true;
+                option.textContent = camera.name + ' (In Use)';
+                console.log(`  - Camera ${cameraIdNum} (${camera.name}) is IN USE by another box`);
+            }
+            
+            // Select if this is the current camera for this box
+            if (cameraIdNum === currentSelection) {
+                option.selected = true;
+                console.log(`  - Camera ${cameraIdNum} (${camera.name}) is SELECTED for this box`);
+            }
+            
+            selector.appendChild(option);
+        });
+    });
+}
+
+// Handle camera selection change with confirmation modal
+document.addEventListener('DOMContentLoaded', function() {
+    // Load available cameras on page load
+    loadAvailableCameras();
+
+    async function releaseBoxCamera(boxId) {
+        const boxKey = String(boxId);
+        if (!(boxKey in cameraAssignments)) {
+            return;
+        }
+
+        try {
+            await fetch('/api/stop-live-feed/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken'),
+                },
+                body: JSON.stringify({ boxes: [boxKey] }),
+                keepalive: true,
+            });
+            delete cameraAssignments[boxKey];
+        } catch (error) {
+            console.error('Error releasing camera for box', boxKey, error);
+        }
+    }
+
+    const sendStopRequest = () => {
+        const activeBoxes = Object.keys(cameraAssignments);
+        if (!activeBoxes.length) {
+            return;
+        }
+
+        fetch('/api/stop-live-feed/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken'),
+            },
+            body: JSON.stringify({ boxes: activeBoxes }),
+            keepalive: true,
+        }).catch(err => console.warn('Warning: could not notify server to stop live feed', err));
+    };
+
+    window.addEventListener('beforeunload', sendStopRequest);
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'hidden') {
+            sendStopRequest();
+        }
+    });
+    
+    // Modal elements
+    const modal = document.getElementById('cameraConfirmModal');
+    const modalCameraName = document.getElementById('modalCameraName');
+    const modalBoxName = document.getElementById('modalBoxName');
+    const modalConfirmBtn = document.getElementById('modalConfirmBtn');
+    const modalCancelBtn = document.getElementById('modalCancelBtn');
+    
+    let pendingSelection = null;
+    
+    // Add event listeners to all camera selectors
+    document.querySelectorAll('.camera-selector').forEach(selector => {
+        selector.addEventListener('change', function(e) {
+            const boxId = String(this.getAttribute('data-box-id')); // Ensure string for consistency
+            const selectedCameraId = this.value;
+            const selectedCameraName = this.options[this.selectedIndex].text;
+            const previousValue = cameraAssignments[boxId] ? parseInt(cameraAssignments[boxId]) : null; // Get current assignment as number
+            
+            console.log(`📝 Box ${boxId} dropdown changed to camera ${selectedCameraId}`);
+            
+            // Skip modal if no camera selected (empty value)
+            if (!selectedCameraId) {
+                // If user selected "Select a camera...", remove camera from this box
+                releaseBoxCamera(boxId);
+
+                const imgElement = document.getElementById(`camera-frame-${boxId}`);
+                if (imgElement) {
+                    const fallbackCameraId = initialCameras[parseInt(boxId)] ?? 0;
+                    imgElement.src = `/video-feed/${fallbackCameraId}/?box_id=${boxId}&t=${Date.now()}`;
+                }
+
+                updateAllDropdowns();
+                return;
+            }
+            
+            // Skip modal if already selected in this box
+            if (parseInt(selectedCameraId) === previousValue) {
+                console.log('Same camera already selected, skipping modal');
+                return;
+            }
+            
+            // Store pending selection
+            pendingSelection = {
+                selector: this,
+                boxId: boxId,
+                cameraId: selectedCameraId,
+                cameraName: selectedCameraName,
+                previousValue: previousValue
+            };
+            
+            // Update modal text
+            modalCameraName.textContent = selectedCameraName;
+            modalBoxName.textContent = `Box ${parseInt(boxId) + 1}`;
+            
+            // Show modal
+            modal.classList.add('active');
+        });
+    });
+    
+    // Confirm button - apply camera switch
+    modalConfirmBtn.addEventListener('click', async function() {
+        if (pendingSelection) {
+            const { selector, boxId, cameraId, cameraName } = pendingSelection;
+            const imgElement = document.getElementById(`camera-frame-${boxId}`);
+            
+            // Show loading state
+            console.log(`🎬 Initializing Camera ${cameraId} (${cameraName}) for Box ${parseInt(boxId) + 1}...`);
+            
+            try {
+                // Step 1: Initialize the camera on the backend
+                const initResponse = await fetch('/api/initialize-live-feed-camera/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    body: JSON.stringify({
+                        box_id: boxId,
+                        camera_id: cameraId
+                    })
+                });
+                
+                const initData = await initResponse.json();
+                
+                if (!initData.success) {
+                    alert(`Failed to initialize camera: ${initData.error}`);
+                    console.error(`❌ Failed to initialize camera: ${initData.error}`);
+                    updateAllDropdowns(); // Revert dropdown
+                    modal.classList.remove('active');
+                    pendingSelection = null;
+                    return;
+                }
+                
+                console.log(`✅ Camera ${cameraId} initialized successfully on backend`);
+                
+                // Step 2: Update the image source to stream from the initialized camera
+                if (imgElement) {
+                    const newSrc = `/video-feed/${cameraId}/?box_id=${boxId}&t=` + new Date().getTime();
+                    imgElement.src = newSrc;
+                    
+                    // Update camera assignments tracking
+                    // Ensure boxId is string and cameraId is integer
+                    const boxIdKey = String(boxId);
+                    const cameraIdValue = parseInt(cameraId);
+                    cameraAssignments[boxIdKey] = cameraIdValue;
+                    
+                    console.log(`💾 Stored assignment: Box "${boxIdKey}" -> Camera ${cameraIdValue}`);
+                    console.log(`💾 Assignment keys:`, Object.keys(cameraAssignments));
+                    
+                    // Update all dropdowns to disable this camera in other boxes
+                    updateAllDropdowns();
+                    
+                    console.log(`📹 Box ${parseInt(boxId) + 1} now streaming from Camera ${cameraId} (${cameraName})`);
+                    console.log('Current assignments:', cameraAssignments);
+                }
+                
+            } catch (error) {
+                console.error(`❌ Error initializing camera: ${error}`);
+                alert(`Error initializing camera: ${error.message}`);
+                updateAllDropdowns(); // Revert dropdown
+            }
+            
+            // Close modal
+            modal.classList.remove('active');
+            pendingSelection = null;
+        }
+    });
+    
+    // Helper function to get CSRF token
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+    
+    // Cancel button - revert selection
+    modalCancelBtn.addEventListener('click', function() {
+        if (pendingSelection) {
+            const { boxId } = pendingSelection;
+            
+            // Revert to previous selection by updating all dropdowns
+            updateAllDropdowns();
+            
+            console.log('📹 Camera selection cancelled');
+        }
+        
+        // Close modal
+        modal.classList.remove('active');
+        pendingSelection = null;
+    });
+    
+    // Close modal when clicking outside
+    modal.addEventListener('click', function(e) {
+        if (e.target === modal) {
+            // Revert selection by updating all dropdowns
+            if (pendingSelection) {
+                updateAllDropdowns();
+            }
+            modal.classList.remove('active');
+            pendingSelection = null;
+        }
+    });
+});
+</script>
+
+{% endblock content %}
