@@ -15,7 +15,8 @@ from .views import (
         lightning_camera_system,
         simple_lightning_camera,
         ultra_fast_camera,
-        live_feed_simple
+        live_feed_simple,
+        backup_view
     ) 
 urlpatterns = [
 
@@ -119,5 +120,11 @@ urlpatterns = [
 
     path('api/face-status', video_feed_view.frame_status_view, name='face_status'),
     path('api/getUser/', utils.getUser, name='getUserInfo'),
+    
+    # Backup URLs
+    path('backup/', backup_view.backup_page, name='backup_page'),
+    path('backup/create/', backup_view.create_manual_backup, name='create_manual_backup'),
+    path('backup/download/<str:filename>/', backup_view.download_backup, name='download_backup'),
+    path('backup/delete/<str:filename>/', backup_view.delete_backup, name='delete_backup'),
 ]
 
