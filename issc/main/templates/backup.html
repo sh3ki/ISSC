@@ -1,0 +1,536 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Database Backup - ISSC{% endblock title %}
+
+{% block content %}
+
+<link rel="stylesheet" href="{% static 'css/forms.css' %}">
+
+<style>
+    .backup-container {
+        padding: 2rem;
+        max-width: 1400px;
+        margin: 0 auto;
+    }
+
+    .backup-info-card {
+        background: #f8f9fa;
+        border-left: 4px solid #800000;
+        padding: 1.5rem;
+        border-radius: 8px;
+        margin-bottom: 2rem;
+    }
+
+    .backup-info-card h3 {
+        margin: 0 0 1rem 0;
+        color: #333;
+        font-size: 1.2rem;
+    }
+
+    .backup-info-card .info-row {
+        display: flex;
+        align-items: center;
+        margin-bottom: 0.5rem;
+    }
+
+    .backup-info-card .info-row i {
+        color: #800000;
+        margin-right: 0.75rem;
+        width: 20px;
+    }
+
+    .backup-controls {
+        background: white;
+        padding: 1.5rem;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        margin-bottom: 2rem;
+    }
+
+    .backup-button {
+        background: linear-gradient(135deg, #800000 0%, #b30000 100%);
+        color: white;
+        border: none;
+        padding: 0.75rem 2rem;
+        border-radius: 6px;
+        font-size: 1rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .backup-button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(128, 0, 0, 0.4);
+    }
+
+    .backup-button:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: none;
+    }
+
+    .backup-stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-bottom: 2rem;
+    }
+
+    .stat-card {
+        background: white;
+        padding: 1.5rem;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        text-align: center;
+    }
+
+    .stat-card .stat-value {
+        font-size: 2rem;
+        font-weight: 600;
+        color: #800000;
+        margin-bottom: 0.5rem;
+    }
+
+    .stat-card .stat-label {
+        color: #666;
+        font-size: 0.9rem;
+    }
+
+    .backup-table-container {
+        background: white;
+        padding: 1.5rem;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        overflow-x: auto;
+    }
+
+    .backup-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .backup-table thead {
+        background: #f8f9fa;
+    }
+
+    .backup-table th {
+        padding: 1rem;
+        text-align: left;
+        font-weight: 600;
+        color: #333;
+        border-bottom: 2px solid #dee2e6;
+    }
+
+    .backup-table td {
+        padding: 1rem;
+        border-bottom: 1px solid #dee2e6;
+    }
+
+    .backup-table tbody tr:hover {
+        background: #f8f9fa;
+    }
+
+    .badge {
+        display: inline-block;
+        padding: 0.25rem 0.75rem;
+        border-radius: 12px;
+        font-size: 0.85rem;
+        font-weight: 500;
+    }
+
+    .badge-auto {
+        background: #d1ecf1;
+        color: #0c5460;
+    }
+
+    .badge-manual {
+        background: #d4edda;
+        color: #155724;
+    }
+
+    .action-btn {
+        padding: 0.4rem 0.8rem;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 0.9rem;
+        margin-right: 0.5rem;
+        transition: all 0.2s ease;
+    }
+
+    .download-btn {
+        background: #28a745;
+        color: white;
+    }
+
+    .download-btn:hover {
+        background: #218838;
+    }
+
+    .delete-btn {
+        background: #dc3545;
+        color: white;
+    }
+
+    .delete-btn:hover {
+        background: #c82333;
+    }
+
+    .alert {
+        padding: 1rem;
+        border-radius: 6px;
+        margin-bottom: 1rem;
+    }
+
+    .alert-success {
+        background: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
+    }
+
+    .alert-error {
+        background: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f5c6cb;
+    }
+
+    .loading-spinner {
+        display: inline-block;
+        width: 1rem;
+        height: 1rem;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        border-top-color: white;
+        border-radius: 50%;
+        animation: spin 0.6s linear infinite;
+    }
+
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 3rem;
+        color: #666;
+    }
+
+    .empty-state i {
+        font-size: 4rem;
+        color: #ccc;
+        margin-bottom: 1rem;
+    }
+</style>
+
+<div class="backup-container">
+    <!-- Header Section with Navigation -->
+    <div class="create-search" style="margin-bottom: 2rem;">
+        <h2 style="color: #800000; font-size: 1.5rem; font-weight: 600;">Database Backup Management</h2>
+    </div>
+
+    <!-- Alert Messages -->
+    <div id="alertContainer"></div>
+
+    <!-- Automatic Backup Info -->
+    <div class="backup-info-card">
+        <h3><i class="fas fa-clock"></i> Automatic Backup Schedule</h3>
+        <div class="info-row">
+            <i class="fas fa-calendar-check"></i>
+            <span>The system runs an automatic backup every day at <strong>00:00 (midnight)</strong> Asia/Manila time</span>
+        </div>
+        <div class="info-row">
+            <i class="fas fa-globe-asia"></i>
+            <span>Current time in Manila: <strong id="currentTime">{{ current_time|date:"Y-m-d H:i:s" }}</strong></span>
+        </div>
+        <div class="info-row">
+            <i class="fas fa-info-circle"></i>
+            <span>Backup files are stored as SQL dumps and can be used to restore your database</span>
+        </div>
+    </div>
+
+    <!-- Backup Stats -->
+    <div class="backup-stats">
+        <div class="stat-card">
+            <div class="stat-value">{{ total_backups }}</div>
+            <div class="stat-label">Total Backups</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value">{{ total_size|filesizeformat }}</div>
+            <div class="stat-label">Total Size</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value">{{ backup_schedule }}</div>
+            <div class="stat-label">Auto Backup Time</div>
+        </div>
+    </div>
+
+    <!-- Manual Backup Controls -->
+    <div class="backup-controls">
+        <h3 style="margin: 0 0 1rem 0;"><i class="fas fa-hand-pointer"></i> Manual Backup</h3>
+        <button id="createBackupBtn" class="backup-button">
+            <i class="fas fa-save"></i>
+            <span>Create Backup Now</span>
+        </button>
+        <p style="margin: 0.5rem 0 0 0; color: #666; font-size: 0.9rem;">
+            Click to create an immediate backup of your database
+        </p>
+    </div>
+
+    <!-- Backup Files Table -->
+    <div class="backup-table-container">
+        <h3 style="margin: 0 0 1rem 0;"><i class="fas fa-file-archive"></i> Backup Files</h3>
+        
+        {% if backups %}
+        <table class="backup-table" id="backupTable">
+            <thead>
+                <tr>
+                    <th>Filename</th>
+                    <th>Type</th>
+                    <th>Size</th>
+                    <th>Created Date</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for backup in backups %}
+                <tr data-filename="{{ backup.filename }}">
+                    <td>
+                        <i class="fas fa-file-code"></i>
+                        {{ backup.filename }}
+                    </td>
+                    <td>
+                        {% if backup.type == 'automatic' %}
+                        <span class="badge badge-auto">
+                            <i class="fas fa-robot"></i> Automatic
+                        </span>
+                        {% else %}
+                        <span class="badge badge-manual">
+                            <i class="fas fa-hand-pointer"></i> Manual
+                        </span>
+                        {% endif %}
+                    </td>
+                    <td>{{ backup.size|filesizeformat }}</td>
+                    <td>{{ backup.created|date:"Y-m-d H:i:s" }}</td>
+                    <td>
+                        <a href="{% url 'download_backup' backup.filename %}" class="action-btn download-btn">
+                            <i class="fas fa-download"></i> Download
+                        </a>
+                        <button onclick="deleteBackup('{{ backup.filename }}')" class="action-btn delete-btn">
+                            <i class="fas fa-trash"></i> Delete
+                        </button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="empty-state">
+            <i class="fas fa-inbox"></i>
+            <p>No backup files found</p>
+            <p style="font-size: 0.9rem; color: #999;">Create your first backup using the button above</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+    // Update current time every second
+    function updateTime() {
+        const now = new Date();
+        const manilaTime = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Manila' }));
+        const timeString = manilaTime.getFullYear() + '-' + 
+                          String(manilaTime.getMonth() + 1).padStart(2, '0') + '-' +
+                          String(manilaTime.getDate()).padStart(2, '0') + ' ' +
+                          String(manilaTime.getHours()).padStart(2, '0') + ':' +
+                          String(manilaTime.getMinutes()).padStart(2, '0') + ':' +
+                          String(manilaTime.getSeconds()).padStart(2, '0');
+        document.getElementById('currentTime').textContent = timeString;
+    }
+    
+    setInterval(updateTime, 1000);
+
+    // Show alert message
+    function showAlert(message, type = 'success') {
+        const alertContainer = document.getElementById('alertContainer');
+        const alertDiv = document.createElement('div');
+        alertDiv.className = `alert alert-${type}`;
+        alertDiv.innerHTML = `
+            <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'}"></i>
+            ${message}
+        `;
+        alertContainer.appendChild(alertDiv);
+        
+        setTimeout(() => {
+            alertDiv.remove();
+        }, 5000);
+    }
+
+    // Create manual backup
+    document.getElementById('createBackupBtn').addEventListener('click', async function() {
+        const btn = this;
+        const originalHTML = btn.innerHTML;
+        
+        // Disable button and show loading
+        btn.disabled = true;
+        btn.innerHTML = '<span class="loading-spinner"></span> Creating backup...';
+        
+        try {
+            const response = await fetch('{% url "create_manual_backup" %}', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}',
+                    'Content-Type': 'application/json',
+                },
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                showAlert('Backup created successfully!', 'success');
+                
+                // Add new row to table instead of reloading page
+                addBackupToTable(data.backup);
+                
+                // Re-enable button
+                btn.disabled = false;
+                btn.innerHTML = originalHTML;
+            } else {
+                showAlert('Error: ' + data.message, 'error');
+                btn.disabled = false;
+                btn.innerHTML = originalHTML;
+            }
+        } catch (error) {
+            showAlert('Network error: ' + error.message, 'error');
+            btn.disabled = false;
+            btn.innerHTML = originalHTML;
+        }
+    });
+
+    // Function to add new backup row to table
+    function addBackupToTable(backup) {
+        const table = document.getElementById('backupTable');
+        if (!table) {
+            // If no table exists (empty state), reload page to show table
+            location.reload();
+            return;
+        }
+
+        const tbody = table.querySelector('tbody');
+        const row = document.createElement('tr');
+        row.setAttribute('data-filename', backup.filename);
+        
+        // Format the date
+        const date = new Date(backup.timestamp);
+        const formattedDate = date.getFullYear() + '-' + 
+                            String(date.getMonth() + 1).padStart(2, '0') + '-' +
+                            String(date.getDate()).padStart(2, '0') + ' ' +
+                            String(date.getHours()).padStart(2, '0') + ':' +
+                            String(date.getMinutes()).padStart(2, '0') + ':' +
+                            String(date.getSeconds()).padStart(2, '0');
+        
+        // Format file size
+        const sizeInMB = (backup.size / (1024 * 1024)).toFixed(2);
+        const sizeFormatted = sizeInMB + ' MB';
+        
+        row.innerHTML = `
+            <td>
+                <i class="fas fa-file-code"></i>
+                ${backup.filename}
+            </td>
+            <td>
+                <span class="badge badge-manual">
+                    <i class="fas fa-hand-pointer"></i> Manual
+                </span>
+            </td>
+            <td>${sizeFormatted}</td>
+            <td>${formattedDate}</td>
+            <td>
+                <a href="/backup/download/${backup.filename}/" class="action-btn download-btn">
+                    <i class="fas fa-download"></i> Download
+                </a>
+                <button onclick="deleteBackup('${backup.filename}')" class="action-btn delete-btn">
+                    <i class="fas fa-trash"></i> Delete
+                </button>
+            </td>
+        `;
+        
+        // Add to top of table
+        tbody.insertBefore(row, tbody.firstChild);
+        
+        // Update statistics
+        updateStats();
+    }
+
+    // Function to update statistics
+    function updateStats() {
+        const rows = document.querySelectorAll('#backupTable tbody tr');
+        const totalBackups = rows.length;
+        
+        // Update total backups count
+        const statValue = document.querySelector('.stat-card .stat-value');
+        if (statValue) {
+            statValue.textContent = totalBackups;
+        }
+    }
+
+    // Delete backup
+    async function deleteBackup(filename) {
+        if (!confirm(`Are you sure you want to delete "${filename}"?`)) {
+            return;
+        }
+        
+        try {
+            const response = await fetch(`/backup/delete/${filename}/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}',
+                    'Content-Type': 'application/json',
+                },
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                showAlert('Backup deleted successfully!', 'success');
+                // Remove row from table
+                const row = document.querySelector(`tr[data-filename="${filename}"]`);
+                if (row) {
+                    row.remove();
+                }
+                
+                // Reload if no backups left
+                const tbody = document.querySelector('.backup-table tbody');
+                if (tbody && tbody.children.length === 0) {
+                    location.reload();
+                }
+            } else {
+                showAlert('Error: ' + data.message, 'error');
+            }
+        } catch (error) {
+            showAlert('Network error: ' + error.message, 'error');
+        }
+    }
+
+    // Initialize DataTable if jQuery DataTables is available
+    $(document).ready(function() {
+        if ($.fn.DataTable && $('#backupTable').length) {
+            $('#backupTable').DataTable({
+                order: [[3, 'desc']], // Sort by created date descending
+                pageLength: 10,
+                language: {
+                    search: "Search backups:",
+                    lengthMenu: "Show _MENU_ backups per page",
+                    info: "Showing _START_ to _END_ of _TOTAL_ backups",
+                    infoEmpty: "No backups available",
+                    infoFiltered: "(filtered from _MAX_ total backups)"
+                }
+            });
+        }
+    });
+</script>
+
+{% endblock content %}
