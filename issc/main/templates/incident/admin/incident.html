@@ -64,8 +64,12 @@
                             <td>{{ data.last_updated_by }}</td>
                             <td><a href="{% url 'incident_details' data.id %}" >Details</a></td>
                             <td style="text-align: center;">
-                                <button name="approve" class="form-input update-btn" value="{{ data.id }}" style="background-color: #28a745; color: white; padding: 8px 15px; margin: 3px; border: none; border-radius: 4px; cursor: pointer; display: block; width: 120px;">Validate</button>
-                                <button type="button" onclick="showInvalidateModal({{ data.id }})" class="form-input delete-btn" style="background-color: #dc3545; color: white; padding: 8px 15px; margin: 3px; border: none; border-radius: 4px; cursor: pointer; display: block; width: 120px;">Invalidate</button>
+                                {% if current_user in data.faculty_involved.all %}
+                                    <span style="display: inline-block; background-color: #ffc107; color: #000; padding: 8px 15px; border-radius: 4px; font-weight: 600; font-size: 13px;">You can't validate this case</span>
+                                {% else %}
+                                    <button name="approve" class="form-input update-btn" value="{{ data.id }}" style="background-color: #28a745; color: white; padding: 8px 15px; margin: 3px; border: none; border-radius: 4px; cursor: pointer; display: block; width: 120px;">Validate</button>
+                                    <button type="button" onclick="showInvalidateModal({{ data.id }})" class="form-input delete-btn" style="background-color: #dc3545; color: white; padding: 8px 15px; margin: 3px; border: none; border-radius: 4px; cursor: pointer; display: block; width: 120px;">Invalidate</button>
+                                {% endif %}
                             </td>
                         </form>
                     </tr>
