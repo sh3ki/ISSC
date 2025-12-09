@@ -89,6 +89,7 @@ class IncidentReport(models.Model):
     incident = models.TextField()
     request_for_action = models.TextField()
     people_involved = models.TextField(null=True, blank=True)
+    faculty_involved = models.ManyToManyField(AccountRegistration, blank=True, related_name='incident_reports')
     reported_by = models.CharField(max_length=100)
     position = models.CharField(max_length=100)
     department = models.CharField(max_length=100)
