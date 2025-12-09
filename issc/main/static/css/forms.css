@@ -73,6 +73,25 @@
     grid-column: span 2;  
 }
 
+.people-involved {
+    grid-column: span 1;
+}
+
+.faculty-involved {
+    grid-column: span 1;
+}
+
+.incident-description {
+    grid-column: span 1;
+}
+
+.request-action {
+    grid-column: span 1;
+}
+
+.upload-file {
+    grid-column: span 1;
+}
 
 .register-btn {
     grid-column: span 3;
