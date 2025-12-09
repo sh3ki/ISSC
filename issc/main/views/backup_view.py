@@ -164,12 +164,21 @@ def backup_page(request):
     backups = get_backup_list()
     manila_time = get_manila_time()
     
+    # Get user role for navigation menu
+    from main.models import AccountRegistration
+    try:
+        user_account = AccountRegistration.objects.get(id_number=request.user.id_number)
+        user_role = user_account.privilege
+    except:
+        user_role = 'admin'  # Default to admin if user is staff
+    
     context = {
         'backups': backups,
         'current_time': manila_time,
         'backup_schedule': '00:00 (Asia/Manila)',
         'total_backups': len(backups),
         'total_size': sum(b['size'] for b in backups),
+        'user_role': user_role,
     }
     
     return render(request, 'backup.html', context)
