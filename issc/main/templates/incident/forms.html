@@ -138,12 +138,24 @@
                 <input type="text" name="subject_other" id="subject-other" placeholder="Please specify subject" style="display:none;margin-top:8px;" />
             </div>
 
-            <!-- Row 4: PEOPLE INVOLVED, INCIDENT DESCRIPTION, REQUEST FOR ACTION, UPLOAD FILE -->
+            <!-- Row 4: PEOPLE INVOLVED, FACULTY INVOLVED -->
             <div class="form-field people-involved">
                 <label>People Involved</label>
-                <textarea name="people_involved" id="people-involved" rows="4" placeholder="List people involved (names, roles, contact info). Separate entries with new lines." style="width:100%;box-sizing:border-box;"></textarea>
+                <textarea name="people_involved" id="people-involved" rows="2" placeholder="List people involved (names, roles, contact info). Separate entries with new lines." style="width:100%;box-sizing:border-box;"></textarea>
             </div>
 
+            <div class="form-field faculty-involved">
+                <label>Faculty Involved</label>
+                <select name="faculty_involved" id="faculty-involved" multiple size="6">
+                    <option value="" style="font-style:italic;color:#999;">None</option>
+                    {% for faculty in faculty_users %}
+                        <option value="{{ faculty.id }}">{{ faculty.first_name }} {{ faculty.last_name }} ({{ faculty.id_number }})</option>
+                    {% endfor %}
+                </select>
+                <small style="color:#666;font-size:11px;display:block;margin-top:4px;">Hold Ctrl/Cmd for multiple</small>
+            </div>
+
+            <!-- Row 5: INCIDENT DESCRIPTION, REQUEST FOR ACTION, UPLOAD FILE -->
             <div class="form-field incident-description">
                 <label>Incident Description</label>
                 <textarea name="incident" required rows="4" placeholder="Describe the incident in detail"></textarea>
