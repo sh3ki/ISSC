@@ -611,7 +611,8 @@ curl --unix-socket /run/gunicorn.sock localhost
 ## 9. Configure Nginx Web Server
 
 ### Step 9.1: Create Nginx Configuration
-
+sudo nginx -t
+sudo systemctl restart nginx
 ```bash
 sudo nano /etc/nginx/sites-available/issc
 ```
