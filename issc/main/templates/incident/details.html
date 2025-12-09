@@ -104,6 +104,11 @@
                     </div>
 
                     <div class="detail-field">
+                        <label><strong>Faculty Involved:</strong></label>
+                        <input type="text" value="{% for faculty in incident.faculty_involved.all %}{{ faculty.first_name }} {{ faculty.last_name }} ({{ faculty.id_number }}){% if not forloop.last %}, {% endif %}{% endfor %}" readonly tabindex="-1" style="background-color:#f5f5f5;pointer-events:none;">
+                    </div>
+
+                    <div class="detail-field">
                         <label><strong>Reported By:</strong></label>
                         {% if user_role in 'student admin faculty' or incident.status == 'closed' %}
                             <input type="text" name="reported_by" value="{{ incident.reported_by }}" readonly tabindex="-1" style="background-color:#f5f5f5;pointer-events:none;">
