@@ -20,6 +20,7 @@ from django.template.loader import render_to_string
 @login_required(login_url='/login/')
 def incident(request):
     user = AccountRegistration.objects.filter(username=request.user).values()
+    current_user = AccountRegistration.objects.get(username=request.user)
     is_archived = request.GET.get('archive', 'false').lower() == 'true'
     if user[0]['privilege'] == 'student':
         template = loader.get_template('incident/student/incident.html')
@@ -89,6 +90,7 @@ def incident(request):
     context = {
         'user_role': user[0]['privilege'],
         'user_data': user[0],
+        'current_user': current_user,
         'open_incident': open_incident,
         'pending_incident': pending_incident,
         'closed_incident': closed_incident,
@@ -102,6 +104,10 @@ def incident_details(request, id):
     user = AccountRegistration.objects.filter(username=request.user).values()
     incident = get_object_or_404(IncidentReport, id=id)
     template = loader.get_template('incident/details.html')
+    
+    # Get all admin and faculty users for the faculty_involved dropdown
+    faculty_users = AccountRegistration.objects.filter(privilege__in=['admin', 'faculty']).order_by('first_name', 'last_name')
+    
     # Determine archive filter to keep counts consistent with this incident
     archive_flag = incident.is_archived if hasattr(incident, 'is_archived') else False
 
@@ -134,6 +140,7 @@ def incident_details(request, id):
         'incident': incident,
         'user_role': user[0]['privilege'],
         'user_data': user[0],
+        'faculty_users': faculty_users,
         'total_incidents': total_incidents,
         'incident_number': incident_number,
         'status_counts': status_counts,
@@ -191,6 +198,10 @@ def incident_details(request, id):
         # If phone_number submitted use it otherwise default to current user's contact
         incident.phone_number = request.POST.get('phone_number', user[0]['contact_number'])
         incident.save()
+        
+        # Update faculty_involved - filter out empty strings (None option)
+        faculty_involved_ids = [fid for fid in request.POST.getlist('faculty_involved') if fid]
+        incident.faculty_involved.set(faculty_involved_ids)
 
         return redirect(request.META.get('HTTP_REFERER', '/'))
 
@@ -219,10 +230,14 @@ def incident_print(request, id):
 def incident_forms(request):
     user = AccountRegistration.objects.filter(username=request.user).values()
     template = loader.get_template('incident/forms.html')
+    
+    # Get all admin and faculty users for the faculty_involved dropdown
+    faculty_users = AccountRegistration.objects.filter(privilege__in=['admin', 'faculty']).order_by('first_name', 'last_name')
 
     context = {
         'user_role': user[0]['privilege'],
-        'user_data': user[0]
+        'user_data': user[0],
+        'faculty_users': faculty_users
     }
 
     if request.method == 'POST':
@@ -250,6 +265,9 @@ def incident_forms(request):
         status = 'open'
         file = request.FILES.get('file', None)
 
+        # Get faculty_involved IDs from POST (will be a list), filter out empty strings
+        faculty_involved_ids = [fid for fid in request.POST.getlist('faculty_involved') if fid]
+        
         # Create and save the incident report manually
         report = IncidentReport(
             first_name=first_name,
@@ -271,5 +289,8 @@ def incident_forms(request):
             is_archived=False
         )
         report.save()
+        
+        # Set the many-to-many relationship after saving (empty list will clear all)
+        report.faculty_involved.set(faculty_involved_ids)
 
     return HttpResponse(template.render(context, request))
