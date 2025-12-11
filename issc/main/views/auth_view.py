@@ -3,6 +3,8 @@ from django.template import loader
 from django.shortcuts import render, redirect, get_object_or_404
 
 from django.contrib.auth import authenticate
+import secrets
+import string
 from django.contrib.auth import login as auth_login
 from django.contrib.auth import logout as auth_logout
 from django.contrib.auth.decorators import login_required
@@ -121,9 +123,12 @@ def signup_forms(request):
         department = request.POST.get('department')
         privilege = request.POST.get('privilege')
         status = request.POST.get('status')
-        password = request.POST.get('password')
+        
+        # Auto-generate passphrase (12 characters with letters, digits, and special chars)
+        alphabet = string.ascii_letters + string.digits + '!@#$%^&*'
+        password = ''.join(secrets.choice(alphabet) for i in range(12))
 
-        print(password)
+        print(f"Auto-generated passphrase: {password}")
 
         # Check for duplicate email
         if AccountRegistration.objects.filter(email=email).exists():
@@ -162,14 +167,18 @@ def signup_forms(request):
             user.set_password(password)
             user.save()
             messages.success(request, 'Account created successfully!')
-            # Send notification email to the newly created user with their credentials
+            # Send notification email to the newly created user with their auto-generated passphrase
             try:
-                subject = 'Your ISSC account has been created'
+                subject = 'Your ISSC Account Has Been Created'
                 message = (
-                    "Login to the ISSC account using the credentials saved:\n\n"
+                    "Welcome to ISSC!\n\n"
+                    "Your account has been successfully created. Below are your login credentials:\n\n"
                     f"Username: {username}\n"
-                    f"Password: {password}\n\n"
-                    "You can login at: " + request.build_absolute_uri('/login/')
+                    f"Passphrase: {password}\n\n"
+                    "⚠️ IMPORTANT: Please keep this passphrase secure and do not share it with anyone.\n\n"
+                    " It is recommended that you change your passphrase upon your first login.\n\n"
+                    "You can login at: " + ('https://www.issc.study/login/') + "\n\n"
+                    "If you need to reset your passphrase, please contact the administrator."
                 )
                 from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', settings.EMAIL_HOST_USER)
 
@@ -195,7 +204,7 @@ def signup_forms(request):
             except Exception as e:
                 # Log the error server-side and show a non-blocking message
                 print(f"Failed sending account creation email to {email}: {e}")
-            return redirect('signup-forms')
+            return redirect('signup')
         except Exception as e:
             context['error'] = f"An error occurred while creating the account: {str(e)}"
             context['form_data'] = request.POST
@@ -208,172 +217,183 @@ def logout(request):
 
 def import_data(request):
     template = loader.get_template('import.html')
-    context = {}
+    user = AccountRegistration.objects.filter(username=request.user).values()
+    context = {
+        'user_role': user[0]['privilege'],
+        'user_data': user[0],
+    }
 
     if request.method == 'POST':
-        import_type = request.POST.get('import_type')
         excel_file = request.FILES.get('excel_file')
-        print(import_type)
 
-        if not import_type:
-            context['error'] = "Please select an import type."
-        elif not excel_file:
+        if not excel_file:
             context['error'] = "Please select an Excel file."
+        elif not excel_file.name.endswith(('.xlsx', '.xls')):
+            context['error'] = "Please upload a valid Excel file (.xlsx or .xls)."
         else:
             try:
                 df = pd.read_excel(excel_file)
-
-                print(import_type=='user')
-
-                if import_type == "user":
-                    print("Reached import_data view")  # Debug
-                    success_count = 0
-                    error_count = 0
-                    errors = []
-                    
-                    for index, row in df.iterrows():
-                        try:
-                            email = row['email']
-                            id_number = row['ID Number']
-                            
-                            # Check for duplicate email
-                            if AccountRegistration.objects.filter(email=email).exists():
-                                error_msg = f"Row {index + 2}: Email '{email}' already exists"
-                                errors.append(error_msg)
-                                print(error_msg)
-                                error_count += 1
-                                continue
-                            
-                            # Check for duplicate ID number
-                            if AccountRegistration.objects.filter(id_number=id_number).exists():
-                                error_msg = f"Row {index + 2}: ID Number '{id_number}' already exists"
-                                errors.append(error_msg)
-                                print(error_msg)
-                                error_count += 1
-                                continue
-                            
-                            user = AccountRegistration(
-                                username=id_number,
-                                first_name=row['First Name'],
-                                middle_name=row['Middle Name'],
-                                last_name=row['Last Name'],
-                                email=email,
-                                id_number=id_number,
-                                contact_number=row['contact number'],
-                                gender={'Male': 'M', 'Female': 'F', 'Others': 'O'}.get(row['gender'], 'O'),
-                                department=row['department'],
-                                privilege=row['priv'],
-                                status='allowed',
-                            )
-                            user.set_password('password')
-                            user.save()
-                            print(f"Saved User: {row['First Name']} - {id_number}")
-                            success_count += 1
-                        except Exception as inner_e:
-                            error_msg = f"Row {index + 2}: {str(inner_e)}"
+                
+                # Validate required columns
+                required_columns = ['username', 'first_name', 'middle_name', 'last_name', 'email', 'contact_number', 'gender', 'department', 'privilege']
+                missing_columns = [col for col in required_columns if col not in df.columns]
+                
+                if missing_columns:
+                    context['error'] = f"Missing required columns: {', '.join(missing_columns)}"
+                    return HttpResponse(template.render(context, request))
+                
+                success_count = 0
+                error_count = 0
+                errors = []
+                successful_users = []  # Store successfully created users with their passwords
+                
+                for index, row in df.iterrows():
+                    try:
+                        username = str(row['username']).strip()
+                        email = str(row['email']).strip()
+                        first_name = str(row['first_name']).strip()
+                        middle_name = str(row.get('middle_name', '')).strip()
+                        last_name = str(row['last_name']).strip()
+                        contact_number = str(row.get('contact_number', '')).strip()
+                        gender = str(row['gender']).strip().upper()
+                        department = str(row['department']).strip().upper()
+                        privilege = str(row['privilege']).strip().lower()
+                        
+                        # Validate gender
+                        if gender not in ['M', 'F', 'O', 'MALE', 'FEMALE', 'OTHER']:
+                            error_msg = f"Row {index + 2}: Invalid gender '{gender}'. Must be Male, Female, or Other"
                             errors.append(error_msg)
-                            print(f"Error saving user row {index + 2}: {inner_e}")
                             error_count += 1
-
-                    if success_count > 0:
-                        context['message'] = f"User data import completed! Successfully imported: {success_count} records."
-                    if error_count > 0:
-                        context['error'] = f"Failed to import {error_count} records. Errors: " + "; ".join(errors[:5])
-                        if len(errors) > 5:
-                            context['error'] += f"... and {len(errors) - 5} more errors."
-
-                elif import_type == "vehicle":
-                    success_count = 0
-                    error_count = 0
-                    errors = []
-                    
-                    for index, row in df.iterrows():
-                        try:
-                            email = row['email']
-                            id_number = row['ID Number']
-                            plate_number = row['plate_number']
-                            sticker_number = row['sticker_number']
-                            drivers_license = row['drivers_license']
-                            
-                            # Check for duplicate email
-                            if VehicleRegistration.objects.filter(email_address=email).exists():
-                                error_msg = f"Row {index + 2}: Email '{email}' already exists"
-                                errors.append(error_msg)
-                                print(error_msg)
-                                error_count += 1
-                                continue
-                            
-                            # Check for duplicate ID number
-                            if VehicleRegistration.objects.filter(id_number=id_number).exists():
-                                error_msg = f"Row {index + 2}: ID Number '{id_number}' already exists"
-                                errors.append(error_msg)
-                                print(error_msg)
-                                error_count += 1
-                                continue
-                            
-                            # Check for duplicate plate number
-                            if VehicleRegistration.objects.filter(plate_number=plate_number).exists():
-                                error_msg = f"Row {index + 2}: Plate Number '{plate_number}' already exists"
-                                errors.append(error_msg)
-                                print(error_msg)
-                                error_count += 1
-                                continue
-                            
-                            # Check for duplicate sticker number
-                            if VehicleRegistration.objects.filter(sticker_number=sticker_number).exists():
-                                error_msg = f"Row {index + 2}: Sticker Number '{sticker_number}' already exists"
-                                errors.append(error_msg)
-                                print(error_msg)
-                                error_count += 1
-                                continue
-                            
-                            # Check for duplicate driver's license
-                            if VehicleRegistration.objects.filter(drivers_license=drivers_license).exists():
-                                error_msg = f"Row {index + 2}: Driver's License '{drivers_license}' already exists"
-                                errors.append(error_msg)
-                                print(error_msg)
-                                error_count += 1
-                                continue
-                            
-                            vehicle = VehicleRegistration(
-                                first_name=row['First Name'],
-                                middle_name=row['Middle Name'],
-                                last_name=row['Last Name'],
-                                id_number=id_number,
-                                contact_number=row['contact number'],
-                                email_address=email,
-                                role=row['role'],
-                                vehicle_type=row['vehicle_type'],
-                                color=row['color'],
-                                model=row['model'],
-                                plate_number=plate_number,
-                                sticker_number=sticker_number,
-                                drivers_license=drivers_license,
-                                guardian_name=row['guardian_name'],
-                                guardian_number=row['guardian_contact'],
-                                status='allowed',
-                                image=None,
-                                qr_code=None,
-                                is_archived=False
-                            )
-                            vehicle.save()
-                            print(f"Saved Vehicle: {plate_number}")
-                            success_count += 1
-                        except Exception as inner_e:
-                            error_msg = f"Row {index + 2}: {str(inner_e)}"
+                            continue
+                        
+                        # Normalize gender
+                        gender_map = {'MALE': 'M', 'FEMALE': 'F', 'OTHER': 'O', 'M': 'M', 'F': 'F', 'O': 'O'}
+                        gender = gender_map.get(gender, 'O')
+                        
+                        # Validate department
+                        if department not in ['BSIT', 'BTLED', 'BSENT']:
+                            error_msg = f"Row {index + 2}: Invalid department '{department}'. Must be BSIT, BTLED, or BSENT"
                             errors.append(error_msg)
-                            print(f"Error saving vehicle row {index + 2}: {inner_e}")
                             error_count += 1
-
-                    if success_count > 0:
-                        context['message'] = f"Vehicle data import completed! Successfully imported: {success_count} records."
-                    if error_count > 0:
-                        context['error'] = f"Failed to import {error_count} records. Errors: " + "; ".join(errors[:5])
+                            continue
+                        
+                        # Validate privilege
+                        if privilege not in ['admin', 'faculty', 'student']:
+                            error_msg = f"Row {index + 2}: Invalid privilege '{privilege}'. Must be Admin, Faculty, or Student"
+                            errors.append(error_msg)
+                            error_count += 1
+                            continue
+                        
+                        # Check for duplicate username
+                        if AccountRegistration.objects.filter(username=username).exists():
+                            error_msg = f"Row {index + 2}: Username '{username}' already exists"
+                            errors.append(error_msg)
+                            error_count += 1
+                            continue
+                        
+                        # Check for duplicate email
+                        if AccountRegistration.objects.filter(email=email).exists():
+                            error_msg = f"Row {index + 2}: Email '{email}' already exists"
+                            errors.append(error_msg)
+                            error_count += 1
+                            continue
+                        
+                        # Auto-generate passphrase
+                        alphabet = string.ascii_letters + string.digits + '!@#$%^&*'
+                        password = ''.join(secrets.choice(alphabet) for i in range(12))
+                        
+                        # Create user
+                        user_obj = AccountRegistration(
+                            username=username,
+                            first_name=first_name,
+                            middle_name=middle_name,
+                            last_name=last_name,
+                            email=email,
+                            id_number=username,  # Use username as ID number
+                            contact_number=contact_number,
+                            gender=gender,
+                            department=department,
+                            privilege=privilege,
+                            status='allowed',
+                        )
+                        user_obj.set_password(password)
+                        user_obj.save()
+                        
+                        # Store successful user info for email
+                        successful_users.append({
+                            'username': username,
+                            'email': email,
+                            'password': password,
+                            'first_name': first_name,
+                            'last_name': last_name
+                        })
+                        
+                        print(f"Saved User: {first_name} {last_name} - {username}")
+                        success_count += 1
+                        
+                    except Exception as inner_e:
+                        error_msg = f"Row {index + 2}: {str(inner_e)}"
+                        errors.append(error_msg)
+                        print(f"Error saving user row {index + 2}: {inner_e}")
+                        error_count += 1
+                
+                # Send emails to all successfully created users
+                if successful_users:
+                    email_success = 0
+                    email_failed = 0
+                    
+                    for user_data in successful_users:
+                        try:
+                            subject = 'Your ISSC Account Has Been Created'
+                            message = (
+                                f"Welcome to ISSC, {user_data['first_name']}!\n\n"
+                                "Your account has been successfully created. Below are your login credentials:\n\n"
+                                f"Username: {user_data['username']}\n"
+                                f"Passphrase: {user_data['password']}\n\n"
+                                "⚠️ IMPORTANT: Please keep this passphrase secure and do not share it with anyone.\n\n"
+                                "You can login at: " + request.build_absolute_uri('/login/') + "\n\n"
+                                "If you need to reset your passphrase, please contact the administrator."
+                            )
+                            from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', settings.EMAIL_HOST_USER)
+                            
+                            connection = get_connection(
+                                host=getattr(settings, 'EMAIL_HOST', None),
+                                port=getattr(settings, 'EMAIL_PORT', None),
+                                username=getattr(settings, 'EMAIL_HOST_USER', None),
+                                password=getattr(settings, 'EMAIL_HOST_PASSWORD', None),
+                                use_tls=getattr(settings, 'EMAIL_USE_TLS', False),
+                            )
+                            
+                            send_mail(subject, message, from_email, [user_data['email']], connection=connection, fail_silently=False)
+                            email_success += 1
+                            print(f"Email sent to {user_data['email']}")
+                            
+                        except Exception as e:
+                            email_failed += 1
+                            print(f"Failed to send email to {user_data['email']}: {e}")
+                    
+                    if email_success > 0:
+                        context['message'] = f"Successfully imported {success_count} users! Emails sent to {email_success} users."
+                    if email_failed > 0:
+                        if context.get('message'):
+                            context['message'] += f" (Failed to send {email_failed} emails)"
+                        else:
+                            context['error'] = f"Imported {success_count} users but failed to send {email_failed} emails."
+                
+                if success_count > 0 and not context.get('message'):
+                    context['message'] = f"Successfully imported {success_count} users!"
+                    
+                if error_count > 0:
+                    error_summary = f"Failed to import {error_count} records. "
+                    if errors:
+                        error_summary += "Errors: " + "; ".join(errors[:5])
                         if len(errors) > 5:
-                            context['error'] += f"... and {len(errors) - 5} more errors."
-
-                else:
-                    context['error'] = "Invalid import type selected."
+                            error_summary += f"... and {len(errors) - 5} more errors."
+                    
+                    if context.get('error'):
+                        context['error'] += " " + error_summary
+                    else:
+                        context['error'] = error_summary
 
             except Exception as e:
                 context['error'] = f"Error processing Excel file: {str(e)}"
