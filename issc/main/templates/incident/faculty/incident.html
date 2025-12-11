@@ -128,6 +128,7 @@
             <thead>
                 <tr>
                     <th>Date Time</th>
+                    <th>Runtime</th>
                     <th>First Name</th>
                     <th>Last Name</th>
                     <th>Subject</th>
@@ -146,6 +147,10 @@
                     <form method="POST" action="">
                         {% csrf_token %}
                         <td>{{ data.date_joined }}</td>
+                        <td class="runtime-cell-static" 
+                            data-created="{{ data.date_joined|date:'c' }}" 
+                            data-closed="{% for update in data.updates.all %}{% if update.close_case %}{{ update.created_at|date:'c' }}{% endif %}{% endfor %}">
+                        </td>
                         <input type="hidden" name="incident_id" value="{{ data.id }}">
                         <td>{{ data.first_name }}</td>
                         <td>{{ data.last_name }}</td>
@@ -277,9 +282,43 @@
             cell.textContent = runtimeText;
         });
     }
+
+    // Calculate static runtime for closed cases (from creation to closure)
+    function calculateStaticRuntimes() {
+        const staticCells = document.querySelectorAll('.runtime-cell-static');
+        staticCells.forEach(cell => {
+            const createdDate = new Date(cell.getAttribute('data-created'));
+            const closedDate = new Date(cell.getAttribute('data-closed'));
+            
+            if (closedDate && !isNaN(closedDate.getTime())) {
+                const diff = closedDate - createdDate;
+                
+                const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+                const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+                
+                let runtimeText = '';
+                if (days > 0) {
+                    runtimeText = `${days}d ${hours}h ${minutes}m ${seconds}s`;
+                } else if (hours > 0) {
+                    runtimeText = `${hours}h ${minutes}m ${seconds}s`;
+                } else if (minutes > 0) {
+                    runtimeText = `${minutes}m ${seconds}s`;
+                } else {
+                    runtimeText = `${seconds}s`;
+                }
+                
+                cell.textContent = runtimeText;
+            } else {
+                cell.textContent = 'N/A';
+            }
+        });
+    }
     
     // Update immediately and then every second
     updateRuntimes();
+    calculateStaticRuntimes();
     setInterval(updateRuntimes, 1000);
 </script>
 
