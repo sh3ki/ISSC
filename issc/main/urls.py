@@ -38,7 +38,6 @@ urlpatterns = [
 
     path("", dashboard_view.base, name="dashboard"),
     path("dashboard/", dashboard_view.base, name="dashboard"),
-    path("dashboard/print", dashboard_view.base_print, name="dashboard_print") ,
 
 
 
@@ -46,6 +45,7 @@ urlpatterns = [
     path("incidents/forms", incident_view.incident_forms, name="incident_forms"),
     path('incidents/<int:id>/', incident_view.incident_details, name='incident_details'),
     path('incidents/<int:id>/print', incident_view.incident_print, name='incident_print'),
+    path("incidents/print", incident_view.base_print, name="incidents_print") ,
 
     path("vehicles/", vehicle_view.vehicles, name="vehicles"),
     path("vehicles/forms", vehicle_view.vehicle_forms, name="vehicle_forms"),
