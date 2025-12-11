@@ -138,6 +138,13 @@ body {
     background: var(--hover-color);
 }
 
+.secondary-navbar ul li a.active {
+    color: white;
+    background: var(--primary-color);
+    border-bottom: 3px solid maroon;
+    font-weight: 700;
+}
+
 
 .user-info .logout-btn {
     color: rgb(206, 206, 206);
