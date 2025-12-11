@@ -171,7 +171,7 @@ def signup_forms(request):
             try:
                 subject = 'Your ISSC Account Has Been Created'
                 message = (
-                    "Welcome to ISSC!\n\n"
+                    f"Welcome to ISSC, {user_data['first_name']}!\n\n"
                     "Your account has been successfully created. Below are your login credentials:\n\n"
                     f"Username: {username}\n"
                     f"Passphrase: {password}\n\n"
@@ -348,10 +348,11 @@ def import_data(request):
                             message = (
                                 f"Welcome to ISSC, {user_data['first_name']}!\n\n"
                                 "Your account has been successfully created. Below are your login credentials:\n\n"
-                                f"Username: {user_data['username']}\n"
-                                f"Passphrase: {user_data['password']}\n\n"
+                                f"Username: {username}\n"
+                                f"Passphrase: {password}\n\n"
                                 "⚠️ IMPORTANT: Please keep this passphrase secure and do not share it with anyone.\n\n"
-                                "You can login at: " + request.build_absolute_uri('/login/') + "\n\n"
+                                " It is recommended that you change your passphrase upon your first login.\n\n"
+                                "You can login at: " + ('https://www.issc.study/login/') + "\n\n"
                                 "If you need to reset your passphrase, please contact the administrator."
                             )
                             from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', settings.EMAIL_HOST_USER)
