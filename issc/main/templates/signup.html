@@ -39,22 +39,12 @@
             <th>Last Name</th>
             <th>Email</th>
             <th>ID Number</th>
-            <th>Contact Number</th>
-            <th>Gender</th>
-            <th>Department</th>
-            <th>Privilege</th>
-            <th>Status</th>
-            <th style="text-align: center;"></th>
-            <th style="text-align: center;">Action</th>
-            <th style="text-align: center;"></th>
+            <th style="text-align: center;">Details</th>
           </tr>
         </thead>
         <tbody>
           {% for user in users %}
           <tr>
-            <form method="POST" action="">
-              {% csrf_token %}
-              
               <td>
                 <span class="d-none">{{ user.date_joined }}</span>
                 {{ user.date_joined }}
@@ -62,71 +52,30 @@
               <td>
                 <span class="d-none">{{ user.username }}</span>
                 {{ user.username }}
-                <input type="text" name="username" value="{{ user.username }}" hidden>
               </td>
               <td>
                 <span class="d-none">{{ user.first_name }}</span>
-                <input type="text" class="form-input" style="width: 140px;" name="first_name" value="{{ user.first_name }}" disabled>
+                {{ user.first_name }}
               </td>
               <td>
                 <span class="d-none">{{ user.middle_name }}</span>
-                <input type="text" class="form-input" style="width: 140px;" name="middle_name" value="{{ user.middle_name }}" disabled>
+                {{ user.middle_name }}
               </td>
               <td>
                 <span class="d-none">{{ user.last_name }}</span>
-                <input type="text" class="form-input" style="width: 140px;" name="last_name" value="{{ user.last_name }}" disabled>
+                {{ user.last_name }}
               </td>
               <td>
                 <span class="d-none">{{ user.email }}</span>
-                <input type="text" class="form-input" style="width: 140px;" name="email" value="{{ user.email }}" disabled>
+                {{ user.email }}
               </td>
               <td>
                 <span class="d-none">{{ user.id_number }}</span>
-                <input type="text" class="form-input" style="width: 140px;" name="id_number" value="{{ user.id_number }}" disabled>
+                {{ user.id_number }}
               </td>
-              <td>
-                <span class="d-none">{{ user.contact_number }}</span>
-                <input type="text" class="form-input" style="width: 140px;" name="contact_number" value="{{ user.contact_number }}" disabled>
+              <td style="text-align: center;">
+                <a href="{% url 'account-details' user.username %}" class="create-new-btn" style="padding: 8px 16px; text-decoration: none; display: inline-block;">View Details</a>
               </td>
-              <td>
-                <span class="d-none">
-                  {% if user.gender == 'M' %}Male{% elif user.gender == 'F' %}Female{% else %}Other{% endif %}
-                </span>
-                <select id="gender" class="form-input" name="gender" style="width: 140px;" disabled>
-                  <option value="M" {% if user.gender == 'M' %}selected{% endif %}>Male</option>
-                  <option value="F" {% if user.gender == 'F' %}selected{% endif %}>Female</option>
-                  <option value="O" {% if user.gender == 'O' %}selected{% endif %}>Other</option>
-                </select>
-              </td>
-              <td>
-                <span class="d-none">{{ user.department }}</span>
-                <input type="text" class="form-input" style="width: 140px;" name="department" value="{{ user.department }}" disabled>
-              </td>
-              <td>
-                <span class="d-none">{{ user.privilege }}</span>
-                <select id="privilege" class="form-input" name="privilege" style="width: 140px;" disabled>
-                  <option value="student" {% if user.privilege|lower == 'student' %}selected{% endif %}>Student</option>
-                  <option value="faculty" {% if user.privilege|lower == 'faculty' %}selected{% endif %}>Faculty</option>
-                  <option value="admin" {% if user.privilege|lower == 'admin' %}selected{% endif %}>Admin</option>
-                </select>
-              </td>
-              <td>
-                <span class="d-none">{{ user.status }}</span>
-                <select id="status" class="form-input" name="status" style="width: 140px;" disabled>
-                  <option value="allowed" {% if user.status == 'allowed' %}selected{% endif %}>Allowed</option>
-                  <option value="restricted" {% if user.status == 'restricted' %}selected{% endif %}>Restricted</option>
-                </select>
-              </td>
-              <td>
-                <button name="delete" style="cursor: not-allowed;" value="{{ user.username }}" class="form-input delete-btn" onclick="return confirmDelete();" disabled>DELETE</button>
-              </td>
-              <td>
-                <button style="cursor: not-allowed;" name="update" class="form-input update-btn" value="{{ user.username }}" disabled>UPDATE</button>
-              </td>
-            </form>
-            <td>
-              <button id="{{ forloop.counter }}" class="custom-toggle-btn" onclick="toggleEditFields(this)">TOGGLE</button>
-            </td>
           </tr>
           {% endfor %}
         </tbody>
@@ -137,21 +86,6 @@
     <!-- Pagination Controls -->
    
     <script type="text/javascript">
-       
-
-        function toggleEditFields(button) {
-                const row = button.closest('tr');
-                const inputs = row.querySelectorAll('input, select, button');
-
-                inputs.forEach(input => {
-                    // Skip the TOGGLE button itself
-                    if (input === button || input.name === "username" || input.name === 'csrfmiddlewaretoken') return;
-
-                    input.disabled = !input.disabled;
-                    input.style.cursor = input.disabled ? "not-allowed" : "auto";
-                });
-            }
-
 
         function confirmDelete() {
             return confirm('Do you really want to delete this user?');
