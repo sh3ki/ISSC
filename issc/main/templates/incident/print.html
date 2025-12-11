@@ -52,6 +52,7 @@
     <div class="section-title">Status & Metadata</div>
     <table class="info-table">
       <tr><td class="label">Current Status</td><td class="value">{{ incident.status|capfirst }}</td></tr>
+      <tr><td class="label">Runtime</td><td class="value" id="runtime-display"></td></tr>
       <tr><td class="label">Last Updated</td><td class="value">{{ incident.last_updated }} by {{ incident.last_updated_by }}</td></tr>
       <tr><td class="label">Archived</td><td class="value">{{ incident.is_archived }}</td></tr>
     </table>
@@ -77,6 +78,51 @@
   </div>
 
   <script>
+    // Calculate and display runtime
+    function calculateRuntime() {
+      const createdDate = new Date('{{ incident.date_joined|date:"c" }}');
+      let endDate;
+      
+      // Check if incident is closed and get the close date
+      {% if incident.status == 'closed' %}
+        const closeUpdate = [{% for u in incident.updates.all %}{% if u.close_case %}new Date('{{ u.created_at|date:"c" }}'){% endif %}{% endfor %}].filter(Boolean)[0];
+        endDate = closeUpdate || new Date();
+      {% else %}
+        endDate = new Date();
+      {% endif %}
+      
+      const diff = endDate - createdDate;
+      
+      const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+      
+      let runtimeText = '';
+      if (days > 0) {
+        runtimeText = `${days}d ${hours}h ${minutes}m ${seconds}s`;
+      } else if (hours > 0) {
+        runtimeText = `${hours}h ${minutes}m ${seconds}s`;
+      } else if (minutes > 0) {
+        runtimeText = `${minutes}m ${seconds}s`;
+      } else {
+        runtimeText = `${seconds}s`;
+      }
+      
+      {% if incident.status == 'closed' %}
+        runtimeText += ' (Total)';
+      {% endif %}
+      
+      document.getElementById('runtime-display').textContent = runtimeText;
+    }
+    
+    calculateRuntime();
+    
+    // For open/pending cases, update every second
+    {% if incident.status != 'closed' %}
+      setInterval(calculateRuntime, 1000);
+    {% endif %}
+    
     // Trigger print dialog when page loads
     window.addEventListener('load', function(){ setTimeout(function(){ window.print(); }, 350); });
   </script>
