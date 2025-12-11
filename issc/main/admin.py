@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import AccountRegistration, VehicleRegistration, IncidentReport, FacesEmbeddings, VehicleEntry, FaceLogs, UnauthorizedFaceDetection, IncidentUpdate
+from .models import AccountRegistration, VehicleRegistration, IncidentReport, FacesEmbeddings, VehicleEntry, FaceLogs, UnauthorizedFaceDetection, IncidentUpdate, SystemConfig
 # Register your models here.
 admin.site.register(AccountRegistration)
 admin.site.register(VehicleRegistration)
@@ -9,3 +9,4 @@ admin.site.register(VehicleEntry)
 admin.site.register(FaceLogs)
 admin.site.register(UnauthorizedFaceDetection)
 admin.site.register(IncidentUpdate)
+admin.site.register(SystemConfig)
