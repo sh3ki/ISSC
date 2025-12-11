@@ -171,7 +171,7 @@ def signup_forms(request):
             try:
                 subject = 'Your ISSC Account Has Been Created'
                 message = (
-                    f"Welcome to ISSC, {user_data['first_name']}!\n\n"
+                    f"Welcome to ISSC, {first_name}!\n\n"
                     "Your account has been successfully created. Below are your login credentials:\n\n"
                     f"Username: {username}\n"
                     f"Passphrase: {password}\n\n"
@@ -210,6 +210,74 @@ def signup_forms(request):
             context['form_data'] = request.POST
             return HttpResponse(template.render(context, request))
     return HttpResponse(template.render(context,request))
+
+def account_details(request, username):
+    """View to display and edit account details"""
+    template = loader.get_template('signup_form.html')
+    current_user = AccountRegistration.objects.filter(username=request.user).values()
+    
+    # Get the account to be edited
+    account = get_object_or_404(AccountRegistration, username=username)
+    
+    context = {
+        'user_role': current_user[0]['privilege'],
+        'user_data': current_user[0],
+        'account': account,
+        'is_edit_mode': True,
+    }
+    
+    if request.method == 'POST':
+        if 'delete' in request.POST:
+            # Handle delete action
+            account.delete()
+            messages.success(request, f'Account {username} has been deleted successfully!')
+            return redirect('signup')
+        
+        if 'update' in request.POST:
+            # Handle update action
+            first_name = request.POST.get('first_name')
+            middle_name = request.POST.get('middle_name')
+            last_name = request.POST.get('last_name')
+            email = request.POST.get('email')
+            id_number = request.POST.get('id_number')
+            contact_number = request.POST.get('contact_number')
+            gender = request.POST.get('gender')
+            department = request.POST.get('department')
+            privilege = request.POST.get('privilege')
+            status = request.POST.get('status')
+            
+            # Check for duplicate email (excluding current account)
+            if AccountRegistration.objects.filter(email=email).exclude(username=username).exists():
+                context['error'] = f"An account with the email '{email}' already exists. Please use a different email address."
+                context['form_data'] = request.POST
+                return HttpResponse(template.render(context, request))
+            
+            # Check for duplicate ID number (excluding current account)
+            if AccountRegistration.objects.filter(id_number=id_number).exclude(username=username).exists():
+                context['error'] = f"An account with the ID number '{id_number}' already exists. Please use a different ID number."
+                context['form_data'] = request.POST
+                return HttpResponse(template.render(context, request))
+            
+            try:
+                account.first_name = first_name
+                account.middle_name = middle_name
+                account.last_name = last_name
+                account.email = email
+                account.id_number = id_number
+                account.contact_number = contact_number
+                account.gender = gender
+                account.department = department
+                account.privilege = privilege
+                account.status = status
+                account.save()
+                messages.success(request, f'Account {username} has been updated successfully!')
+                return redirect('signup')
+            except Exception as e:
+                context['error'] = f"An error occurred while updating the account: {str(e)}"
+                context['form_data'] = request.POST
+                return HttpResponse(template.render(context, request))
+    
+    return HttpResponse(template.render(context, request))
 
 def logout(request):
     auth_logout(request)
