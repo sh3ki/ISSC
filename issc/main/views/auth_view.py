@@ -12,7 +12,7 @@ from django.contrib.auth.decorators import login_required
 from django.core.files.storage import FileSystemStorage
 from django.core.paginator import Paginator
 
-from ..models import AccountRegistration, IncidentReport, VehicleRegistration
+from ..models import AccountRegistration, IncidentReport, VehicleRegistration, SystemConfig
 
 from .utils import paginate
 
@@ -599,3 +599,55 @@ class CustomPasswordResetConfirmView(auth_views.PasswordResetConfirmView):
 
 class CustomPasswordResetCompleteView(auth_views.PasswordResetCompleteView):
     template_name = 'registration/acc_reset_complete.html'
+
+
+@login_required
+def get_admin_contact(request):
+    """Get the current admin contact number"""
+    phone_number = SystemConfig.get_admin_contact()
+    return JsonResponse({
+        'success': True,
+        'phone_number': phone_number
+    })
+
+
+@login_required
+def save_admin_contact(request):
+    """Save or update the admin contact number"""
+    if request.method == 'POST':
+        try:
+            import json
+            data = json.loads(request.body)
+            phone_number = data.get('phone_number', '').strip()
+            
+            # Validate phone number
+            if len(phone_number) != 11:
+                return JsonResponse({
+                    'success': False,
+                    'message': 'Phone number must be exactly 11 digits'
+                }, status=400)
+            
+            if not phone_number.startswith('09') or not phone_number.isdigit():
+                return JsonResponse({
+                    'success': False,
+                    'message': 'Phone number must start with 09 and contain only digits'
+                }, status=400)
+            
+            # Save to database
+            SystemConfig.set_admin_contact(phone_number, request.user)
+            
+            return JsonResponse({
+                'success': True,
+                'message': 'Admin contact number saved successfully'
+            })
+            
+        except Exception as e:
+            return JsonResponse({
+                'success': False,
+                'message': str(e)
+            }, status=500)
+    
+    return JsonResponse({
+        'success': False,
+        'message': 'Invalid request method'
+    }, status=400)
