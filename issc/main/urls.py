@@ -24,6 +24,7 @@ urlpatterns = [
     path("logout/", auth_view.logout, name="logout"),
     path("signup/", auth_view.signup, name='signup'),
     path("signup-forms/", auth_view.signup_forms, name='signup-forms'),
+    path("account-details/<str:username>/", auth_view.account_details, name='account-details'),
     path("import/",auth_view.import_data, name='import-forms'),
     path("download-template/", auth_view.download_template, name='download-template'),
     path('get-user/', auth_view.getUser, name='get_user'),
