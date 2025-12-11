@@ -13,7 +13,11 @@ import pytz
 
 # Create backups directory if it doesn't exist
 BACKUP_DIR = os.path.join(settings.BASE_DIR, 'backups')
-os.makedirs(BACKUP_DIR, exist_ok=True)
+if not os.path.exists(BACKUP_DIR):
+    os.makedirs(BACKUP_DIR, exist_ok=True)
+    # Set secure permissions on Linux/Ubuntu (rwx for owner only)
+    if platform.system() != 'Windows':
+        os.chmod(BACKUP_DIR, 0o700)
 
 def get_manila_time():
     """Get current time in Asia/Manila timezone"""
@@ -44,39 +48,82 @@ def create_mysql_backup(db_config, backup_file):
     """Create MySQL database backup"""
     system = platform.system()
     
+    # Base command without password
+    cmd = [
+        'mysqldump',
+        '-h', db_config['host'],
+        '-P', str(db_config['port']),
+        '-u', db_config['user'],
+        '--single-transaction',
+        '--routines',
+        '--triggers',
+        '--events',
+        '--skip-comments',
+        '--add-drop-table',
+        db_config['name']
+    ]
+    
+    # Prepare environment variables for password (more secure for Linux)
+    env = os.environ.copy()
+    
     if system == 'Windows':
-        # Windows command
-        cmd = [
-            'mysqldump',
-            '-h', db_config['host'],
-            '-P', str(db_config['port']),
-            '-u', db_config['user'],
-            f'-p{db_config["password"]}',
-            db_config['name']
-        ]
+        # Windows: Add password directly to command if provided
+        if db_config['password']:
+            cmd.insert(4, f'-p{db_config["password"]}')
     else:
-        # Linux command
-        cmd = [
-            'mysqldump',
-            '-h', db_config['host'],
-            '-P', str(db_config['port']),
-            '-u', db_config['user'],
-            f'--password={db_config["password"]}',
-            db_config['name']
-        ]
+        # Linux/Ubuntu: Use environment variable for password (more secure)
+        if db_config['password']:
+            env['MYSQL_PWD'] = db_config['password']
     
     try:
-        with open(backup_file, 'w') as f:
-            result = subprocess.run(cmd, stdout=f, stderr=subprocess.PIPE, text=True)
-            
-        if result.returncode == 0:
-            return True, "Backup created successfully"
+        # Execute mysqldump and capture output
+        result = subprocess.run(
+            cmd, 
+            stdout=subprocess.PIPE, 
+            stderr=subprocess.PIPE, 
+            text=True,
+            encoding='utf-8',
+            errors='replace',
+            env=env
+        )
+        
+        # Check for errors (ignore password warning on stderr)
+        if result.returncode != 0:
+            error_msg = result.stderr.strip()
+            # Filter out password warning which is common and not an actual error
+            if 'mysql: [Warning] Using a password on the command line' not in error_msg:
+                print(f"mysqldump error: {error_msg}")
+                return False, f"mysqldump failed: {error_msg}"
+        
+        # Check if output is not empty
+        if not result.stdout or len(result.stdout.strip()) == 0:
+            return False, "mysqldump produced empty output. Check database connection and credentials."
+        
+        # Write the SQL dump to file with proper permissions on Linux
+        with open(backup_file, 'w', encoding='utf-8') as f:
+            f.write(result.stdout)
+        
+        # Set file permissions on Linux (read/write for owner only)
+        if system != 'Windows':
+            os.chmod(backup_file, 0o600)
+        
+        # Verify the file was created and has content
+        if os.path.exists(backup_file):
+            file_size = os.path.getsize(backup_file)
+            if file_size > 0:
+                print(f"Backup created successfully: {backup_file} ({file_size} bytes)")
+                return True, "Backup created successfully"
+            else:
+                return False, "Backup file is empty"
         else:
-            return False, result.stderr
+            return False, "Backup file was not created"
+            
     except FileNotFoundError:
-        return False, "mysqldump command not found. Please ensure MySQL client is installed."
+        system_hint = "apt install mysql-client" if system == 'Linux' else "Install MySQL client tools"
+        return False, f"mysqldump command not found. Please install MySQL client: {system_hint}"
     except Exception as e:
-        return False, str(e)
+        print(f"Backup exception: {str(e)}")
+        return False, f"Error creating backup: {str(e)}"
 
 def create_sqlite_backup(db_config, backup_file):
     """Create SQLite database backup"""
@@ -94,11 +141,15 @@ def create_backup(backup_type='manual'):
     if not db_config:
         return False, "Unsupported database type", None
     
+    print(f"Creating {backup_type} backup for {db_config['type']} database: {db_config.get('name', 'unknown')}")
+    
     # Generate filename with timestamp
     manila_time = get_manila_time()
     timestamp = manila_time.strftime('%Y%m%d_%H%M%S')
     filename = f"issc_backup_{backup_type}_{timestamp}.sql"
     backup_file = os.path.join(BACKUP_DIR, filename)
+    
+    print(f"Backup file path: {backup_file}")
     
     # Create backup based on database type
     if db_config['type'] == 'mysql':
@@ -109,16 +160,37 @@ def create_backup(backup_type='manual'):
         return False, "Unsupported database type", None
     
     if success:
-        # Get file size
-        file_size = os.path.getsize(backup_file)
-        return True, message, {
-            'filename': filename,
-            'filepath': backup_file,
-            'size': file_size,
-            'timestamp': manila_time.isoformat(),
-            'type': backup_type
-        }
+        # Verify file exists and has content
+        if os.path.exists(backup_file):
+            file_size = os.path.getsize(backup_file)
+            if file_size > 0:
+                print(f"Backup successful! File: {filename}, Size: {file_size} bytes")
+                return True, message, {
+                    'filename': filename,
+                    'filepath': backup_file,
+                    'size': file_size,
+                    'timestamp': manila_time.isoformat(),
+                    'type': backup_type
+                }
+            else:
+                print("Error: Backup file is empty")
+                # Delete empty file
+                try:
+                    os.remove(backup_file)
+                except:
+                    pass
+                return False, "Backup file is empty. Check database connection.", None
+        else:
+            print("Error: Backup file was not created")
+            return False, "Backup file was not created", None
     else:
+        print(f"Backup failed: {message}")
+        # Clean up any partial file
+        if os.path.exists(backup_file):
+            try:
+                os.remove(backup_file)
+            except:
+                pass
         return False, message, None
 
 def get_backup_list():
