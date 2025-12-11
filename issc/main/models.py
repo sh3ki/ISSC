@@ -217,3 +217,41 @@ class UnauthorizedFaceDetection(models.Model):
         verbose_name = "Unauthorized Face Detection"
         verbose_name_plural = "Unauthorized Face Detections"
         ordering = ['-detection_timestamp']  # Most recent first
+
+
+class SystemConfig(models.Model):
+    """Store system-wide configuration settings"""
+    config_key = models.CharField(max_length=100, unique=True)
+    config_value = models.TextField()
+    description = models.CharField(max_length=255, blank=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    updated_by = models.ForeignKey(AccountRegistration, on_delete=models.SET_NULL, null=True, blank=True)
+    
+    def __str__(self):
+        return f"{self.config_key}: {self.config_value}"
+    
+    class Meta:
+        verbose_name = "System Configuration"
+        verbose_name_plural = "System Configurations"
+    
+    @classmethod
+    def get_admin_contact(cls):
+        """Get admin contact number, return default if not set"""
+        try:
+            config = cls.objects.get(config_key='admin_contact_number')
+            return config.config_value
+        except cls.DoesNotExist:
+            return '09945349194'  # Default number
+    
+    @classmethod
+    def set_admin_contact(cls, phone_number, user=None):
+        """Set or update admin contact number"""
+        config, created = cls.objects.update_or_create(
+            config_key='admin_contact_number',
+            defaults={
+                'config_value': phone_number,
+                'description': 'Admin contact number for SMS notifications',
+                'updated_by': user
+            }
+        )
+        return config
