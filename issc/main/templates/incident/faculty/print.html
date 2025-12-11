@@ -458,6 +458,7 @@
           <thead>
             <tr>
               <th>Date Time</th>
+              <th>Runtime</th>
               <th>First Name</th>
               <th>Last Name</th>
               <th>ID Number</th>
@@ -479,6 +480,12 @@
             {% for incident in incidents %}
             <tr>
               <td>{{ incident.date_joined|date:'M. d, Y, h:i a' }}</td>
+              <td class="runtime-cell" 
+                  data-created="{{ incident.date_joined|date:'c' }}"
+                  data-status="{{ incident.status }}"
+                  data-closed="{% for update in incident.updates.all %}{% if update.close_case %}{{ update.created_at|date:'c' }}{% endif %}{% endfor %}">
+                Calculating...
+              </td>
               <td>{{ incident.first_name }}</td>
               <td>{{ incident.last_name }}</td>
               <td>{{ incident.id_number }}</td>
@@ -522,6 +529,54 @@
       </div>
     </div>
   </div>
+
+  <script>
+    // Calculate runtime for all incidents
+    function calculateAllRuntimes() {
+      const runtimeCells = document.querySelectorAll('.runtime-cell');
+      
+      runtimeCells.forEach(cell => {
+        const createdDate = new Date(cell.getAttribute('data-created'));
+        const status = cell.getAttribute('data-status');
+        const closedDateStr = cell.getAttribute('data-closed');
+        
+        let endDate;
+        
+        // For closed cases, use the close date; otherwise use current time
+        if (status === 'closed' && closedDateStr && closedDateStr.trim() !== '') {
+          endDate = new Date(closedDateStr);
+        } else {
+          endDate = new Date();
+        }
+        
+        const diff = endDate - createdDate;
+        
+        const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+        const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+        
+        let runtimeText = '';
+        if (days > 0) {
+          runtimeText = `${days}d ${hours}h ${minutes}m`;
+        } else if (hours > 0) {
+          runtimeText = `${hours}h ${minutes}m`;
+        } else if (minutes > 0) {
+          runtimeText = `${minutes}m ${seconds}s`;
+        } else {
+          runtimeText = `${seconds}s`;
+        }
+        
+        cell.textContent = runtimeText;
+      });
+    }
+    
+    // Calculate on load
+    calculateAllRuntimes();
+    
+    // Update every 30 seconds for open/pending cases
+    setInterval(calculateAllRuntimes, 30000);
+  </script>
 
 </body>
 </html>
