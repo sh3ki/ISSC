@@ -191,145 +191,117 @@ def face_enrollment_view(request, id_number):
     user = get_object_or_404(AccountRegistration, id_number=id_number)
     print("User Retrieved:", user)
 
-    if request.method == "POST" and 'front_image' in request.POST:
+    if request.method == "POST" and 'embeddings' in request.POST:
+        # NEW: Handle JSON embeddings from face-api.js (PROTECH method)
+        embeddings_data = request.POST.get('embeddings')
         front_image = request.POST.get('front_image')
         left_image = request.POST.get('left_image')
         right_image = request.POST.get('right_image')
 
+        print("Embeddings Data (truncated):", embeddings_data[:50] if embeddings_data else "None")
         print("Front Image (truncated):", front_image[:50] if front_image else "None")
         print("Left Image (truncated):", left_image[:50] if left_image else "None")
         print("Right Image (truncated):", right_image[:50] if right_image else "None")
 
-        if front_image and left_image and right_image:
+        if embeddings_data and front_image and left_image and right_image:
             try:
-                front_img = handle_base64_image(front_image)
-                left_img = handle_base64_image(left_image)
-                right_img = handle_base64_image(right_image)
-
-                print("Decoded Front Image Shape:", front_img.shape if front_img is not None else "None")
-                print("Decoded Left Image Shape:", left_img.shape if left_img is not None else "None")
-                print("Decoded Right Image Shape:", right_img.shape if right_img is not None else "None")
+                # Parse the embeddings JSON
+                embeddings = json.loads(embeddings_data)
                 
-                # Make sure all images are contiguous for better GPU processing
-                if front_img is not None:
-                    front_img = np.ascontiguousarray(front_img)
-                if left_img is not None:
-                    left_img = np.ascontiguousarray(left_img)
-                if right_img is not None:
-                    right_img = np.ascontiguousarray(right_img)
-
-                enrollment = get_face_enrollment()
-                front_faces, _ = enrollment.detect_faces(front_img)
-                left_faces, _ = enrollment.detect_faces(left_img)
-                right_faces, _ = enrollment.detect_faces(right_img)
-
-                print("Front Faces Detected:", len(front_faces) if front_faces else 0)
-                print("Left Faces Detected:", len(left_faces) if left_faces else 0)
-                print("Right Faces Detected:", len(right_faces) if right_faces else 0)
-
-                if (front_faces and len(front_faces) == 1 and 
-                    left_faces and len(left_faces) == 1 and 
-                    right_faces and len(right_faces) == 1):
-                    
-                    # FIXED: Changed method name from get_face_embedding to extract_embeddings
-                    front_embedding = enrollment.extract_embeddings(front_faces[0])
-                    left_embedding = enrollment.extract_embeddings(left_faces[0])
-                    right_embedding = enrollment.extract_embeddings(right_faces[0])
-
-                    print("Front Embedding Type:", type(front_embedding))
-                    print("Front Embedding Shape:", front_embedding.shape if front_embedding is not None else "None")
-                    
-                    # Verify embeddings are different (128-dim for DeepFace Facenet model)
-                    if front_embedding is not None and left_embedding is not None and right_embedding is not None:
-                        # Check correct size (128-dim for Facenet, 512-dim for Facenet512)
-                        expected_dims = [128, 512]  # Accept both Facenet variants
-                        if front_embedding.shape[0] not in expected_dims:
-                            print(f"⚠️ WARNING: Unexpected embedding size: {front_embedding.shape[0]} (expected {expected_dims})")
-                        
-                        front_left_dist = np.linalg.norm(front_embedding - left_embedding)
-                        front_right_dist = np.linalg.norm(front_embedding - right_embedding)
-                        left_right_dist = np.linalg.norm(left_embedding - right_embedding)
-                        
-                        print(f"🔍 Embedding distances - Front-Left: {front_left_dist:.4f}, Front-Right: {front_right_dist:.4f}, Left-Right: {left_right_dist:.4f}")
-                        
-                        # Check if embeddings are suspiciously similar (same image captured 3 times)
-                        if front_left_dist < 0.01 and front_right_dist < 0.01:
-                            print("⚠️ WARNING: All 3 embeddings are nearly identical - same frame captured!")
-                            return render(request, 'face_enrollment/error.html', {
-                                'message': 'All three images appear to be identical! Please ensure you turn your head to the left and right before capturing each angle.',
-                                'user_role': user_privilege[0]['privilege'] if user_privilege else 'Unknown',
-                            })
-                        
-                        print("✅ Embeddings are different - good capture!")
-
-                    if front_embedding is not None and left_embedding is not None and right_embedding is not None:
-                        # FIXED: Store as JSON serializable lists instead of strings
-                        # Check if there's an existing embedding for this user and update it
-                        FacesEmbeddings.objects.update_or_create(
-                            id_number=user,
-                            defaults={
-                                'front_embedding': front_embedding.tolist(),
-                                'left_embedding': left_embedding.tolist(),
-                                'right_embedding': right_embedding.tolist(),
-                            }
-                        )
-                        print(f"Embeddings stored for user {id_number}")
-
-                        print("Embeddings saved successfully.")
-                        
-                        # IMPORTANT: Refresh face embeddings in the live feed system
-                        try:
-                            from .video_feed_view import matcher
-                            from .enhanced_video_feed import enhanced_camera_manager
-                            
-                            # Reload embeddings in the original matcher
-                            matcher.load_embeddings()
-                            print("Original face matcher embeddings refreshed")
-                            
-                            # Reload embeddings in the enhanced camera manager
-                            enhanced_camera_manager.reload_face_embeddings()
-                            print("Enhanced camera manager embeddings refreshed")
-                            
-                            # Ensure simple live feed cache picks up the new embeddings immediately
-                            try:
-                                from . import live_feed_simple
-                                live_feed_simple.load_face_embeddings()
-                                print("Simple live feed embeddings refreshed")
-                            except Exception as refresh_err:
-                                print(f"Warning: Could not refresh simple live feed embeddings: {refresh_err}")
-                            
-                        except Exception as e:
-                            print(f"Warning: Could not refresh live feed embeddings: {e}")
-
-                        return render(request, 'face_enrollment/success_page.html', {
-                            "front_faces": front_image,
-                            "left_faces": left_image,
-                            "right_faces": right_image,
-                            "user_role": user_privilege[0]['privilege'] if user_privilege else 'Unknown',
-                        })
-                    else:
-                        print("Error: One or more embeddings are None.")
-                        return render(request, 'face_enrollment/error.html', {
-                            'message': 'Failed to extract embeddings for one or more images.',
-                            'user_role': user_privilege[0]['privilege'] if user_privilege else 'Unknown',
-                        })
-                else:
-                    print("Error: Incorrect number of faces detected.")
+                # Validate embeddings structure
+                if not isinstance(embeddings, list) or len(embeddings) != 3:
+                    raise ValueError("Invalid embeddings structure - expected 3 embeddings")
+                
+                for i, emb in enumerate(embeddings):
+                    if not isinstance(emb, list) or len(emb) != 128:
+                        raise ValueError(f"Invalid embedding {i} - expected 128-dimensional array")
+                
+                print(f"✅ Received 3 valid 128-dimensional embeddings from face-api.js")
+                
+                # Convert to numpy arrays for distance calculation
+                front_embedding = np.array(embeddings[0])
+                left_embedding = np.array(embeddings[1])
+                right_embedding = np.array(embeddings[2])
+                
+                # Verify embeddings are different (128-dim from face-api.js)
+                front_left_dist = np.linalg.norm(front_embedding - left_embedding)
+                front_right_dist = np.linalg.norm(front_embedding - right_embedding)
+                left_right_dist = np.linalg.norm(left_embedding - right_embedding)
+                
+                print(f"🔍 Embedding distances - Front-Left: {front_left_dist:.4f}, Front-Right: {front_right_dist:.4f}, Left-Right: {left_right_dist:.4f}")
+                
+                # Check if embeddings are suspiciously similar (same image captured 3 times)
+                if front_left_dist < 0.01 and front_right_dist < 0.01:
+                    print("⚠️ WARNING: All 3 embeddings are nearly identical - same frame captured!")
                     return render(request, 'face_enrollment/error.html', {
-                        'message': 'Exactly one face must be detected in each image. Please try again.',
+                        'message': 'All three images appear to be identical! Please ensure you turn your head to the left and right before capturing each angle.',
                         'user_role': user_privilege[0]['privilege'] if user_privilege else 'Unknown',
                     })
+                
+                print("✅ Embeddings are different - good capture!")
+                
+                # Store embeddings as JSON lists (already in correct format)
+                FacesEmbeddings.objects.update_or_create(
+                    id_number=user,
+                    defaults={
+                        'front_embedding': embeddings[0],  # Already a list
+                        'left_embedding': embeddings[1],   # Already a list
+                        'right_embedding': embeddings[2],  # Already a list
+                    }
+                )
+                print(f"Embeddings stored for user {id_number}")
 
+                print("Embeddings saved successfully.")
+                
+                # IMPORTANT: Refresh face embeddings in the live feed system
+                try:
+                    from .video_feed_view import matcher
+                    from .enhanced_video_feed import enhanced_camera_manager
+                    
+                    # Reload embeddings in the original matcher
+                    matcher.load_embeddings()
+                    print("Original face matcher embeddings refreshed")
+                    
+                    # Reload embeddings in the enhanced camera manager
+                    enhanced_camera_manager.reload_face_embeddings()
+                    print("Enhanced camera manager embeddings refreshed")
+                    
+                    # Ensure simple live feed cache picks up the new embeddings immediately
+                    try:
+                        from . import live_feed_simple
+                        live_feed_simple.load_face_embeddings()
+                        print("Simple live feed embeddings refreshed")
+                    except Exception as refresh_err:
+                        print(f"Warning: Could not refresh simple live feed embeddings: {refresh_err}")
+                    
+                except Exception as e:
+                    print(f"Warning: Could not refresh live feed embeddings: {e}")
+
+                return render(request, 'face_enrollment/success_page.html', {
+                    "front_faces": front_image,
+                    "left_faces": left_image,
+                    "right_faces": right_image,
+                    "user_role": user_privilege[0]['privilege'] if user_privilege else 'Unknown',
+                })
+
+            except ValueError as ve:
+                print("Validation error:", ve)
+                return render(request, 'face_enrollment/error.html', {
+                    'message': f'Invalid data format: {ve}',
+                    'user_role': user_privilege[0]['privilege'] if user_privilege else 'Unknown',
+                })
             except Exception as e:
                 print("Exception occurred:", e)
+                import traceback
+                traceback.print_exc()
                 return render(request, 'face_enrollment/error.html', {
-                    'message': f'Error processing images: {e}',
+                    'message': f'Error processing embeddings: {e}',
                     'user_role': user_privilege[0]['privilege'] if user_privilege else 'Unknown',
                 })
         else:
-            print("Error: One or more image inputs are missing.")
+            print("Error: Missing embeddings or image data.")
             return render(request, 'face_enrollment/error.html', {
-                'message': 'Missing image data! Please capture all three face angles.',
+                'message': 'Missing embeddings or image data! Please capture all three face angles.',
                 'user_role': user_privilege[0]['privilege'] if user_privilege else 'Unknown',
             })
 
