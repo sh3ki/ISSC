@@ -16,9 +16,9 @@
 
     <div class="p-4 mt-2 mb-4rounded">
         <div class="flex justify-end mb-4 space-x-2">
-            <button onclick="showSection('open')" class="px-4 py-2 bg-red-900 text-white rounded-xl transition-all duration-300 transform shadow-md hover:shadow-xl hover:translate-y-[-3px] active:translate-y-[0px] active:shadow-sm">Open Cases</button>
-            <button onclick="showSection('pending')" class="px-4 py-2 bg-red-900 text-white rounded-xl transition-all duration-300 transform shadow-md hover:shadow-xl hover:translate-y-[-3px] active:translate-y-[0px] active:shadow-sm">Ongoing Cases</button>
-            <button onclick="showSection('closed')" class="px-4 py-2 bg-red-900 text-white rounded-xl transition-all duration-300 transform shadow-md hover:shadow-xl hover:translate-y-[-3px] active:translate-y-[0px] active:shadow-sm">Closed Cases</button>
+            <button id="btn-open" onclick="showSection('open')" class="px-4 py-2 bg-red-900 text-white rounded-xl transition-all duration-300 transform shadow-md hover:shadow-xl hover:translate-y-[-3px] active:translate-y-[0px] active:shadow-sm">Open Cases</button>
+            <button id="btn-pending" onclick="showSection('pending')" class="px-4 py-2 bg-white text-gray-700 border-2 border-gray-300 rounded-xl transition-all duration-300 transform shadow-md hover:shadow-xl hover:translate-y-[-3px] active:translate-y-[0px] active:shadow-sm">Ongoing Cases</button>
+            <button id="btn-closed" onclick="showSection('closed')" class="px-4 py-2 bg-white text-gray-700 border-2 border-gray-300 rounded-xl transition-all duration-300 transform shadow-md hover:shadow-xl hover:translate-y-[-3px] active:translate-y-[0px] active:shadow-sm">Closed Cases</button>
         </div>
 
         <!-- Open Cases Section -->
@@ -40,6 +40,7 @@
                         <th>Action</th>
                     </tr>
                 </thead>
+                <tbody>
                     {% for data in open_incident %}
                     <tr>
                         <form method="POST" action="">
@@ -47,7 +48,6 @@
                             <td>{{ data.date_joined }}</td>
                             <td class="runtime-cell" data-created="{{ data.date_joined|date:'c' }}"></td>
                             <input type="hidden" name="incident_id" value="{{ data.id }}">
-                            <td>{{ data.first_name }}</td>ident_id" value="{{ data.id }}">
                             <td>{{ data.first_name }}</td>
                             <td>{{ data.last_name }}</td>
                             <td>{{ data.subject }}</td>
@@ -201,18 +201,35 @@
 
 <script>
     function showSection(type) {
-        // Hide all
+        // Hide all sections
         document.getElementById('open-section').classList.add('hidden');
         document.getElementById('pending-section').classList.add('hidden');
         document.getElementById('closed-section').classList.add('hidden');
 
-        // Show selected
+        // Reset all buttons to inactive state
+        const buttons = ['btn-open', 'btn-pending', 'btn-closed'];
+        buttons.forEach(btnId => {
+            const btn = document.getElementById(btnId);
+            btn.classList.remove('bg-red-900', 'text-white');
+            btn.classList.add('bg-white', 'text-gray-700', 'border-2', 'border-gray-300');
+        });
+
+        // Show selected section and activate corresponding button
         if (type === 'open') {
             document.getElementById('open-section').classList.remove('hidden');
+            const btn = document.getElementById('btn-open');
+            btn.classList.remove('bg-white', 'text-gray-700', 'border-2', 'border-gray-300');
+            btn.classList.add('bg-red-900', 'text-white');
         } else if (type === 'pending') {
             document.getElementById('pending-section').classList.remove('hidden');
+            const btn = document.getElementById('btn-pending');
+            btn.classList.remove('bg-white', 'text-gray-700', 'border-2', 'border-gray-300');
+            btn.classList.add('bg-red-900', 'text-white');
         } else if (type === 'closed') {
             document.getElementById('closed-section').classList.remove('hidden');
+            const btn = document.getElementById('btn-closed');
+            btn.classList.remove('bg-white', 'text-gray-700', 'border-2', 'border-gray-300');
+            btn.classList.add('bg-red-900', 'text-white');
         }
     }
 
@@ -262,23 +279,13 @@
     }
     
     // Update immediately and then every second
-            });
-    })
-</script>
-<script>
-document.getElementById('print-link').addEventListener('click', function (e) {
-    e.preventDefault();
-    const baseUrl = window.location.origin + window.location.pathname;
-    window.location.href = baseUrl + 'print';
-});
+    updateRuntimes();
+    setInterval(updateRuntimes, 1000);
 </script>
 
-{% endblock content %}
-<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css" />
 <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
-
 
 <script type="text/javascript">
     $(document).ready(function(){
@@ -303,6 +310,14 @@ document.getElementById('print-link').addEventListener('click', function (e) {
                 "info": false
             });
     })
+</script>
+
+<script>
+document.getElementById('print-link').addEventListener('click', function (e) {
+    e.preventDefault();
+    const baseUrl = window.location.origin + window.location.pathname;
+    window.location.href = baseUrl + 'print';
+});
 </script>
 
 {% endblock content %}
