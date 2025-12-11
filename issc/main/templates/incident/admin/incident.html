@@ -10,7 +10,8 @@
 
     <div class="create-search">
         <a href="{% url 'incident_forms' %}" class="create-new-btn">File New Incident</a>
-        <a href="{% url 'incidents' %}?archive=true" class="create-new-btn">Archive</a>
+        
+        <a href="#" id="print-link" class="create-new-btn">Print</a>
     </div>
 
     <div class="p-4 mt-2 mb-4rounded">
@@ -27,6 +28,7 @@
                 <thead>
                     <tr>
                         <th>Date Time</th>
+                        <th>Runtime</th>
                         <th>First Name</th>
                         <th>Last Name</th>
                         <th>Subject</th>
@@ -46,6 +48,7 @@
                         <form method="POST" action="">
                             {% csrf_token %}
                             <td>{{ data.date_joined }}</td>
+                            <td class="runtime-cell" data-created="{{ data.date_joined|date:'c' }}"></td>
                             <input type="hidden" name="incident_id" value="{{ data.id }}">
                             <td>{{ data.first_name }}</td>
                             <td>{{ data.last_name }}</td>
@@ -89,6 +92,7 @@
                
                 <tr>
                     <th>Date Time</th>
+                    <th>Runtime</th>
                     <th>First Name</th>
                     <th>Last Name</th>
                     <th>Subject</th>
@@ -107,6 +111,7 @@
                     <form method="POST" action="">
                         {% csrf_token %}
                         <td>{{ data.date_joined }}</td>
+                        <td class="runtime-cell" data-created="{{ data.date_joined|date:'c' }}"></td>
                         <input type="hidden" name="incident_id" value="{{ data.id }}">
                         <td>{{ data.first_name }}</td>
                         <td>{{ data.last_name }}</td>
@@ -238,7 +243,6 @@
     function closeInvalidateModal() {
         document.getElementById('invalidateModal').style.display = 'none';
     }
-
     // Close modal when clicking outside of it
     window.onclick = function(event) {
         const modal = document.getElementById('invalidateModal');
@@ -246,6 +250,39 @@
             closeInvalidateModal();
         }
     }
+
+    // Runtime calculation and update
+    function updateRuntimes() {
+        const runtimeCells = document.querySelectorAll('.runtime-cell');
+        runtimeCells.forEach(cell => {
+            const createdDate = new Date(cell.getAttribute('data-created'));
+            const now = new Date();
+            const diff = now - createdDate;
+            
+            const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+            
+            let runtimeText = '';
+            if (days > 0) {
+                runtimeText = `${days}d ${hours}h ${minutes}m ${seconds}s`;
+            } else if (hours > 0) {
+                runtimeText = `${hours}h ${minutes}m ${seconds}s`;
+            } else if (minutes > 0) {
+                runtimeText = `${minutes}m ${seconds}s`;
+            } else {
+                runtimeText = `${seconds}s`;
+            }
+            
+            cell.textContent = runtimeText;
+        });
+    }
+    
+    // Update immediately and then every second
+    updateRuntimes();
+    setInterval(updateRuntimes, 1000);
+</script>
 </script>
 
 
@@ -315,6 +352,13 @@
                 "info": false
             });
     })
+</script>
+<script>
+document.getElementById('print-link').addEventListener('click', function (e) {
+    e.preventDefault();
+    const baseUrl = window.location.origin + window.location.pathname;
+    window.location.href = baseUrl + 'print';
+});
 </script>
 
 {% endblock content %}
