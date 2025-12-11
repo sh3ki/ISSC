@@ -18,6 +18,9 @@
                 {% endif %}
                 {% if incident_status_number %}
                     <span style="margin-left:12px;">{{ incident.status|title }} #<strong>{{ incident_status_number }}</strong> of <strong>{{ status_count_for_incident }}</strong></span>
+                    {% if incident.status == 'open' or incident.status == 'pending' %}
+                        <span style="margin-left:12px;">Runtime: <strong><span id="runtime-display" data-created="{{ incident.date_joined|date:'c' }}">Calculating...</span></strong></span>
+                    {% endif %}
                 {% endif %}
             </div>
 
@@ -276,6 +279,42 @@
         // close on Esc
         document.addEventListener('keydown', function(e){ if(e.key === 'Escape'){ hideModal(); } });
     })();
+    </script>
+
+    <!-- Runtime update script -->
+    <script>
+    function updateRuntime() {
+        const runtimeDisplay = document.getElementById('runtime-display');
+        if (!runtimeDisplay) return;
+        
+        const createdDate = new Date(runtimeDisplay.getAttribute('data-created'));
+        const now = new Date();
+        const diff = now - createdDate;
+        
+        const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+        const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+        
+        let runtimeText = '';
+        if (days > 0) {
+            runtimeText = `${days}d ${hours}h ${minutes}m ${seconds}s`;
+        } else if (hours > 0) {
+            runtimeText = `${hours}h ${minutes}m ${seconds}s`;
+        } else if (minutes > 0) {
+            runtimeText = `${minutes}m ${seconds}s`;
+        } else {
+            runtimeText = `${seconds}s`;
+        }
+        
+        runtimeDisplay.textContent = runtimeText;
+    }
+    
+    // Update immediately and then every second
+    if (document.getElementById('runtime-display')) {
+        updateRuntime();
+        setInterval(updateRuntime, 1000);
+    }
     </script>
     
     <!-- Case updates history -->
