@@ -227,8 +227,8 @@ select {
 .create-search {
     padding-top: 40px;
     display: flex;
-    justify-content: space-between; 
-    align-items: center;            
+    justify-content:flex-start;
+    gap: 20px;
 }
 
 .search-icon {
