@@ -16,9 +16,9 @@
 
     <div class="p-4 mt-2 mb-4rounded">
         <div class="flex justify-end mb-4 space-x-2">
-            <button onclick="showSection('open')" class="px-4 py-2 bg-red-900 text-white rounded-xl transition-all duration-300 transform shadow-md hover:shadow-xl hover:translate-y-[-3px] active:translate-y-[0px] active:shadow-sm">Open Cases</button>
-            <button onclick="showSection('pending')" class="px-4 py-2 bg-red-900 text-white rounded-xl transition-all duration-300 transform shadow-md hover:shadow-xl hover:translate-y-[-3px] active:translate-y-[0px] active:shadow-sm">Ongoing Cases</button>
-            <button onclick="showSection('closed')" class="px-4 py-2 bg-red-900 text-white rounded-xl transition-all duration-300 transform shadow-md hover:shadow-xl hover:translate-y-[-3px] active:translate-y-[0px] active:shadow-sm">Closed Cases</button>
+            <button id="btn-open" onclick="showSection('open')" class="px-4 py-2 bg-red-900 text-white rounded-xl transition-all duration-300 transform shadow-md hover:shadow-xl hover:translate-y-[-3px] active:translate-y-[0px] active:shadow-sm">Open Cases</button>
+            <button id="btn-pending" onclick="showSection('pending')" class="px-4 py-2 bg-white text-gray-700 border-2 border-gray-300 rounded-xl transition-all duration-300 transform shadow-md hover:shadow-xl hover:translate-y-[-3px] active:translate-y-[0px] active:shadow-sm">Ongoing Cases</button>
+            <button id="btn-closed" onclick="showSection('closed')" class="px-4 py-2 bg-white text-gray-700 border-2 border-gray-300 rounded-xl transition-all duration-300 transform shadow-md hover:shadow-xl hover:translate-y-[-3px] active:translate-y-[0px] active:shadow-sm">Closed Cases</button>
         </div>
 
         <!-- Open Cases Section -->
@@ -35,8 +35,6 @@
                         <th>Location</th>
                         <th>Reported By</th>
                         <th>Department</th>
-                        <th>Phone Number</th>
-                        <th>Status</th>
                         <th>Last Updated By</th>
                         <th>Details</th>
                         <th>Action</th>
@@ -56,14 +54,6 @@
                             <td>{{ data.location }}</td>
                             <td>{{ data.reported_by }}</td>
                             <td>{{ data.department }}</td>
-                            <td>{{ data.phone_number }}</td>
-                            <td>
-                                <select class="form-input" name="status" style="width: 140px;" disabled>
-                                    <option value="open" {% if data.status == 'open' %}selected{% endif %}>Open</option>
-                                    <option value="pending" {% if data.status == 'pending' %}selected{% endif %}>Ongoing</option>
-                                    <option value="closed" {% if data.status == 'closed' %}selected{% endif %}>Closed</option>
-                                </select>
-                            </td>
                             <td>{{ data.last_updated_by }}</td>
                             <td><a href="{% url 'incident_details' data.id %}" >Details</a></td>
                             <td style="text-align: center;">
@@ -100,7 +90,6 @@
                     <th>Reported By</th>
                     <th>Department</th>
                     <th>Phone Number</th>
-                    <th>Status</th>
                     <th>Last Updated By</th>
                     <th>Details</th>
                 </tr>
@@ -120,13 +109,6 @@
                         <td>{{ data.reported_by }}</td>
                         <td>{{ data.department }}</td>
                         <td>{{ data.phone_number }}</td>
-                        <td>
-                            <select class="form-input" name="status" style="width: 140px;" disabled>
-                                <option value="open" {% if data.status == 'open' %}selected{% endif %}>Open</option>
-                                <option value="pending" {% if data.status == 'pending' %}selected{% endif %}>Ongoing</option>
-                                <option value="closed" {% if data.status == 'closed' %}selected{% endif %}>Closed</option>
-                            </select>
-                        </td>
                         <td>{{ data.last_updated_by }}</td>
                         <td><a href="{% url 'incident_details' data.id %}" >Details</a></td>
                     </form>
@@ -219,18 +201,35 @@
 
 <script>
     function showSection(type) {
-        // Hide all
+        // Hide all sections
         document.getElementById('open-section').classList.add('hidden');
         document.getElementById('pending-section').classList.add('hidden');
         document.getElementById('closed-section').classList.add('hidden');
 
-        // Show selected
+        // Reset all buttons to inactive state
+        const buttons = ['btn-open', 'btn-pending', 'btn-closed'];
+        buttons.forEach(btnId => {
+            const btn = document.getElementById(btnId);
+            btn.classList.remove('bg-red-900', 'text-white');
+            btn.classList.add('bg-white', 'text-gray-700', 'border-2', 'border-gray-300');
+        });
+
+        // Show selected section and activate corresponding button
         if (type === 'open') {
             document.getElementById('open-section').classList.remove('hidden');
+            const btn = document.getElementById('btn-open');
+            btn.classList.remove('bg-white', 'text-gray-700', 'border-2', 'border-gray-300');
+            btn.classList.add('bg-red-900', 'text-white');
         } else if (type === 'pending') {
             document.getElementById('pending-section').classList.remove('hidden');
+            const btn = document.getElementById('btn-pending');
+            btn.classList.remove('bg-white', 'text-gray-700', 'border-2', 'border-gray-300');
+            btn.classList.add('bg-red-900', 'text-white');
         } else if (type === 'closed') {
             document.getElementById('closed-section').classList.remove('hidden');
+            const btn = document.getElementById('btn-closed');
+            btn.classList.remove('bg-white', 'text-gray-700', 'border-2', 'border-gray-300');
+            btn.classList.add('bg-red-900', 'text-white');
         }
     }
 
