@@ -59,20 +59,20 @@
             <aside class="sidebar">
               <ul class="nav-links">
                 <li>
-                  <a href="{% url 'about' %}">
+                  <a href="{% url 'about' %}" class="{% if request.resolver_match.url_name == 'about' %}active{% endif %}">
                     <span class="icon"></span>
                     <span class="text">Homepage</span>
                   </a>
                 </li> 
                 {% if user_role == 'admin' %}
                 <li>
-                  <a href="{% url 'dashboard' %}">
+                  <a href="{% url 'dashboard' %}" class="{% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
                     <span class="icon"></span>
                     <span class="text">Dashboard</span>
                   </a>
                 </li>
                 <li>
-                  <a href="{% url 'signup' %}">
+                  <a href="{% url 'signup' %}" class="{% if request.resolver_match.url_name == 'signup' or request.resolver_match.url_name == 'signup-forms' or request.resolver_match.url_name == 'import-forms' %}active{% endif %}">
                     <span class="icon"></span>
                     <span class="text">Accounts</span>
                   </a>
@@ -81,7 +81,7 @@
 
                 {% if user_role == 'admin' or user_role == 'faculty' %}
                 <li>
-                  <a href="{% url 'enrollee_view' %}">
+                  <a href="{% url 'enrollee_view' %}" class="{% if request.resolver_match.url_name == 'enrollee_view' or request.resolver_match.url_name == 'face_enrollment_form' %}active{% endif %}">
                     <span class="icon"></span>
                     <span class="text">Face Enrollment</span>
                   </a>
@@ -89,7 +89,7 @@
                 {% endif %}
 
                 <li>
-                  <a href="{% url 'incidents' %}">
+                  <a href="{% url 'incidents' %}" class="{% if request.resolver_match.url_name == 'incidents' or request.resolver_match.url_name == 'incident_forms' or request.resolver_match.url_name == 'incident_details' or request.resolver_match.url_name == 'incident_print' or request.resolver_match.url_name == 'incidents_print' %}active{% endif %}">
                     <span class="icon"></span>
                     <span class="text">Incident</span>
                   </a>
@@ -103,13 +103,13 @@
 
                 {% if user_role == 'admin' %}
                 <li>
-                  <a href="{% url 'multiple_streams' %}">
+                  <a href="{% url 'multiple_streams' %}" class="{% if request.resolver_match.url_name == 'multiple_streams' or request.resolver_match.url_name == 'live_feed_simple' %}active{% endif %}">
                     <span class="icon"></span>
                     <span class="text">Live Feed</span>
                   </a>
                 </li>
                 <li>
-                  <a href="{% url 'backup_page' %}">
+                  <a href="{% url 'backup_page' %}" class="{% if request.resolver_match.url_name == 'backup_page' %}active{% endif %}">
                     <span class="icon"></span>
                     <span class="text">Backup</span>
                   </a>
