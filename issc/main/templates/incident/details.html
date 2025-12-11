@@ -85,28 +85,7 @@
                         <label><strong>Location:</strong></label>
                         <input type="text" name="location" value="{{ incident.location }}" readonly tabindex="-1" style="background-color:#f5f5f5;pointer-events:none;">
                     </div>
-                </div>
-
-                <div class="col">
-                    <div class="detail-field">
-                        <label><strong>Incident:</strong></label>
-                        <input type="text" name="incident" value="{{ incident.incident }}" readonly tabindex="-1" style="background-color:#f5f5f5;pointer-events:none;">
-                    </div>
-
-                    <div class="detail-field">
-                        <label><strong>Request for Action:</strong></label>
-                        <input type="text" name="request_for_action" value="{{ incident.request_for_action }}" readonly tabindex="-1" style="background-color:#f5f5f5;pointer-events:none;">
-                    </div>
-
-                    <div class="detail-field">
-                        <label><strong>People Involved:</strong></label>
-                        <input type="text" name="people_involved" value="{{ incident.people_involved }}" readonly tabindex="-1" style="background-color:#f5f5f5;pointer-events:none;">
-                    </div>
-
-                    <div class="detail-field">
-                        <label><strong>Faculty Involved:</strong></label>
-                        <input type="text" value="{% for faculty in incident.faculty_involved.all %}{{ faculty.first_name }} {{ faculty.last_name }} ({{ faculty.id_number }}){% if not forloop.last %}, {% endif %}{% endfor %}" readonly tabindex="-1" style="background-color:#f5f5f5;pointer-events:none;">
-                    </div>
+                    
 
                     <div class="detail-field">
                         <label><strong>Reported By:</strong></label>
@@ -135,6 +114,29 @@
                         {% endif %}
                     </div>
 
+                </div>
+
+                <div class="col">
+                    <div class="detail-field">
+                        <label><strong>Incident:</strong></label>
+                        <input type="text" name="incident" value="{{ incident.incident }}" readonly tabindex="-1" style="background-color:#f5f5f5;pointer-events:none;">
+                    </div>
+
+                    <div class="detail-field">
+                        <label><strong>Request for Action:</strong></label>
+                        <input type="text" name="request_for_action" value="{{ incident.request_for_action }}" readonly tabindex="-1" style="background-color:#f5f5f5;pointer-events:none;">
+                    </div>
+
+                    <div class="detail-field">
+                        <label><strong>People Involved:</strong></label>
+                        <input type="text" name="people_involved" value="{{ incident.people_involved }}" readonly tabindex="-1" style="background-color:#f5f5f5;pointer-events:none;">
+                    </div>
+
+                    <div class="detail-field">
+                        <label><strong>Faculty Involved:</strong></label>
+                        <input type="text" value="{% for faculty in incident.faculty_involved.all %}{{ faculty.first_name }} {{ faculty.last_name }} ({{ faculty.id_number }}){% if not forloop.last %}, {% endif %}{% endfor %}" readonly tabindex="-1" style="background-color:#f5f5f5;pointer-events:none;">
+                    </div>
+                    
                     <div class="detail-field">
                         <label><strong>Phone Number:</strong></label>
                         <input type="text" name="phone_number" value="{{ incident.phone_number }}" readonly tabindex="-1" style="background-color:#f5f5f5;pointer-events:none;">
