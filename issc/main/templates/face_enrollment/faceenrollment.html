@@ -2,29 +2,33 @@
 {% extends 'base.html' %} {% block title %} Face Enrollment {% endblock title %}
 {% block content %} {% load static %}
 
+<!-- Face-API.js Library -->
+<script src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.12/dist/face-api.min.js"></script>
+
 <style>
 /* Enhanced video feed styling */
-#video_feed {
+#camera-video {
   box-shadow: 0 0 10px rgba(0,0,0,0.1);
   transition: border-color 0.3s ease;
-  min-height: 320px;
+  transform: scaleX(-1); /* Mirror the video */
+  width: 100%;
+  aspect-ratio: 4/3;
+  object-fit: cover;
+  border-radius: 0.5rem;
+}
+
+#face-detection-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
 }
 
 .video-container {
   position: relative;
-}
-
-#feedErrorOverlay {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  background-color: rgba(0, 0, 0, 0.7);
-  color: white;
-  padding: 10px 20px;
-  border-radius: 5px;
-  font-weight: bold;
-  display: none;
+  background: #000;
+  border-radius: 0.5rem;
+  overflow: hidden;
 }
 
 .alert {
@@ -49,8 +53,8 @@
     <i class="fas fa-info-circle"></i>
     <strong>Instructions:</strong> Capture 3 angles of your face: <br>
     1️⃣ <strong>Front</strong> - Look straight at camera<br>
-    2️⃣ <strong>Left</strong> - Turn head slightly to the left (doesn't need to be perfect!)<br>
-    3️⃣ <strong>Right</strong> - Turn head slightly to the right (just a little tilt is okay!)
+    2️⃣ <strong>Left</strong> - Turn head slightly to the LEFT<br>
+    3️⃣ <strong>Right</strong> - Turn head slightly to the RIGHT
   </div>
   
   <div class="grid grid-cols-1 md:grid-cols-2 gap-10">
@@ -61,33 +65,45 @@
       
       <!-- Camera Selection Dropdown -->
       <div class="mb-4">
-        <label for="cameraSelect" class="block text-sm font-medium text-gray-700 mb-2">
+        <label for="camera-select" class="block text-sm font-medium text-gray-700 mb-2">
           <i class="fas fa-video mr-1"></i> Select Camera:
         </label>
-        <select id="cameraSelect" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-          <option value="">Loading cameras...</option>
+        <select id="camera-select" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+          <option value="">Select a camera...</option>
         </select>
-        <button id="initializeCameraBtn" class="mt-2 bg-green-600 hover:bg-green-700 text-white text-sm py-2 px-4 rounded-md w-full transition duration-200" disabled>
-          <i class="fas fa-play mr-1"></i> Initialize Camera
-        </button>
       </div>
       
-      <div class="video-container">
-        <img
-          id="video_feed"
-          src="{% url 'face_feed' %}"
-          alt="Video Feed"
-          class="rounded-lg w-full aspect-video object-cover border border-gray-300"
-        />
-        <div id="feedErrorOverlay">Camera not available, please check permissions</div>
+      <!-- Video Container -->
+      <div class="video-container" style="aspect-ratio: 4/3;">
+        <video id="camera-video" autoplay playsinline muted></video>
+        <canvas id="face-detection-canvas"></canvas>
+        
+        <!-- Face Detection Overlay -->
+        <div class="absolute inset-x-0 bottom-0 flex items-end justify-center pb-4">
+          <div class="text-center text-white bg-black/70 px-4 py-2 rounded-lg backdrop-blur-sm">
+            <p id="face-instruction" class="text-sm font-medium">Position your face in the frame</p>
+            <p id="face-status" class="text-xs mt-1"></p>
+          </div>
+        </div>
       </div>
 
-      <p
-        id="frame_status"
-        class="text-center text-sm mt-2 font-medium text-gray-500"
-      >
-        Analyzing...
-      </p>
+      <!-- Step Indicators -->
+      <div class="flex items-center justify-center mt-4 space-x-3">
+        <div id="step-1-indicator" class="flex flex-col items-center">
+          <div class="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-sm">1</div>
+          <span class="text-xs mt-1 font-medium text-gray-600">Front</span>
+        </div>
+        <div class="w-12 h-1 bg-gray-300"></div>
+        <div id="step-2-indicator" class="flex flex-col items-center opacity-50">
+          <div class="w-8 h-8 rounded-full bg-gray-300 text-gray-600 flex items-center justify-center font-bold text-sm">2</div>
+          <span class="text-xs mt-1 font-medium text-gray-600">Left</span>
+        </div>
+        <div class="w-12 h-1 bg-gray-300"></div>
+        <div id="step-3-indicator" class="flex flex-col items-center opacity-50">
+          <div class="w-8 h-8 rounded-full bg-gray-300 text-gray-600 flex items-center justify-center font-bold text-sm">3</div>
+          <span class="text-xs mt-1 font-medium text-gray-600">Right</span>
+        </div>
+      </div>
     </div>
 
     <div class="bg-white rounded-xl shadow-md p-6">
@@ -95,78 +111,63 @@
         Captured Faces
       </h3>
 
-      <button
-        id="captureButton"
-        class="bg-blue-600 hover:bg-blue-700 transition text-white text-lg font-medium py-3 px-6 rounded-md w-full mb-6"
-      >
-        Capture Front
-      </button>
-
-      <div class="flex justify-between gap-4 text-center">
-        <div class="flex flex-col items-center flex-1">
-          <p class="text-sm text-gray-600 mb-2">Left</p>
-          <img
-            id="img-left"
-            src="{% static 'images/left.jpg' %}"
-            class="rounded-md border w-full max-w-[100px]"
-            alt="Left face"
-          />
-          <button
-            id="retake-left"
-            class="bg-red-600 hover:bg-red-700 text-white text-xs py-2 px-4 rounded mt-2 hidden"
-          >
-            Retake
-          </button>
+      <!-- Captured Previews -->
+      <div class="grid grid-cols-3 gap-4 mb-6">
+        <div class="text-center">
+          <div class="relative bg-gray-100 rounded-lg overflow-hidden" style="aspect-ratio: 1/1;">
+            <div id="capture-front-placeholder" class="flex items-center justify-center h-full">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+              </svg>
+            </div>
+            <img id="capture-front" class="hidden w-full h-full object-cover" />
+          </div>
+          <button id="retake-front-btn" class="hidden mt-2 text-sm text-red-600 hover:underline">Retake</button>
+          <p class="text-sm font-medium text-gray-700 mt-2">Front</p>
         </div>
-
-        <div class="flex flex-col items-center flex-1">
-          <p class="text-sm text-gray-600 mb-2">Front</p>
-          <img
-            id="img-front"
-            src="{% static 'images/front.jpg' %}"
-            class="rounded-md border w-full max-w-[100px]"
-            alt="Front face"
-          />
-          <button
-            id="retake-front"
-            class="bg-red-600 hover:bg-red-700 text-white text-xs py-2 px-4 rounded mt-2 hidden"
-          >
-            Retake
-          </button>
+        <div class="text-center">
+          <div class="relative bg-gray-100 rounded-lg overflow-hidden" style="aspect-ratio: 1/1;">
+            <div id="capture-left-placeholder" class="flex items-center justify-center h-full">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+              </svg>
+            </div>
+            <img id="capture-left" class="hidden w-full h-full object-cover" />
+          </div>
+          <button id="retake-left-btn" class="hidden mt-2 text-sm text-red-600 hover:underline">Retake</button>
+          <p class="text-sm font-medium text-gray-700 mt-2">Left</p>
         </div>
-
-        <div class="flex flex-col items-center flex-1">
-          <p class="text-sm text-gray-600 mb-2">Right</p>
-          <img
-            id="img-right"
-            src="{% static 'images/right.jpg' %}"
-            class="rounded-md border w-full max-w-[100px]"
-            alt="Right face"
-          />
-          <button
-            id="retake-right"
-            class="bg-red-600 hover:bg-red-700 text-white text-xs py-2 px-4 rounded mt-2 hidden"
-          >
-            Retake
-          </button>
+        <div class="text-center">
+          <div class="relative bg-gray-100 rounded-lg overflow-hidden" style="aspect-ratio: 1/1;">
+            <div id="capture-right-placeholder" class="flex items-center justify-center h-full">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+              </svg>
+            </div>
+            <img id="capture-right" class="hidden w-full h-full object-cover" />
+          </div>
+          <button id="retake-right-btn" class="hidden mt-2 text-sm text-red-600 hover:underline">Retake</button>
+          <p class="text-sm font-medium text-gray-700 mt-2">Right</p>
         </div>
       </div>
 
-      <form
-        id="enrollmentForm"
-        method="POST"
-        action="{% url 'face_enrollment' id_number=user_data.id_number %}"
-        enctype="multipart/form-data"
-      >
+      <!-- Capture Button -->
+      <button id="capture-btn" disabled class="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white px-6 py-3 rounded-lg font-semibold transition-colors mb-6">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 inline mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+        </svg>
+        Capture
+      </button>
+
+      <!-- Submit Form -->
+      <form id="enrollmentForm" method="POST" action="{% url 'face_enrollment' id_number=user_data.id_number %}" enctype="multipart/form-data">
         {% csrf_token %}
+        <input type="hidden" name="embeddings" id="embeddings-data" />
         <input type="hidden" name="front_image" id="front_image" />
         <input type="hidden" name="left_image" id="left_image" />
         <input type="hidden" name="right_image" id="right_image" />
-        <button
-          type="submit"
-          id="submitButton"
-          class="bg-green-600 hover:bg-green-700 transition text-white text-lg font-medium py-3 px-6 rounded-md w-full mt-6 hidden"
-        >
+        <button type="submit" id="submitButton" class="hidden bg-blue-600 hover:bg-blue-700 transition text-white text-lg font-medium py-3 px-6 rounded-md w-full">
           Enroll / Submit
         </button>
       </form>
@@ -174,327 +175,411 @@
   </div>
 
   <script>
-    const defaultImagePaths = {
-      front: "{% static 'images/front.jpg' %}",
-      left: "{% static 'images/left.jpg' %}",
-      right: "{% static 'images/right.jpg' %}",
-    };
-
-    const video = document.getElementById("video_feed");
-    const feedErrorOverlay = document.getElementById("feedErrorOverlay");
-    const captureBtn = document.getElementById("captureButton");
-    const images = {
-      front: document.getElementById("img-front"),
-      left: document.getElementById("img-left"),
-      right: document.getElementById("img-right"),
-    };
-    const retakeButtons = {
-      front: document.getElementById("retake-front"),
-      left: document.getElementById("retake-left"),
-      right: document.getElementById("retake-right"),
-    };
-    const submitButton = document.getElementById("submitButton");
-    let cameraReloadAttempts = 0;
-
-    // Enhanced video feed error handling
-    video.onload = function() {
-      feedErrorOverlay.style.display = "none";
-      cameraReloadAttempts = 0;
-      captureBtn.disabled = false;
-    };
-
-    video.onerror = function() {
-      feedErrorOverlay.style.display = "block";
-      captureBtn.disabled = true;
-      
-      // Try to reload the camera feed (max 5 attempts)
-      if (cameraReloadAttempts < 5) {
-        setTimeout(function() {
-          video.src = "{% url 'face_feed' %}?t=" + new Date().getTime();
-          cameraReloadAttempts++;
-        }, 2000);
-      }
-    };
-
-    // Reload with cache-busting parameter on page load
-    window.addEventListener('load', function() {
-      video.src = "{% url 'face_feed' %}?t=" + new Date().getTime();
-    });
-
-    const steps = ["front", "left", "right"];
-    const capturedImages = {
-      front: false,
-      left: false,
-      right: false,
-    };
-
-    function getNextCaptureStep() {
-      return steps.find((step) => !capturedImages[step]);
-    }
-
-    let currentFrameStatus = null;
-
-    function updateCaptureButton() {
-      const nextStep = getNextCaptureStep();
-      if (nextStep) {
-        captureBtn.textContent = `Capture ${
-          nextStep.charAt(0).toUpperCase() + nextStep.slice(1)
-        } Face`;
-        // Enable button only if face is ready for capture
-        captureBtn.disabled = !(currentFrameStatus && currentFrameStatus.status === 'ready_to_capture');
-      } else {
-        captureBtn.textContent = "All Captured!";
-        captureBtn.disabled = true;
-      }
-    }
-
-    function updateSubmitButton() {
-      const allCaptured = Object.values(capturedImages).every(
-        (val) => val === true
-      );
-      if (allCaptured) {
-        submitButton.classList.remove("hidden");
-      } else {
-        submitButton.classList.add("hidden");
-      }
-    }
-
-    function captureImage(step) {
-      const canvas = document.createElement("canvas");
-      canvas.width = video.naturalWidth;
-      canvas.height = video.naturalHeight;
-      const ctx = canvas.getContext("2d");
-
-      try {
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-        const imgData = canvas.toDataURL("image/png");
-        images[step].src = imgData;
-        capturedImages[step] = true;
-        retakeButtons[step].classList.remove("hidden");
-        updateCaptureButton();
-        updateSubmitButton();
-
-        if (step === "front") {
-          document.getElementById("front_image").value = imgData;
-        } else if (step === "left") {
-          document.getElementById("left_image").value = imgData;
-        } else if (step === "right") {
-          document.getElementById("right_image").value = imgData;
-        }
-      } catch (e) {
-        alert("Unable to capture image from the video feed.");
-        console.error(e);
-      }
-    }
-
-    function handleCapture() {
-      const step = getNextCaptureStep();
-      if (step) {
-        captureImage(step);
-      }
-    }
-
-    function handleRetake(step) {
-      capturedImages[step] = false;
-      images[step].src = defaultImagePaths[step];
-      retakeButtons[step].classList.add("hidden");
-      submitButton.classList.add("hidden");
-      updateCaptureButton();
-    }
-
-    captureBtn.addEventListener("click", handleCapture);
-    retakeButtons.front.addEventListener("click", () => handleRetake("front"));
-    retakeButtons.left.addEventListener("click", () => handleRetake("left"));
-    retakeButtons.right.addEventListener("click", () => handleRetake("right"));
-    submitButton.addEventListener("click", () => {});
-
-    updateCaptureButton();
-    updateSubmitButton();
-
-    document.addEventListener("DOMContentLoaded", function () {
-      const enrollmentForm = document.getElementById("enrollmentForm");
-      const loadingSpinner = document.getElementById("loading-spinner");
-
-      if (enrollmentForm && loadingSpinner) {
-        enrollmentForm.addEventListener("submit", function () {
-          loadingSpinner.style.display = "flex";
-        });
-      }
-    });
-
-    async function checkFrameStatus() {
-      try {
-        // Get the next capture step to send to the API
-        const nextStep = getNextCaptureStep();
-        const url = nextStep ? 
-          `/api/face-status?step=${nextStep}` : 
-          "/api/face-status";
-          
-        const response = await fetch(url);
-        const data = await response.json();
-        
-        // Store current status for capture button logic
-        currentFrameStatus = data;
-
-        const videoFeed = document.getElementById("video_feed");
-        const statusText = document.getElementById("frame_status");
-
-        videoFeed.classList.remove(
-          "border-green-500",
-          "border-yellow-500",
-          "border-red-500",
-          "border-blue-500",
-          "border-gray-300"
-        );
-
-        switch (data.status) {
-          case "ready_to_capture":
-            videoFeed.classList.add("border-green-500");
-            statusText.textContent = `Capture ${data.next_capture.charAt(0).toUpperCase() + data.next_capture.slice(1)}`;
-            statusText.className = "text-center text-sm mt-2 font-bold text-green-600";
-            break;
-          case "wrong_angle":
-            videoFeed.classList.add("border-yellow-500");
-            statusText.textContent = data.message;
-            statusText.className = "text-center text-sm mt-2 font-medium text-yellow-600";
-            break;
-          case "poor_quality":
-            videoFeed.classList.add("border-red-500");
-            statusText.textContent = data.message;
-            statusText.className = "text-center text-sm mt-2 font-medium text-red-600";
-            break;
-          case "no_face":
-            videoFeed.classList.add("border-yellow-500");
-            statusText.textContent = "Analyzing...";
-            statusText.className = "text-center text-sm mt-2 font-medium text-yellow-600";
-            break;
-          case "multiple_faces":
-            videoFeed.classList.add("border-red-500");
-            statusText.textContent = "Multiple faces detected";
-            statusText.className = "text-center text-sm mt-2 font-medium text-red-600";
-            break;
-          case "camera_not_ready":
-            videoFeed.classList.add("border-gray-300");
-            statusText.textContent = "Camera not ready";
-            statusText.className = "text-center text-sm mt-2 font-medium text-gray-500";
-            break;
-          case "camera_ready":
-            videoFeed.classList.add("border-blue-500");
-            statusText.textContent = "Camera ready";
-            statusText.className = "text-center text-sm mt-2 font-medium text-blue-600";
-            break;
-          case "no_frame":
-            videoFeed.classList.add("border-blue-500");
-            statusText.textContent = "Camera ready";
-            statusText.className = "text-center text-sm mt-2 font-medium text-blue-600";
-            break;
-          default:
-            videoFeed.classList.add("border-gray-300");
-            statusText.textContent = "Analyzing...";
-            statusText.className = "text-center text-sm mt-2 font-medium text-gray-500";
-        }
-        
-        // Update capture button based on current status
-        updateCaptureButton();
-        
-      } catch (error) {
-        console.error("Status check error:", error);
-        currentFrameStatus = null;
-        const statusText = document.getElementById("frame_status");
-        statusText.textContent = "Connection error";
-        statusText.className = "text-center text-sm mt-2 font-medium text-red-500";
-        updateCaptureButton();
-      }
-    }
-
-    setInterval(checkFrameStatus, 1000);
-
-    // Camera selection functionality
-    let selectedCameraId = null;
+    // =============================================
+    // FACE ENROLLMENT - Based on PROTECH Implementation
+    // =============================================
     
-    async function loadAvailableCameras() {
+    let enrollmentCurrentStep = 1;
+    let enrollmentCapturedImages = { front: null, left: null, right: null };
+    let enrollmentFaceEmbeddings = [null, null, null];
+    let enrollmentVideoStream = null;
+    let enrollmentDetectionInterval = null;
+    let enrollmentLatestFaceDetection = null;
+    let enrollmentFaceApiModelsLoaded = false;
+    let enrollmentDetectorOptions = null;
+    let enrollmentSelectedCameraId = null;
+
+    const ENROLLMENT_FACE_API_MODEL_URL = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.12/model';
+    
+    // Camera is always mirrored
+    let enrollmentCameraFlipped = true;
+
+    // Get available cameras
+    async function getAvailableCameras() {
       try {
-        const response = await fetch('/api/available-cameras/');
-        const data = await response.json();
+        // Request camera permission first
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        stream.getTracks().forEach(track => track.stop());
         
-        const cameraSelect = document.getElementById('cameraSelect');
-        const initBtn = document.getElementById('initializeCameraBtn');
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const videoDevices = devices.filter(device => device.kind === 'videoinput');
         
-        if (data.success && data.cameras) {
-          cameraSelect.innerHTML = '<option value="">Select a camera...</option>';
+        const cameraSelect = document.getElementById('camera-select');
+        cameraSelect.innerHTML = '<option value="">Select a camera...</option>';
+        
+        videoDevices.forEach((device, index) => {
+          const option = document.createElement('option');
+          option.value = device.deviceId;
+          let label = device.label || `Camera ${index + 1}`;
+          if (!device.label && /mobile|android|iphone|ipad/i.test(navigator.userAgent)) {
+            label = index === 0 ? 'Front Camera' : 'Back Camera';
+          }
+          option.textContent = label;
+          cameraSelect.appendChild(option);
+        });
+      } catch (error) {
+        console.error('Error getting cameras:', error);
+        alert('Failed to access cameras. Please grant camera permission.');
+      }
+    }
+
+    // Camera selection event
+    document.getElementById('camera-select').addEventListener('change', async function() {
+      enrollmentSelectedCameraId = this.value;
+      if (enrollmentSelectedCameraId) {
+        await loadFaceDetectionModel();
+        await startCamera();
+      }
+    });
+
+    // Load face API models
+    async function loadFaceDetectionModel() {
+      if (enrollmentFaceApiModelsLoaded) return;
+      if (typeof faceapi === 'undefined') {
+        alert('Face recognition library failed to load.');
+        return;
+      }
+      try {
+        await Promise.all([
+          faceapi.nets.tinyFaceDetector.loadFromUri(ENROLLMENT_FACE_API_MODEL_URL),
+          faceapi.nets.faceLandmark68Net.loadFromUri(ENROLLMENT_FACE_API_MODEL_URL),
+          faceapi.nets.faceRecognitionNet.loadFromUri(ENROLLMENT_FACE_API_MODEL_URL)
+        ]);
+        enrollmentDetectorOptions = new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.5 });
+        enrollmentFaceApiModelsLoaded = true;
+        console.log('Face API models loaded.');
+      } catch (error) {
+        console.error('Error loading face API models:', error);
+        alert('Failed to load face recognition models');
+      }
+    }
+
+    // Start camera
+    async function startCamera() {
+      try {
+        const constraints = {
+          video: { 
+            width: { ideal: 1280 }, 
+            height: { ideal: 720 }
+          }
+        };
+        
+        if (enrollmentSelectedCameraId) {
+          constraints.video.deviceId = { exact: enrollmentSelectedCameraId };
+        } else {
+          constraints.video.facingMode = 'user';
+        }
+        
+        enrollmentVideoStream = await navigator.mediaDevices.getUserMedia(constraints);
+        const video = document.getElementById('camera-video');
+        video.srcObject = enrollmentVideoStream;
+        startFaceDetection();
+        console.log('Camera started successfully');
+      } catch (error) {
+        console.error('Error starting camera:', error);
+        alert('Failed to start camera. Please check permissions.');
+      }
+    }
+
+    // Stop camera
+    function stopCamera() {
+      if (enrollmentVideoStream) {
+        enrollmentVideoStream.getTracks().forEach(track => track.stop());
+        enrollmentVideoStream = null;
+      }
+      if (enrollmentDetectionInterval) {
+        clearInterval(enrollmentDetectionInterval);
+        enrollmentDetectionInterval = null;
+      }
+      const video = document.getElementById('camera-video');
+      if (video) video.srcObject = null;
+      document.getElementById('capture-btn').disabled = true;
+    }
+
+    // Start face detection
+    async function startFaceDetection() {
+      if (!enrollmentFaceApiModelsLoaded) {
+        await loadFaceDetectionModel();
+        if (!enrollmentFaceApiModelsLoaded) return;
+      }
+      
+      const video = document.getElementById('camera-video');
+      const canvas = document.getElementById('face-detection-canvas');
+      const ctx = canvas.getContext('2d');
+
+      enrollmentDetectionInterval = setInterval(async () => {
+        if (video.readyState !== 4) return;
+        
+        // Match canvas size to displayed video size
+        const displayWidth = video.offsetWidth;
+        const displayHeight = video.offsetHeight;
+        canvas.width = displayWidth;
+        canvas.height = displayHeight;
+        canvas.style.width = displayWidth + 'px';
+        canvas.style.height = displayHeight + 'px';
+
+        let detections = null;
+        try {
+          detections = await faceapi.detectAllFaces(video, enrollmentDetectorOptions).withFaceLandmarks().withFaceDescriptors();
           
-          data.cameras.forEach(camera => {
-            const option = document.createElement('option');
-            option.value = camera.id;
-            // Display actual camera name from system
-            option.textContent = camera.name;
-            cameraSelect.appendChild(option);
+          // Scale detections to match displayed size
+          if (detections && detections.length > 0) {
+            const scaleX = displayWidth / video.videoWidth;
+            const scaleY = displayHeight / video.videoHeight;
+            detections = detections.map(detection => {
+              return detection;
+            });
+          }
+        } catch (error) {
+          console.error('Face detection error:', error);
+        }
+
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        // Calculate scale factors
+        const scaleX = displayWidth / video.videoWidth;
+        const scaleY = displayHeight / video.videoHeight;
+
+        const captureBtn = document.getElementById('capture-btn');
+        const faceStatus = document.getElementById('face-status');
+
+        if (detections && detections.length > 1) {
+          enrollmentLatestFaceDetection = null;
+          captureBtn.disabled = true;
+          
+          detections.forEach(detection => {
+            const box = detection.detection.box;
+            // Scale box coordinates to displayed size
+            const scaledX = box.x * scaleX;
+            const scaledY = box.y * scaleY;
+            const scaledWidth = box.width * scaleX;
+            const scaledHeight = box.height * scaleY;
+            const boxX = enrollmentCameraFlipped ? (canvas.width - scaledX - scaledWidth) : scaledX;
+            
+            ctx.strokeStyle = '#EF4444'; // Red
+            ctx.lineWidth = 3;
+            ctx.strokeRect(boxX, scaledY, scaledWidth, scaledHeight);
           });
           
-          cameraSelect.disabled = false;
-          console.log(`✅ Loaded ${data.cameras.length} camera(s):`, data.cameras.map(c => c.name).join(', '));
+          faceStatus.textContent = `⚠ Multiple faces detected (${detections.length})!`;
+          faceStatus.className = 'text-xs mt-1 text-red-400 font-semibold';
+        } else if (detections && detections.length === 1) {
+          const detection = detections[0];
+          enrollmentLatestFaceDetection = detection;
+          const box = detection.detection.box;
+          
+          // Scale box coordinates to displayed size
+          const scaledX = box.x * scaleX;
+          const scaledY = box.y * scaleY;
+          const scaledWidth = box.width * scaleX;
+          const scaledHeight = box.height * scaleY;
+          const boxX = enrollmentCameraFlipped ? (canvas.width - scaledX - scaledWidth) : scaledX;
+          
+          const isPoseCorrect = checkFacePose(detection, enrollmentCurrentStep);
+
+          ctx.strokeStyle = isPoseCorrect ? '#10B981' : '#EF4444';
+          ctx.lineWidth = 3;
+          ctx.strokeRect(boxX, scaledY, scaledWidth, scaledHeight);
+
+          if (isPoseCorrect) {
+            captureBtn.disabled = false;
+            faceStatus.textContent = '✓ Perfect! Ready to capture';
+            faceStatus.className = 'text-xs mt-1 text-green-400 font-semibold';
+          } else {
+            captureBtn.disabled = true;
+            faceStatus.textContent = getInstructionForStep(enrollmentCurrentStep);
+            faceStatus.className = 'text-xs mt-1 text-yellow-400';
+          }
         } else {
-          cameraSelect.innerHTML = '<option value="">No cameras available</option>';
-          console.error('Failed to load cameras:', data.error);
+          enrollmentLatestFaceDetection = null;
+          captureBtn.disabled = true;
+          faceStatus.textContent = '⚠ No face detected';
+          faceStatus.className = 'text-xs mt-1 text-red-400';
         }
-      } catch (error) {
-        console.error('Error loading cameras:', error);
-        const cameraSelect = document.getElementById('cameraSelect');
-        cameraSelect.innerHTML = '<option value="">Error loading cameras</option>';
+      }, 200);
+    }
+
+    // Check face pose
+    function checkFacePose(detection, step) {
+      if (!detection || !detection.landmarks) return false;
+      const landmarks = detection.landmarks;
+      
+      const leftEye = averagePoint(landmarks.getLeftEye());
+      const rightEye = averagePoint(landmarks.getRightEye());
+      const nosePoints = landmarks.getNose();
+      const noseTip = nosePoints && nosePoints.length ? nosePoints[nosePoints.length - 1] : null;
+      
+      if (!leftEye || !rightEye || !noseTip) return false;
+
+      const eyeMidX = (leftEye.x + rightEye.x) / 2;
+      const eyeDist = Math.abs(rightEye.x - leftEye.x);
+      const eyeHeightDiff = Math.abs(rightEye.y - leftEye.y);
+      const noseOffsetX = noseTip.x - eyeMidX;
+      
+      const headTilt = eyeHeightDiff / eyeDist;
+      const horizontalRotation = noseOffsetX / eyeDist;
+      
+      if (step === 1) {
+        const isHeadStraight = headTilt < 0.15;
+        const isFacingForward = horizontalRotation > 0.10 && horizontalRotation < 0.25;
+        return isHeadStraight && isFacingForward;
+      }
+      
+      if (step === 2) {
+        const isHeadUpright = headTilt < 0.25;
+        const isTurnedLeft = horizontalRotation > 0.25;
+        return isTurnedLeft && isHeadUpright;
+      }
+      
+      if (step === 3) {
+        const isHeadUpright = headTilt < 0.25;
+        const isTurnedRight = horizontalRotation < 0.10;
+        return isTurnedRight && isHeadUpright;
+      }
+      
+      return false;
+    }
+
+    function averagePoint(points) {
+      if (!points || !points.length) return null;
+      const sum = points.reduce((acc, p) => ({ x: acc.x + p.x, y: acc.y + p.y }), { x: 0, y: 0 });
+      return { x: sum.x / points.length, y: sum.y / points.length };
+    }
+
+    function getInstructionForStep(step) {
+      switch(step) {
+        case 1: return 'Look straight at the camera';
+        case 2: return 'Turn your head slightly to the LEFT';
+        case 3: return 'Turn your head slightly to the RIGHT';
+        default: return 'Position your face in the frame';
       }
     }
-    
-    document.getElementById('cameraSelect').addEventListener('change', function() {
-      const initBtn = document.getElementById('initializeCameraBtn');
-      selectedCameraId = this.value;
-      initBtn.disabled = !selectedCameraId;
-    });
-    
-    document.getElementById('initializeCameraBtn').addEventListener('click', async function() {
-      if (!selectedCameraId) return;
-      
-      const btn = this;
-      const originalText = btn.innerHTML;
-      btn.disabled = true;
-      btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Initializing...';
-      
-      try {
-        // Call the face enrollment view with selected camera
-        const response = await fetch(`/face-enrollment/{{ user_data.id_number }}?camera=${selectedCameraId}`, {
-          method: 'POST',
-          headers: {
-            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ camera_id: selectedCameraId })
-        });
-        
-        if (response.ok) {
-          // Reload the video feed
-          const videoFeed = document.getElementById('video_feed');
-          const timestamp = new Date().getTime();
-          videoFeed.src = `{% url 'face_feed' %}?t=${timestamp}`;
-          
-          btn.innerHTML = '<i class="fas fa-check mr-1"></i> Camera Initialized';
-          btn.classList.remove('bg-green-600', 'hover:bg-green-700');
-          btn.classList.add('bg-blue-600', 'hover:bg-blue-700');
-          
-          // Hide camera selection after successful initialization
-          document.querySelector('.mb-4').style.display = 'none';
-        } else {
-          throw new Error('Failed to initialize camera');
-        }
-      } catch (error) {
-        console.error('Error initializing camera:', error);
-        btn.innerHTML = '<i class="fas fa-exclamation-triangle mr-1"></i> Error - Try Again';
-        btn.classList.add('bg-red-600', 'hover:bg-red-700');
-        btn.disabled = false;
+
+    // Capture image
+    async function captureImage() {
+      if (!enrollmentLatestFaceDetection) {
+        alert('Face not detected. Please position in frame.');
+        return;
       }
-    });
-    
-    // Load available cameras when page loads
-    document.addEventListener('DOMContentLoaded', function() {
-      loadAvailableCameras();
+      if (!enrollmentLatestFaceDetection.descriptor || !enrollmentLatestFaceDetection.descriptor.length) {
+        alert('Unable to read face embedding. Hold still and try again.');
+        return;
+      }
+
+      const video = document.getElementById('camera-video');
+      const canvas = document.createElement('canvas');
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      const ctx = canvas.getContext('2d');
+      
+      if (enrollmentCameraFlipped) {
+        ctx.translate(canvas.width, 0);
+        ctx.scale(-1, 1);
+      }
+      
+      ctx.drawImage(video, 0, 0);
+
+      const imageData = canvas.toDataURL('image/jpeg', 0.9);
+      const embedding = Array.from(enrollmentLatestFaceDetection.descriptor);
+      const embedIndex = Math.max(0, enrollmentCurrentStep - 1);
+      enrollmentFaceEmbeddings[embedIndex] = embedding;
+
+      const stepKey = enrollmentCurrentStep === 1 ? 'front' : enrollmentCurrentStep === 2 ? 'left' : 'right';
+      enrollmentCapturedImages[stepKey] = imageData;
+
+      updateCapturePreview();
+      console.log(`Captured ${stepKey.toUpperCase()} view successfully.`);
+
+      const nextMissingIndex = enrollmentFaceEmbeddings.findIndex(value => !Array.isArray(value));
+      if (nextMissingIndex === -1) {
+        stopCamera();
+        updateSubmitButton();
+        enrollmentCurrentStep = 3;
+        updateStepIndicator();
+        alert('All faces captured! Please submit.');
+        return;
+      }
+
+      enrollmentCurrentStep = nextMissingIndex + 1;
+      updateStepIndicator();
+    }
+
+    // Update capture preview
+    function updateCapturePreview() {
+      ['front', 'left', 'right'].forEach(position => {
+        if (enrollmentCapturedImages[position]) {
+          document.getElementById(`capture-${position}`).src = enrollmentCapturedImages[position];
+          document.getElementById(`capture-${position}`).classList.remove('hidden');
+          document.getElementById(`capture-${position}-placeholder`).classList.add('hidden');
+          document.getElementById(`retake-${position}-btn`).classList.remove('hidden');
+          
+          // Update hidden form fields
+          document.getElementById(`${position}_image`).value = enrollmentCapturedImages[position];
+        }
+      });
+    }
+
+    // Retake image
+    function retakeImage(position) {
+      const stepMap = { 'front': 1, 'left': 2, 'right': 3 };
+      const step = stepMap[position];
+      enrollmentCapturedImages[position] = null;
+      enrollmentFaceEmbeddings[step - 1] = null;
+      enrollmentCurrentStep = step;
+      document.getElementById(`capture-${position}`).classList.add('hidden');
+      document.getElementById(`capture-${position}-placeholder`).classList.remove('hidden');
+      document.getElementById(`retake-${position}-btn`).classList.add('hidden');
+      document.getElementById(`${position}_image`).value = '';
+      document.getElementById('submitButton').classList.add('hidden');
+      updateStepIndicator();
+      if (!enrollmentVideoStream) startCamera();
+    }
+
+    // Update step indicator
+    function updateStepIndicator() {
+      for (let i = 1; i <= 3; i++) {
+        const indicator = document.getElementById(`step-${i}-indicator`);
+        if (i < enrollmentCurrentStep) {
+          indicator.classList.remove('opacity-50');
+          indicator.querySelector('div').classList.remove('bg-gray-300', 'text-gray-600', 'bg-blue-600');
+          indicator.querySelector('div').classList.add('bg-green-500', 'text-white');
+        } else if (i === enrollmentCurrentStep) {
+          indicator.classList.remove('opacity-50');
+          indicator.querySelector('div').classList.remove('bg-gray-300', 'text-gray-600', 'bg-green-500');
+          indicator.querySelector('div').classList.add('bg-blue-600', 'text-white');
+        } else {
+          indicator.classList.add('opacity-50');
+          indicator.querySelector('div').classList.remove('bg-blue-600', 'bg-green-500', 'text-white');
+          indicator.querySelector('div').classList.add('bg-gray-300', 'text-gray-600');
+        }
+      }
+      document.getElementById('face-instruction').textContent = getInstructionForStep(enrollmentCurrentStep);
+    }
+
+    // Update submit button
+    function updateSubmitButton() {
+      const allCaptured = enrollmentFaceEmbeddings.every(Array.isArray);
+      const submitBtn = document.getElementById('submitButton');
+      
+      if (allCaptured) {
+        // Update embeddings hidden field
+        document.getElementById('embeddings-data').value = JSON.stringify(enrollmentFaceEmbeddings);
+        submitBtn.classList.remove('hidden');
+      } else {
+        submitBtn.classList.add('hidden');
+      }
+    }
+
+    // Event listeners
+    document.getElementById('capture-btn').addEventListener('click', captureImage);
+    document.getElementById('retake-front-btn').addEventListener('click', () => retakeImage('front'));
+    document.getElementById('retake-left-btn').addEventListener('click', () => retakeImage('left'));
+    document.getElementById('retake-right-btn').addEventListener('click', () => retakeImage('right'));
+
+    // Initialize on load
+    document.addEventListener('DOMContentLoaded', async function() {
+      await getAvailableCameras();
+      updateStepIndicator();
     });
   </script>
 {% endblock content %}
