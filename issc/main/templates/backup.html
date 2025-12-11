@@ -135,6 +135,20 @@
         background: #f8f9fa;
     }
 
+    .highlight-row {
+        background-color: #d4edda !important;
+        animation: fadeHighlight 2s ease-in-out;
+    }
+
+    @keyframes fadeHighlight {
+        0% {
+            background-color: #d4edda;
+        }
+        100% {
+            background-color: transparent;
+        }
+    }
+
     .badge {
         display: inline-block;
         padding: 0.25rem 0.75rem;
@@ -392,12 +406,10 @@
             if (data.success) {
                 showAlert('Backup created successfully!', 'success');
                 
-                // Add new row to table instead of reloading page
-                addBackupToTable(data.backup);
-                
-                // Re-enable button
-                btn.disabled = false;
-                btn.innerHTML = originalHTML;
+                // Reload the page to refresh the table
+                setTimeout(() => {
+                    location.reload();
+                }, 1000);
             } else {
                 showAlert('Error: ' + data.message, 'error');
                 btn.disabled = false;
@@ -419,10 +431,6 @@
             return;
         }
 
-        const tbody = table.querySelector('tbody');
-        const row = document.createElement('tr');
-        row.setAttribute('data-filename', backup.filename);
-        
         // Format the date
         const date = new Date(backup.timestamp);
         const formattedDate = date.getFullYear() + '-' + 
@@ -436,30 +444,62 @@
         const sizeInMB = (backup.size / (1024 * 1024)).toFixed(2);
         const sizeFormatted = sizeInMB + ' MB';
         
-        row.innerHTML = `
-            <td>
-                <i class="fas fa-file-code"></i>
-                ${backup.filename}
-            </td>
-            <td>
-                <span class="badge badge-manual">
-                    <i class="fas fa-hand-pointer"></i> Manual
-                </span>
-            </td>
-            <td>${sizeFormatted}</td>
-            <td>${formattedDate}</td>
-            <td>
-                <a href="/backup/download/${backup.filename}/" class="action-btn download-btn">
+        // Check if DataTable is initialized
+        if ($.fn.DataTable.isDataTable('#backupTable')) {
+            // Add row to DataTable
+            const dataTable = $('#backupTable').DataTable();
+            const rowNode = dataTable.row.add([
+                `<i class="fas fa-file-code"></i> ${backup.filename}`,
+                `<span class="badge badge-manual"><i class="fas fa-hand-pointer"></i> Manual</span>`,
+                sizeFormatted,
+                formattedDate,
+                `<a href="/backup/download/${backup.filename}/" class="action-btn download-btn">
                     <i class="fas fa-download"></i> Download
                 </a>
                 <button onclick="deleteBackup('${backup.filename}')" class="action-btn delete-btn">
                     <i class="fas fa-trash"></i> Delete
-                </button>
-            </td>
-        `;
-        
-        // Add to top of table
-        tbody.insertBefore(row, tbody.firstChild);
+                </button>`
+            ]).draw(false).node();
+            
+            // Add data-filename attribute to the row
+            $(rowNode).attr('data-filename', backup.filename);
+            
+            // Highlight the new row briefly
+            $(rowNode).addClass('highlight-row');
+            setTimeout(() => {
+                $(rowNode).removeClass('highlight-row');
+            }, 2000);
+        } else {
+            // Fallback: Add row to DOM if DataTable is not initialized
+            const tbody = table.querySelector('tbody');
+            const row = document.createElement('tr');
+            row.setAttribute('data-filename', backup.filename);
+            
+            row.innerHTML = `
+                <td>
+                    <i class="fas fa-file-code"></i>
+                    ${backup.filename}
+                </td>
+                <td>
+                    <span class="badge badge-manual">
+                        <i class="fas fa-hand-pointer"></i> Manual
+                    </span>
+                </td>
+                <td>${sizeFormatted}</td>
+                <td>${formattedDate}</td>
+                <td>
+                    <a href="/backup/download/${backup.filename}/" class="action-btn download-btn">
+                        <i class="fas fa-download"></i> Download
+                    </a>
+                    <button onclick="deleteBackup('${backup.filename}')" class="action-btn delete-btn">
+                        <i class="fas fa-trash"></i> Delete
+                    </button>
+                </td>
+            `;
+            
+            // Add to top of table
+            tbody.insertBefore(row, tbody.firstChild);
+        }
         
         // Update statistics
         updateStats();
@@ -496,11 +536,23 @@
             
             if (data.success) {
                 showAlert('Backup deleted successfully!', 'success');
+                
                 // Remove row from table
-                const row = document.querySelector(`tr[data-filename="${filename}"]`);
-                if (row) {
-                    row.remove();
+                if ($.fn.DataTable.isDataTable('#backupTable')) {
+                    // Remove from DataTable
+                    const dataTable = $('#backupTable').DataTable();
+                    const row = $(`tr[data-filename="${filename}"]`);
+                    dataTable.row(row).remove().draw(false);
+                } else {
+                    // Fallback: Remove from DOM
+                    const row = document.querySelector(`tr[data-filename="${filename}"]`);
+                    if (row) {
+                        row.remove();
+                    }
                 }
+                
+                // Update statistics
+                updateStats();
                 
                 // Reload if no backups left
                 const tbody = document.querySelector('.backup-table tbody');
