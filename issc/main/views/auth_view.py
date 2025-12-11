@@ -402,6 +402,121 @@ def import_data(request):
     return HttpResponse(template.render(context, request))
 
 
+def download_template(request):
+    """Generate and download Excel template for user import"""
+    from io import BytesIO
+    from openpyxl import Workbook
+    from openpyxl.styles import Font, PatternFill, Alignment
+    from django.http import HttpResponse
+    
+    # Create a new workbook
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "User Import Template"
+    
+    # Define headers
+    headers = [
+        'username',
+        'first_name',
+        'middle_name',
+        'last_name',
+        'email',
+        'contact_number',
+        'gender',
+        'department',
+        'privilege'
+    ]
+    
+    # Style for headers
+    header_fill = PatternFill(start_color='7a1818', end_color='7a1818', fill_type='solid')
+    header_font = Font(bold=True, color='FFFFFF')
+    header_alignment = Alignment(horizontal='center', vertical='center')
+    
+    # Write headers
+    for col_num, header in enumerate(headers, 1):
+        cell = ws.cell(row=1, column=col_num)
+        cell.value = header
+        cell.fill = header_fill
+        cell.font = header_font
+        cell.alignment = header_alignment
+    
+    # Add example data
+    example_data = [
+        ['student0001', 'Juan', 'Dela', 'Cruz', 'juan.delacruz@example.com', '09123456789', 'M', 'BSIT', 'student'],
+        ['faculty0001', 'Maria', 'Santos', 'Garcia', 'maria.garcia@example.com', '09987654321', 'F', 'BSENT', 'faculty'],
+        ['admin0001', 'Pedro', 'Reyes', 'Lopez', 'pedro.lopez@example.com', '09456789123', 'M', 'BTLED', 'admin'],
+    ]
+    
+    for row_num, row_data in enumerate(example_data, 2):
+        for col_num, value in enumerate(row_data, 1):
+            ws.cell(row=row_num, column=col_num, value=value)
+    
+    # Add instructions sheet
+    ws_instructions = wb.create_sheet("Instructions")
+    instructions = [
+        ["ISSC User Import Template - Instructions"],
+        [""],
+        ["Column Descriptions:"],
+        ["username", "Unique username for the user (must be unique)"],
+        ["first_name", "User's first name (required)"],
+        ["middle_name", "User's middle name (optional)"],
+        ["last_name", "User's last name (required)"],
+        ["email", "User's email address (must be unique, required)"],
+        ["contact_number", "User's contact number (optional)"],
+        ["gender", "Gender: M (Male), F (Female), or O (Other) - required"],
+        ["department", "Department: BSIT, BTLED, or BSENT - required"],
+        ["privilege", "User role: admin, faculty, or student - required"],
+        [""],
+        ["Important Notes:"],
+        ["• Passwords will be auto-generated and sent to each user's email"],
+        ["• Username and email must be unique"],
+        ["• Gender must be: M, F, or O (case insensitive)"],
+        ["• Department must be: BSIT, BTLED, or BSENT"],
+        ["• Privilege must be: admin, faculty, or student"],
+        ["• All users will have 'allowed' status by default"],
+        ["• Delete the example rows before importing your actual data"],
+    ]
+    
+    for row_num, row_data in enumerate(instructions, 1):
+        if isinstance(row_data, list):
+            for col_num, value in enumerate(row_data, 1):
+                cell = ws_instructions.cell(row=row_num, column=col_num, value=value)
+                if row_num == 1:
+                    cell.font = Font(bold=True, size=14)
+                elif row_num == 3 or row_num == 14:
+                    cell.font = Font(bold=True)
+    
+    # Adjust column widths
+    for col in ws.columns:
+        max_length = 0
+        column = col[0].column_letter
+        for cell in col:
+            try:
+                if len(str(cell.value)) > max_length:
+                    max_length = len(cell.value)
+            except:
+                pass
+        adjusted_width = (max_length + 2)
+        ws.column_dimensions[column].width = adjusted_width
+    
+    # Adjust instruction sheet column widths
+    ws_instructions.column_dimensions['A'].width = 20
+    ws_instructions.column_dimensions['B'].width = 60
+    
+    # Save to BytesIO
+    excel_file = BytesIO()
+    wb.save(excel_file)
+    excel_file.seek(0)
+    
+    # Create response
+    response = HttpResponse(
+        excel_file.read(),
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    response['Content-Disposition'] = 'attachment; filename=ISSC_User_Import_Template.xlsx'
+    
+    return response
+
 
 def getUser(request):
     # New format: username and id_number should be <privilege><4-digit counter>
