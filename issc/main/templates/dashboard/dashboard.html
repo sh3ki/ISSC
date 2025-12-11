@@ -182,19 +182,6 @@
     }
   });
 </script>
-<script>
-document.getElementById('print-link').addEventListener('click', function (e) {
-    const selectedMonth = document.getElementById('monthPicker').value;
-    const baseUrl = window.location.origin + window.location.pathname;
 
-    let queryString = '';
-    if (selectedMonth) {
-        queryString = '?month=' + encodeURIComponent(selectedMonth);
-    }
-
-    // Set the href with month parameter
-    this.href = baseUrl + 'print' + queryString;
-});
-</script>
 
 {% endblock content %}
