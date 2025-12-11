@@ -64,13 +64,15 @@
                     <span class="text">Homepage</span>
                   </a>
                 </li> 
-                {% if user_role == 'admin' %}
+                {% if user_role == 'admin' or user_role == 'faculty' %}
                 <li>
                   <a href="{% url 'dashboard' %}" class="{% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
                     <span class="icon"></span>
                     <span class="text">Dashboard</span>
                   </a>
                 </li>
+                {% endif %}
+                {% if user_role == 'admin' %}
                 <li>
                   <a href="{% url 'signup' %}" class="{% if request.resolver_match.url_name == 'signup' or request.resolver_match.url_name == 'signup-forms' or request.resolver_match.url_name == 'import-forms' %}active{% endif %}">
                     <span class="icon"></span>
