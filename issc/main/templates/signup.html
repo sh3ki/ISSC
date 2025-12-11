@@ -22,9 +22,11 @@
         {% endfor %}
     </div>
     {% endif %}
-    
-    <a href="{% url 'signup-forms' %}" class="create-new-btn">Create New Account</a>
-    <a href="{% url 'import-forms' %}" class="create-new-btn">Import Accounts</a>
+    <div class="create-search">
+      <a href="{% url 'signup-forms' %}" class="create-new-btn">Create New Account</a>
+      <a href="{% url 'import-forms' %}" class="create-new-btn">Import Accounts</a>
+      <button type="button" class="create-new-btn" id="adminContactBtn">Admin Contact</button>
+    </div>
   
     <div class="table-container">
       <table class="form-table" id="tblusers">
@@ -169,6 +171,128 @@
         });
 
     </script>
+
+<!-- Admin Contact Modal -->
+<div id="adminContactModal" style="display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5);">
+    <div style="background-color: white; margin: 10% auto; padding: 30px; border-radius: 10px; width: 90%; max-width: 500px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h2 style="margin: 0; color: #7a1818; font-size: 1.5rem;">Admin Contact Number</h2>
+            <button id="closeModal" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #666;">&times;</button>
+        </div>
+        
+        <div style="margin-bottom: 20px;">
+            <label for="adminPhoneNumber" style="display: block; margin-bottom: 8px; font-weight: 600; color: #333;">Phone Number (11 digits):</label>
+            <input type="text" id="adminPhoneNumber" maxlength="11" pattern="[0-9]{11}" placeholder="09XXXXXXXXX" 
+                   style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 5px; font-size: 16px;">
+            <small style="color: #666; display: block; margin-top: 5px;">Format: 09XXXXXXXXX (must be 11 digits)</small>
+        </div>
+        
+        <div id="modalMessage" style="display: none; padding: 10px; border-radius: 5px; margin-bottom: 15px;"></div>
+        
+        <div style="display: flex; gap: 10px; justify-content: flex-end;">
+            <button id="cancelBtn" style="padding: 10px 20px; background-color: #6c757d; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: 500;">Cancel</button>
+            <button id="saveContactBtn" style="padding: 10px 20px; background-color: #7a1818; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: 500;">Save</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Admin Contact Modal functionality
+    const modal = document.getElementById('adminContactModal');
+    const adminContactBtn = document.getElementById('adminContactBtn');
+    const closeModal = document.getElementById('closeModal');
+    const cancelBtn = document.getElementById('cancelBtn');
+    const saveContactBtn = document.getElementById('saveContactBtn');
+    const phoneInput = document.getElementById('adminPhoneNumber');
+    const modalMessage = document.getElementById('modalMessage');
+
+    // Open modal and load current number
+    adminContactBtn.addEventListener('click', async function() {
+        modal.style.display = 'block';
+        
+        // Fetch current admin contact number
+        try {
+            const response = await fetch('{% url "get_admin_contact" %}');
+            const data = await response.json();
+            if (data.success) {
+                phoneInput.value = data.phone_number;
+            }
+        } catch (error) {
+            console.error('Error fetching admin contact:', error);
+        }
+    });
+
+    // Close modal
+    function closeAdminModal() {
+        modal.style.display = 'none';
+        modalMessage.style.display = 'none';
+        phoneInput.value = '';
+    }
+
+    closeModal.addEventListener('click', closeAdminModal);
+    cancelBtn.addEventListener('click', closeAdminModal);
+
+    // Close modal when clicking outside
+    window.addEventListener('click', function(event) {
+        if (event.target === modal) {
+            closeAdminModal();
+        }
+    });
+
+    // Validate and save phone number
+    saveContactBtn.addEventListener('click', async function() {
+        const phoneNumber = phoneInput.value.trim();
+        
+        // Validate phone number
+        if (phoneNumber.length !== 11) {
+            showModalMessage('Phone number must be exactly 11 digits', 'error');
+            return;
+        }
+        
+        if (!/^09[0-9]{9}$/.test(phoneNumber)) {
+            showModalMessage('Phone number must start with 09 and contain only digits', 'error');
+            return;
+        }
+        
+        // Save to database
+        try {
+            const response = await fetch('{% url "save_admin_contact" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify({ phone_number: phoneNumber })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                showModalMessage('Admin contact number saved successfully!', 'success');
+                setTimeout(() => {
+                    closeAdminModal();
+                }, 1500);
+            } else {
+                showModalMessage('Error: ' + data.message, 'error');
+            }
+        } catch (error) {
+            showModalMessage('Network error: ' + error.message, 'error');
+        }
+    });
+
+    // Only allow numbers in input
+    phoneInput.addEventListener('input', function() {
+        this.value = this.value.replace(/[^0-9]/g, '');
+    });
+
+    function showModalMessage(message, type) {
+        modalMessage.textContent = message;
+        modalMessage.style.display = 'block';
+        modalMessage.style.backgroundColor = type === 'success' ? '#d4edda' : '#f8d7da';
+        modalMessage.style.color = type === 'success' ? '#155724' : '#721c24';
+        modalMessage.style.border = type === 'success' ? '1px solid #c3e6cb' : '1px solid #f5c6cb';
+    }
+</script>
 
 <script>
 
