@@ -961,8 +961,9 @@ class EnhancedCameraManager:
                 # still within global cooldown
                 return
 
-            # Prepare message and recipient
-            recipient = "09945349194"  # Recipient provided by user
+            # Get admin contact number from database
+            from ..models import SystemConfig
+            recipient = SystemConfig.get_admin_contact()
             message = f"ISSC System\nUnauthorized Person detected in Camera {camera_id + 1}"
 
             # Dispatch asynchronously
