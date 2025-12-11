@@ -2,9 +2,14 @@
 
 {% load static %}
 
-{% block title %} Signup {% endblock title %}
+{% block title %} {% if is_edit_mode %}Edit Account{% else %}Create Account{% endif %} {% endblock title %}
 
 {% block content %}
+  <!-- Back Button -->
+  <div style="margin-bottom: 20px;">
+    <a href="{% url 'signup' %}" style="background-color: #7a1818; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block; font-weight: 500;">← Back to Accounts</a>
+  </div>
+
   <!-- Signup Form -->
     <!-- Display error message if exists -->
     {% if error %}
@@ -29,82 +34,93 @@
         <div class="form-group">
             <div class="form-field username">
                 <label for="username">Username:</label>
-                <input type="text" id="username" name="username" required  readonly>
+                <input type="text" id="username" name="username" value="{% if is_edit_mode %}{{ account.username }}{% endif %}" required readonly>
             </div>
 
             <div class="form-field first-name">
                 <label for="first_name">First Name:</label>
-                <input type="text" id="first_name" name="first_name" value="{{ form_data.first_name|default:'' }}" required>
+                <input type="text" id="first_name" name="first_name" value="{% if is_edit_mode %}{{ account.first_name }}{% else %}{{ form_data.first_name|default:'' }}{% endif %}" required>
             </div>
 
             <div class="form-field middle-name">
                 <label for="middle_name">Middle Name:</label>
-                <input type="text" id="middle_name" name="middle_name" value="{{ form_data.middle_name|default:'' }}">
+                <input type="text" id="middle_name" name="middle_name" value="{% if is_edit_mode %}{{ account.middle_name }}{% else %}{{ form_data.middle_name|default:'' }}{% endif %}">
             </div>
 
             <div class="form-field last-name">
                 <label for="last_name">Last Name:</label>
-                <input type="text" id="last_name" name="last_name" value="{{ form_data.last_name|default:'' }}" required>
+                <input type="text" id="last_name" name="last_name" value="{% if is_edit_mode %}{{ account.last_name }}{% else %}{{ form_data.last_name|default:'' }}{% endif %}" required>
             </div>
 
             <div class="form-field email">
                 <label for="email">Email:</label>
-                <input type="email" id="email" name="email" value="{{ form_data.email|default:'' }}" required>
+                <input type="email" id="email" name="email" value="{% if is_edit_mode %}{{ account.email }}{% else %}{{ form_data.email|default:'' }}{% endif %}" required>
             </div>
 
             <div class="form-field id-number">
                 <label for="id_number">ID Number:</label>
-                <input type="text" id="id_number" name="id_number" required readonly>
+                <input type="text" id="id_number" name="id_number" value="{% if is_edit_mode %}{{ account.id_number }}{% endif %}" required readonly>
             </div>
 
             <div class="form-field contact-number">
                 <label for="contact_number">Contact Number:</label>
-                <input type="text" id="contact_number" name="contact_number" value="{{ form_data.contact_number|default:'' }}">
+                <input type="text" id="contact_number" name="contact_number" value="{% if is_edit_mode %}{{ account.contact_number }}{% else %}{{ form_data.contact_number|default:'' }}{% endif %}">
             </div>
 
             <div class="form-field gender">
                 <label for="gender">Gender:</label>
                 <select id="gender" name="gender">
-                    <option value="M" {% if form_data.gender == 'M' %}selected{% endif %}>Male</option>
-                    <option value="F" {% if form_data.gender == 'F' %}selected{% endif %}>Female</option>
-                    <option value="O" {% if form_data.gender == 'O' %}selected{% endif %}>Other</option>
+                    <option value="M" {% if is_edit_mode and account.gender == 'M' or form_data.gender == 'M' %}selected{% endif %}>Male</option>
+                    <option value="F" {% if is_edit_mode and account.gender == 'F' or form_data.gender == 'F' %}selected{% endif %}>Female</option>
+                    <option value="O" {% if is_edit_mode and account.gender == 'O' or form_data.gender == 'O' %}selected{% endif %}>Other</option>
                 </select>
             </div>
 
             <div class="form-field department">
                 <label for="department">Department:</label>
                 <select id="department" name="department">
-                    <option value="BSIT" {% if form_data.department == 'BSIT' %}selected{% endif %}>BSIT</option>
-                    <option value="BSENT" {% if form_data.department == 'BSENT' %}selected{% endif %}>BSENT</option>
-                    <option value="BTLED" {% if form_data.department == 'BTLED' %}selected{% endif %}>BTLED</option>
+                    <option value="BSIT" {% if is_edit_mode and account.department == 'BSIT' or form_data.department == 'BSIT' %}selected{% endif %}>BSIT</option>
+                    <option value="BSENT" {% if is_edit_mode and account.department == 'BSENT' or form_data.department == 'BSENT' %}selected{% endif %}>BSENT</option>
+                    <option value="BTLED" {% if is_edit_mode and account.department == 'BTLED' or form_data.department == 'BTLED' %}selected{% endif %}>BTLED</option>
                 </select>
             </div>
 
             <div class="form-field privilege">
                 <label for="privilege">Privilege:</label>
-                <select id="privilege" name="privilege">
-                    <option value="student" {% if form_data.privilege == 'student' %}selected{% endif %}>Student</option>
-                    <option value="faculty" {% if form_data.privilege == 'faculty' %}selected{% endif %}>Faculty</option>
-                    <option value="admin" {% if form_data.privilege == 'admin' %}selected{% endif %}>Admin</option>
+                <select id="privilege" name="privilege" {% if is_edit_mode %}disabled{% endif %}>
+                    <option value="student" {% if is_edit_mode and account.privilege == 'student' or form_data.privilege == 'student' %}selected{% endif %}>Student</option>
+                    <option value="faculty" {% if is_edit_mode and account.privilege == 'faculty' or form_data.privilege == 'faculty' %}selected{% endif %}>Faculty</option>
+                    <option value="admin" {% if is_edit_mode and account.privilege == 'admin' or form_data.privilege == 'admin' %}selected{% endif %}>Admin</option>
                 </select>
+                {% if is_edit_mode %}
+                <input type="hidden" name="privilege" value="{{ account.privilege }}">
+                {% endif %}
             </div>
 
             <div class="form-field status">
                 <label for="status">Status:</label>
                 <select id="status" name="status">
-                    <option value="allowed" {% if form_data.status == 'allowed' %}selected{% endif %}>Allowed</option>
-                    <option value="restricted" {% if form_data.status == 'restricted' %}selected{% endif %}>Restricted</option>
+                    <option value="allowed" {% if is_edit_mode and account.status == 'allowed' or form_data.status == 'allowed' %}selected{% endif %}>Allowed</option>
+                    <option value="restricted" {% if is_edit_mode and account.status == 'restricted' or form_data.status == 'restricted' %}selected{% endif %}>Restricted</option>
                 </select>
             </div>
         </div>
 
+        {% if is_edit_mode %}
+        <div class="register-btn" style="display: flex; gap: 10px; justify-content: center;">
+            <button type="submit" name="update" style="background-color: #28a745; padding: 12px 30px;">Update</button>
+            <button type="submit" name="delete" style="background-color: #dc3545; padding: 12px 30px;" onclick="return confirm('Are you sure you want to delete this account? This action cannot be undone.');">Delete</button>
+        </div>
+        {% else %}
         <div class="register-btn">
             <button type="submit">Register</button>
         </div>
+        {% endif %}
     </form>
 
 
 <script type="text/javascript">
+  {% if not is_edit_mode %}
   function fetchGeneratedId(userType) {
     fetch(`/get-user/?type=${userType}`)
       .then(response => {
@@ -135,6 +151,7 @@
       fetchGeneratedId(this.value);
     });
   });
+  {% endif %}
 </script>
 
 {% endblock content %}
