@@ -31,7 +31,7 @@ EMAIL_HOST=smtp.gmail.com
 EMAIL_PORT=587
 EMAIL_USE_TLS=True
 EMAIL_HOST_USER=vinceerickquiozon14@gmail.com
-EMAIL_HOST_PASSWORD=viqbpwklhlergez
+EMAIL_HOST_PASSWORD=nyfvoswwwjhcyuze
 DEFAULT_FROM_EMAIL=vinceerickquiozon14@gmail.com
 
 # PhilSMS Configuration

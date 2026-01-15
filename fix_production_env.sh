@@ -22,7 +22,7 @@ DB_PORT=3306
 
 # Email Configuration (Gmail)
 EMAIL_HOST_USER=vinceerickquiozon14@gmail.com
-EMAIL_HOST_PASSWORD=viqbpwklhlergez
+EMAIL_HOST_PASSWORD=nyfvoswwwjhcyuze
 
 # PhilSMS Configuration
 PHILSMS_API_BASE=https://dashboard.philsms.com/api/v3
