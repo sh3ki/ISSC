@@ -41,9 +41,9 @@
         <p>
           <strong>{{ user_data.privilege}}</strong>
         </p>
-        <form class="logout-btn" method="POST" action="{% url 'logout' %}">
+        <form class="logout-btn" method="POST" action="{% url 'logout' %}" id="logout-form">
             {% csrf_token %}
-            <button type="submit">Logout</button>
+            <button type="button" onclick="showLogoutModal()">Logout</button>
         </form>
       </div>
     </nav>
@@ -94,7 +94,7 @@
                   <a href="{% url 'incidents' %}" class="{% if request.resolver_match.url_name == 'incidents' or request.resolver_match.url_name == 'incident_forms' or request.resolver_match.url_name == 'incident_details' or request.resolver_match.url_name == 'incident_print' or request.resolver_match.url_name == 'incidents_print' %}active{% endif %}">
                     <span class="icon"></span>
                     <span class="text">Incident
-                      {% if user_role == 'admin' and has_new_incident_notifications %}
+                      {% if has_new_incident_notifications and user_role in 'admin faculty' %}
                         <span class="nav-notification-dot" title="{{ new_incident_count }} new incident{{ new_incident_count|pluralize }}" aria-label="{{ new_incident_count }} new incident{{ new_incident_count|pluralize }}"></span>
                       {% endif %}
                     </span>
@@ -205,6 +205,40 @@
         Extracting face embeddings and saving to the database...
       </p>
     </div>
+
+    <!-- Logout Confirmation Modal -->
+    <div id="logoutModal" style="display: none; position: fixed; z-index: 9999; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.5);">
+      <div style="background-color: #fefefe; margin: 10% auto; padding: 24px; border-radius: 8px; width: 90%; max-width: 400px; box-shadow: 0 4px 12px rgba(0,0,0,0.3);">
+        <h3 style="margin: 0 0 16px; color: #4b0000; font-size: 20px;">Confirm Logout</h3>
+        <p style="margin: 0 0 24px; color: #374151;">Are you sure you want to logout?</p>
+        <div style="display: flex; justify-content: flex-end; gap: 12px;">
+          <button onclick="closeLogoutModal()" style="background: #e5e7eb; color: #374151; padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">Cancel</button>
+          <button onclick="confirmLogout()" style="background: #dc2626; color: white; padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">Logout</button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      function showLogoutModal() {
+        document.getElementById('logoutModal').style.display = 'block';
+      }
+      
+      function closeLogoutModal() {
+        document.getElementById('logoutModal').style.display = 'none';
+      }
+      
+      function confirmLogout() {
+        document.getElementById('logout-form').submit();
+      }
+      
+      // Close modal when clicking outside of it
+      window.onclick = function(event) {
+        const modal = document.getElementById('logoutModal');
+        if (event.target == modal) {
+          closeLogoutModal();
+        }
+      }
+    </script>
 
   </body>
 </html>
