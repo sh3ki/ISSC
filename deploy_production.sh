@@ -83,13 +83,14 @@ echo ""
 echo -e "${YELLOW}Step 6: Setting proper permissions...${NC}"
 chown -R www-data:www-data $PRODUCTION_DIR
 chmod -R 755 $PRODUCTION_DIR
-chmod 600 "$PRODUCTION_ENV_FILE"  # Secure the .env file
+chmod 640 "$PRODUCTION_ENV_FILE"  # Readable by www-data
+chown www-data:www-data "$PRODUCTION_ENV_FILE"
 echo -e "${GREEN}✓ Permissions set${NC}"
 echo ""
 
 echo -e "${YELLOW}Step 7: Running Django migrations...${NC}"
 cd $PRODUCTION_DIR
-source /root/ISSC/venv/bin/activate
+source /var/www/issc/venv/bin/activate
 python manage.py migrate --noinput
 echo -e "${GREEN}✓ Migrations complete${NC}"
 echo ""
