@@ -199,6 +199,13 @@ EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD') or 'viqbpwklhlergez'
 # Default from email for outgoing messages
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 
+# PhilSMS Configuration
+PHILSMS_API_BASE = os.getenv('PHILSMS_API_BASE', 'https://dashboard.philsms.com/api/v3')
+PHILSMS_API_TOKEN = os.getenv('PHILSMS_API_TOKEN', '377|DT0C9GeHCgLXdNt5oxjajd3QqdLlKcqMHv5KLZcE3b45ab96')
+PHILSMS_SENDER_ID = os.getenv('PHILSMS_SENDER_ID', 'PhilSMS')
+PHILSMS_RECIPIENT = os.getenv('PHILSMS_RECIPIENT', '09945349194')
+PHILSMS_COOLDOWN_SECONDS = int(os.getenv('PHILSMS_COOLDOWN_SECONDS', '900'))
+
 # PhilSMS configuration (can be overridden via environment variables)
 PHILSMS_API_BASE = os.getenv('PHILSMS_API_BASE', 'https://dashboard.philsms.com/api/v3')
 # Put your PhilSMS API token in the environment or override here
