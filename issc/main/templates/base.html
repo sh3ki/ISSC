@@ -93,7 +93,11 @@
                 <li>
                   <a href="{% url 'incidents' %}" class="{% if request.resolver_match.url_name == 'incidents' or request.resolver_match.url_name == 'incident_forms' or request.resolver_match.url_name == 'incident_details' or request.resolver_match.url_name == 'incident_print' or request.resolver_match.url_name == 'incidents_print' %}active{% endif %}">
                     <span class="icon"></span>
-                    <span class="text">Incident</span>
+                    <span class="text">Incident
+                      {% if user_role == 'admin' and has_new_incident_notifications %}
+                        <span class="nav-notification-dot" title="{{ new_incident_count }} new incident{{ new_incident_count|pluralize }}" aria-label="{{ new_incident_count }} new incident{{ new_incident_count|pluralize }}"></span>
+                      {% endif %}
+                    </span>
                   </a>
                 </li>
                 {% comment %} <li>
