@@ -39,7 +39,7 @@ SESSION_COOKIE_AGE = 1209600  # 2 weeks in seconds
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ["issc.study", "www.issc.study", "72.62.66.193", "localhost", "127.0.0.1"]
 
 
 # Application definition
