@@ -149,6 +149,38 @@ def incident_details(request, id):
     }
 
     if request.method == 'POST':
+        # Handle deletion of incident (only for open cases by creator)
+        if 'delete_incident' in request.POST:
+            if incident.status == 'open':
+                # Check if user is the creator
+                user_full_name = f"{user[0]['first_name']} {user[0]['last_name']}"
+                user_id_number = user[0]['id_number']
+                if incident.reported_by == user_full_name or incident.last_updated_by == user_id_number:
+                    incident.delete()
+                    return redirect('incidents')
+            return redirect(request.META.get('HTTP_REFERER', '/'))
+
+        # Handle update for open cases
+        if 'update_open_case' in request.POST:
+            # Update the editable fields
+            incident.location = request.POST.get('location', incident.location)
+            incident.subject = request.POST.get('subject', incident.subject)
+            incident.people_involved = request.POST.get('people_involved', incident.people_involved)
+            incident.incident = request.POST.get('incident', incident.incident)
+            incident.request_for_action = request.POST.get('request_for_action', incident.request_for_action)
+            
+            # Update file if provided
+            update_file = request.FILES.get('update_file')
+            if update_file:
+                incident.file = update_file
+            
+            # Update last_updated_by
+            created_by = user[0]['id_number'] if user and user[0] else ''
+            incident.last_updated_by = created_by
+            incident.save()
+
+            return redirect(request.META.get('HTTP_REFERER', '/'))
+
         # If the Update Case modal was submitted, create an IncidentUpdate
         if 'update_case' in request.POST:
             update_reason = request.POST.get('update_reason', '').strip()
