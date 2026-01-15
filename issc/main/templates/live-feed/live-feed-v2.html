@@ -18,7 +18,7 @@
     width: 100%;
     height: 100%;
     background-color: rgba(0, 0, 0, 0.7);
-    z-index: 9999;
+    z-index: 99999;
     justify-content: center;
     align-items: center;
 }
@@ -191,7 +191,7 @@
                 </div>
             </div>
             <div class="camera-wrapper">
-                <img class="camera-frame" id="camera-frame-{{ forloop.counter0 }}" src="{% url 'video_feed' camera_id=camera_id %}" alt="Camera {{ camera_id }}">
+                <img class="camera-frame" id="camera-frame-{{ forloop.counter0 }}" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='640' height='480'%3E%3Crect width='640' height='480' fill='%23000'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-family='Arial' font-size='24' fill='%23999'%3ENo Camera Selected%3C/text%3E%3C/svg%3E" alt="Box {{ forloop.counter }}">
             </div>
         </div>
     {% endfor %}
@@ -236,11 +236,10 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Track active streams and assignments
     let currentTestStream = null;
+    let boxStreams = {}; // { boxId: MediaStream } - PROTECH style browser streams
     let cameraAssignments = {}; // { boxId: deviceId }
     let availableCamerasData = []; // Store camera devices
     let pendingSelection = null;
-    
-    const initialCameras = {{ camera_ids|safe }};
     
     // Detect if we're on a mobile device
     const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
@@ -467,57 +466,80 @@ document.addEventListener('DOMContentLoaded', () => {
         testVideo.srcObject = null;
     }
     
-    // Apply camera to box - deviceId is the browser deviceId now, not camera integer ID
+    // Apply camera to box - PROTECH METHOD: Use browser stream directly
     async function applyCameraToBox(boxId, deviceId, cameraLabel) {
-        const imgElement = document.getElementById(`camera-frame-${boxId}`);
+        const videoElement = document.getElementById(`camera-frame-${boxId}`);
         
         console.log(`🎬 Applying deviceId ${deviceId} (${cameraLabel}) to Box ${parseInt(boxId) + 1}...`);
         
         try {
-            // Find the camera index in availableCamerasData
-            const cameraIndex = availableCamerasData.findIndex(cam => cam.deviceId === deviceId);
-            
-            if (cameraIndex === -1) {
-                throw new Error('Camera device not found');
+            // Stop any existing stream for this box
+            if (boxStreams[boxId]) {
+                boxStreams[boxId].getTracks().forEach(track => track.stop());
+                boxStreams[boxId] = null;
             }
             
-            // Use the camera index as the camera_id for the backend
-            const backendCameraId = cameraIndex;
-            
-            // Initialize the camera on the backend
-            const initResponse = await fetch('/api/initialize-live-feed-camera/', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': getCookie('csrftoken'),
-                },
-                body: JSON.stringify({
-                    camera_id: backendCameraId,
-                    box_id: boxId
-                })
-            });
-            
-            const initData = await initResponse.json();
-            
-            if (initData.success) {
-                // Update assignment with deviceId
-                cameraAssignments[boxId] = deviceId;
-                
-                // Update video feed
-                if (imgElement) {
-                    imgElement.src = `/video-feed/${backendCameraId}/?box_id=${boxId}&t=${Date.now()}`;
+            // PROTECH METHOD: Create constraints and start getUserMedia stream
+            const constraints = {
+                video: {
+                    deviceId: deviceId ? { exact: deviceId } : undefined,
                 }
-                
-                console.log(`✅ Camera successfully assigned to Box ${parseInt(boxId) + 1}`);
-                
-                // Update all dropdowns
-                updateAllDropdowns();
+            };
+            
+            // Add device-specific settings
+            if (isMobileDevice) {
+                constraints.video.width = { ideal: 720 };
+                constraints.video.height = { ideal: 1280 };
+                constraints.video.facingMode = { ideal: "user" };
             } else {
-                throw new Error(initData.message || 'Failed to initialize camera');
+                constraints.video.width = { ideal: 1280 };
+                constraints.video.height = { ideal: 720 };
             }
+            
+            console.log(`📡 Starting camera stream for Box ${parseInt(boxId) + 1}...`);
+            
+            // Start the camera stream - EXACTLY LIKE PROTECH
+            const stream = await navigator.mediaDevices.getUserMedia(constraints);
+            
+            // Convert img element to video element if needed
+            if (videoElement.tagName === 'IMG') {
+                const video = document.createElement('video');
+                video.id = `camera-frame-${boxId}`;
+                video.className = videoElement.className;
+                video.autoplay = true;
+                video.playsInline = true;
+                video.muted = true;
+                video.style.transform = 'scaleX(-1)';  // Mirror like selfie
+                videoElement.parentNode.replaceChild(video, videoElement);
+                boxStreams[boxId] = stream;
+                video.srcObject = stream;
+            } else {
+                // Already a video element
+                boxStreams[boxId] = stream;
+                videoElement.srcObject = stream;
+            }
+            
+            // Update assignment
+            cameraAssignments[boxId] = deviceId;
+            
+            console.log(`✅ Camera ${cameraLabel} successfully streaming in Box ${parseInt(boxId) + 1}`);
+            
+            // Update all dropdowns
+            updateAllDropdowns();
+            
         } catch (error) {
-            console.error('Error applying camera:', error);
-            alert(`Failed to apply camera: ${error.message}`);
+            console.error('❌ Error applying camera:', error);
+            
+            let errorMsg = 'Failed to start camera stream.';
+            if (error.name === 'NotAllowedError') {
+                errorMsg += ' Camera permission was denied.';
+            } else if (error.name === 'NotReadableError' || error.name === 'TrackStartError') {
+                errorMsg += ' The camera is already in use.';
+            } else if (error.name === 'OverconstrainedError') {
+                errorMsg += ' The selected camera cannot be configured.';
+            }
+            
+            alert(`${errorMsg}\n\nPlease try again or select a different camera.`);
             
             // Revert dropdown
             updateAllDropdowns();
@@ -540,10 +562,24 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (boxId in cameraAssignments) {
                     delete cameraAssignments[boxId];
                     
-                    const imgElement = document.getElementById(`camera-frame-${boxId}`);
-                    if (imgElement) {
-                        const fallbackCameraId = initialCameras[parseInt(boxId)] ?? 0;
-                        imgElement.src = `/video-feed/${fallbackCameraId}/?box_id=${boxId}&t=${Date.now()}`;
+                    // Stop browser stream
+                    if (boxStreams[boxId]) {
+                        boxStreams[boxId].getTracks().forEach(track => track.stop());
+                        boxStreams[boxId] = null;
+                    }
+                    
+                    const videoElement = document.getElementById(`camera-frame-${boxId}`);
+                    if (videoElement) {
+                        // Stop video stream and convert back to img placeholder
+                        if (videoElement.tagName === 'VIDEO') {
+                            const img = document.createElement('img');
+                            img.id = `camera-frame-${boxId}`;
+                            img.className = videoElement.className;
+                            img.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='640' height='480'%3E%3Crect width='640' height='480' fill='%23000'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-family='Arial' font-size='24' fill='%23999'%3ENo Camera Selected%3C/text%3E%3C/svg%3E";
+                            videoElement.parentNode.replaceChild(img, videoElement);
+                        } else {
+                            videoElement.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='640' height='480'%3E%3Crect width='640' height='480' fill='%23000'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-family='Arial' font-size='24' fill='%23999'%3ENo Camera Selected%3C/text%3E%3C/svg%3E";
+                        }
                     }
                 }
                 updateAllDropdowns();
@@ -596,33 +632,35 @@ document.addEventListener('DOMContentLoaded', () => {
         if (pendingSelection) {
             const { boxId, deviceId, cameraLabel } = pendingSelection;
             
+            console.log(`✅ CONFIRM CAMERA CLICKED - Box ${parseInt(boxId) + 1}, Device: ${deviceId}, Label: ${cameraLabel}`);
+            
             // Hide modal first
             hideModal();
+            
+            console.log(`🚀 Applying camera to Box ${parseInt(boxId) + 1}...`);
             
             // Apply camera to box with deviceId
             await applyCameraToBox(boxId, deviceId, cameraLabel);
             
+            console.log(`✅ Camera applied successfully to Box ${parseInt(boxId) + 1}!`);
+            
             pendingSelection = null;
+        } else {
+            console.warn('⚠️ No pending selection to confirm');
         }
     });
     
     // Load cameras on page load - Use PROTECH method
     getAvailableCameras();
     
-    // Cleanup on page unload
+    // Cleanup on page unload - PROTECH style: stop browser streams
     window.addEventListener('beforeunload', () => {
-        const activeBoxes = Object.keys(cameraAssignments);
-        if (activeBoxes.length > 0) {
-            fetch('/api/stop-live-feed/', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': getCookie('csrftoken'),
-                },
-                body: JSON.stringify({ boxes: activeBoxes }),
-                keepalive: true,
-            }).catch(err => console.warn('Warning: could not notify server to stop live feed', err));
-        }
+        // Stop all browser streams
+        Object.values(boxStreams).forEach(stream => {
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+            }
+        });
     });
 });
 </script>
