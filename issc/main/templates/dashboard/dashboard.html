@@ -63,29 +63,29 @@
 
     <!-- Row 1: Monthly Incidents and Status Breakdown -->
     <div class="graph-section graph1">
-      <h3 class="chart-title">Monthly Incident Overview</h3>
+      <h3 class="chart-title">Monthly Incident Overview ({{ selected_year }})</h3>
       <canvas id="monthlyIncidentsChart" class="chart-canvas"></canvas>
     </div>
 
     <div class="graph-section graph-doughnut">
-      <h3 class="chart-title">Current Status Distribution</h3>
+      <h3 class="chart-title">Current Status Distribution ({{ selected_year }})</h3>
       <canvas id="statusBreakdownChart" class="chart-canvas"></canvas>
     </div>
 
     <!-- Row 2: Status Trends -->
     <div class="graph-section graph-wide">
-      <h3 class="chart-title">Case Status Trends (Open vs Pending vs Closed)</h3>
+      <h3 class="chart-title">Case Status Trends - {{ selected_year }} (Open vs Pending vs Closed)</h3>
       <canvas id="statusTrendsChart" class="chart-canvas"></canvas>
     </div>
 
     <!-- Row 3: Resolution Analysis and Incident Rate -->
     <div class="graph-section graph3">
-      <h3 class="chart-title">Average Resolution Time (Days)</h3>
+      <h3 class="chart-title">Average Resolution Time ({{ selected_year }})</h3>
       <canvas id="resolutionTimeChart" class="chart-canvas"></canvas>
     </div>
 
     <div class="graph-section graph3">
-      <h3 class="chart-title">Incident Growth Rate</h3>
+      <h3 class="chart-title">Incident Growth Rate ({{ selected_year }})</h3>
       <canvas id="incidentRateChart" class="chart-canvas"></canvas>
     </div>
 
