@@ -146,13 +146,16 @@
 
             <div class="form-field faculty-involved">
                 <label>Faculty Involved</label>
-                <select name="faculty_involved" id="faculty-involved" multiple size="6">
-                    <option value="" style="font-style:italic;color:#999;">None</option>
-                    {% for faculty in faculty_users %}
-                        <option value="{{ faculty.id }}">{{ faculty.first_name }} {{ faculty.last_name }} ({{ faculty.id_number }})</option>
-                    {% endfor %}
-                </select>
-                <small style="color:#666;font-size:11px;display:block;margin-top:4px;">Hold Ctrl/Cmd for multiple</small>
+                <div style="display:flex;flex-direction:column;gap:6px;">
+                    <input type="text" id="faculty-involved-search" placeholder="Search admin/faculty" aria-label="Search admin or faculty" style="padding:8px 10px;border:1px solid #d1d5db;border-radius:6px;">
+                    <select name="faculty_involved" id="faculty-involved" multiple size="8" style="width:100%;padding:8px;border:1px solid #d1d5db;border-radius:6px;">
+                        <option value="" style="font-style:italic;color:#999;">None</option>
+                        {% for faculty in faculty_users %}
+                            <option value="{{ faculty.id }}">{{ faculty.first_name }} {{ faculty.last_name }} ({{ faculty.id_number }})</option>
+                        {% endfor %}
+                    </select>
+                    <small style="color:#666;font-size:11px;display:block;">Tip: type to filter, then hold Ctrl/Cmd to select multiple.</small>
+                </div>
             </div>
 
             <!-- Row 5: INCIDENT DESCRIPTION, REQUEST FOR ACTION, UPLOAD FILE -->
@@ -163,7 +166,19 @@
 
             <div class="form-field request-action">
                 <label>Request for Action</label>
-                <textarea name="request_for_action" required></textarea>
+                <select name="request_for_action" id="request-action-select" required style="width:100%;">
+                    <option value="Counseling">Counseling</option>
+                    <option value="Mediation">Mediation</option>
+                    <option value="Incident Review">Incident Review</option>
+                    <option value="Safety Inspection">Safety Inspection</option>
+                    <option value="Notify Guardian">Notify Guardian</option>
+                    <option value="Referral to Health Services">Referral to Health Services</option>
+                    <option value="Referral to Guidance">Referral to Guidance</option>
+                    <option value="Security Escort/Monitoring">Security Escort/Monitoring</option>
+                    <option value="Documentation Update">Documentation Update</option>
+                    <option value="Other/s">Other/s</option>
+                </select>
+                <input type="text" name="request_for_action_other" id="request-action-other" placeholder="Please specify request for action" style="display:none;margin-top:8px;" />
             </div>
 
             <div class="form-field upload-file">
@@ -220,6 +235,10 @@
     $(document).ready(function(){
         var $select = $('#subject-select');
         var $ruleBox = $('#subject-rule');
+        var $requestSelect = $('#request-action-select');
+        var $requestOther = $('#request-action-other');
+        var $facultySearch = $('#faculty-involved-search');
+        var $facultySelect = $('#faculty-involved');
 
         // Rich handbook rules mapping (HTML content) — kept centralized for clarity.
         var rules = {
@@ -325,6 +344,38 @@
                 detail: `<p style="margin:8px 0 0;color:#333;line-height:1.4">If you select Other/s, briefly describe the incident. The disciplinary response will follow the handbook section most appropriate to the behavior described.</p>`
             }
         };
+
+        function toggleRequestOther() {
+            if ($requestSelect.val() === 'Other/s') {
+                $requestOther.show();
+                $requestOther.prop('required', true);
+            } else {
+                $requestOther.hide();
+                $requestOther.prop('required', false);
+                $requestOther.val('');
+            }
+        }
+
+        $requestSelect.on('change', toggleRequestOther);
+        toggleRequestOther();
+
+        // Simple client-side filter for faculty involved multi-select
+        function filterFacultyOptions() {
+            var term = ($facultySearch.val() || '').toLowerCase();
+            $facultySelect.find('option').each(function(){
+                var $opt = $(this);
+                if (!$opt.val()) {
+                    // Always keep the placeholder visible
+                    $opt.prop('hidden', false);
+                    return;
+                }
+                var text = $opt.text().toLowerCase();
+                $opt.prop('hidden', term && !text.includes(term));
+            });
+        }
+
+        $facultySearch.on('input', filterFacultyOptions);
+        filterFacultyOptions();
 
         function renderRuleCard(subjectKey){
             if(!subjectKey) return $ruleBox.hide();
