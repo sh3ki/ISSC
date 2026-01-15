@@ -1,0 +1,630 @@
+{% extends 'base.html' %}
+
+{% block title %} Live Feed {% endblock title %}
+
+{% block content %}
+
+{% load static %} 
+
+<link rel="stylesheet" type="text/css" href="{% static 'css/live-feed.css' %}">
+
+<style>
+/* Camera selection modal styling */
+.camera-test-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7);
+    z-index: 9999;
+    justify-content: center;
+    align-items: center;
+}
+
+.camera-test-modal.active {
+    display: flex;
+}
+
+.camera-modal-content {
+    background: white;
+    border-radius: 12px;
+    padding: 25px;
+    max-width: 700px;
+    width: 90%;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+}
+
+.camera-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 2px solid #800000;
+}
+
+.camera-modal-header h3 {
+    color: #800000;
+    font-size: 20px;
+    font-weight: bold;
+    margin: 0;
+}
+
+.close-modal-btn {
+    background: none;
+    border: none;
+    font-size: 28px;
+    color: #999;
+    cursor: pointer;
+    padding: 0;
+    width: 30px;
+    height: 30px;
+    line-height: 1;
+    transition: color 0.2s;
+}
+
+.close-modal-btn:hover {
+    color: #800000;
+}
+
+.camera-modal-body {
+    text-align: center;
+}
+
+.camera-modal-body p {
+    color: #666;
+    margin-bottom: 20px;
+    font-size: 15px;
+}
+
+.camera-preview-container {
+    background: #000;
+    border-radius: 8px;
+    overflow: hidden;
+    width: 100%;
+    height: 400px;
+    margin-bottom: 20px;
+}
+
+.camera-preview-video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transform: scaleX(-1);
+}
+
+.camera-modal-buttons {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+}
+
+.camera-modal-btn {
+    padding: 12px 30px;
+    border: none;
+    border-radius: 6px;
+    font-size: 15px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.camera-modal-btn-confirm {
+    background-color: #800000;
+    color: white;
+}
+
+.camera-modal-btn-confirm:hover {
+    background-color: #a00000;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(128, 0, 0, 0.3);
+}
+
+.camera-modal-btn-cancel {
+    background-color: #e0e0e0;
+    color: #333;
+}
+
+.camera-modal-btn-cancel:hover {
+    background-color: #d0d0d0;
+    transform: translateY(-2px);
+}
+
+/* Remove default dropdown arrow */
+.camera-selector {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    background-image: none !important;
+}
+
+.camera-selector::-ms-expand {
+    display: none;
+}
+
+/* Custom dropdown styling */
+.camera-selector-wrapper {
+    position: relative;
+    min-width: 200px;
+}
+
+.camera-selector-arrow {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    pointer-events: none;
+    color: #800000;
+}
+</style>
+
+<!-- Control buttons -->
+<div class="controls" style="margin-bottom: 20px;">
+    <a href="{% url 'face_logs' %}" class="btn" style="background-color: var(--primary-color); color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; margin-right: 10px;">
+        <i class="fas fa-user"></i> Authorize Logs
+    </a>
+    <a href="{% url 'unauthorized_faces_archive' %}" class="btn" style="background-color: var(--primary-color); color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; margin-right: 10px;">
+        <i class="fas fa-user-secret"></i> Unauthorized Faces
+    </a>
+</div>
+
+<!-- Camera Grid Layout -->
+<div class="grid">
+    {% for camera_id in camera_ids %}
+        <div class="camera-card">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; padding: 5px 10px; background-color: #f8f9fa; border-radius: 5px;">
+                <h3 style="margin: 0; font-size: 16px; color: #333;">Box {{ forloop.counter }}</h3>
+                <div class="camera-selector-wrapper">
+                    <select class="camera-selector" data-box-id="{{ forloop.counter0 }}" style="padding: 8px 35px 8px 12px; border-radius: 5px; border: 2px solid #800000; background-color: white; cursor: pointer; font-weight: bold; color: #800000; width: 100%;">
+                        <option value="">Select a camera...</option>
+                    </select>
+                    <div class="camera-selector-arrow">
+                        <svg width="12" height="8" viewBox="0 0 12 8" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M1 1L6 6L11 1" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+            <div class="camera-wrapper">
+                <img class="camera-frame" id="camera-frame-{{ forloop.counter0 }}" src="{% url 'video_feed' camera_id=camera_id %}" alt="Camera {{ camera_id }}">
+            </div>
+        </div>
+    {% endfor %}
+</div>
+
+{% if not camera_ids %}
+    <p class="no-cameras">No cameras are currently available. Please check back later.</p>
+{% endif %}
+
+<!-- Camera Test Modal -->
+<div id="cameraTestModal" class="camera-test-modal">
+    <div class="camera-modal-content">
+        <div class="camera-modal-header">
+            <h3>📹 Camera Test</h3>
+            <button class="close-modal-btn" id="closeTestModal">&times;</button>
+        </div>
+        <div class="camera-modal-body">
+            <p>Testing your camera feed. Please make sure the camera is working fine before confirming.</p>
+            <div class="camera-preview-container">
+                <video id="testVideo" class="camera-preview-video" autoplay playsinline muted></video>
+            </div>
+            <div class="camera-modal-buttons">
+                <button class="camera-modal-btn camera-modal-btn-cancel" id="cancelCameraBtn">
+                    <span>✕</span> Cancel
+                </button>
+                <button class="camera-modal-btn camera-modal-btn-confirm" id="confirmCameraBtn">
+                    <span>✓</span> Confirm Camera
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    // Modal elements
+    const modal = document.getElementById('cameraTestModal');
+    const closeModal = document.getElementById('closeTestModal');
+    const cancelCamera = document.getElementById('cancelCameraBtn');
+    const confirmCamera = document.getElementById('confirmCameraBtn');
+    const testVideo = document.getElementById('testVideo');
+    
+    // Track active streams and assignments
+    let currentTestStream = null;
+    let cameraAssignments = {}; // { boxId: deviceId }
+    let availableCamerasData = []; // Store camera devices
+    let pendingSelection = null;
+    
+    const initialCameras = {{ camera_ids|safe }};
+    
+    // Detect if we're on a mobile device
+    const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    
+    // Helper function to safely stop any active stream
+    function stopMediaStream(stream) {
+        if (stream) {
+            stream.getTracks().forEach(track => {
+                track.stop();
+            });
+        }
+        return null;
+    }
+    
+    // Get CSRF token
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+    
+    // Get available camera devices - EXACTLY like PROTECH
+    async function getAvailableCameras() {
+        try {
+            const selectors = document.querySelectorAll('.camera-selector');
+            
+            // Clear all dropdowns first
+            selectors.forEach(selector => {
+                selector.innerHTML = '';
+                const defaultOption = document.createElement('option');
+                defaultOption.value = '';
+                defaultOption.textContent = 'Select a camera';
+                selector.appendChild(defaultOption);
+            });
+            
+            // Request permission first - EXACTLY like PROTECH
+            await navigator.mediaDevices.getUserMedia({ video: true })
+                .then(stream => {
+                    // Stop this initial stream right away
+                    stream.getTracks().forEach(track => track.stop());
+                    
+                    // Now list the devices
+                    return navigator.mediaDevices.enumerateDevices();
+                })
+                .then(devices => {
+                    const videoDevices = devices.filter(device => device.kind === 'videoinput');
+                    
+                    // Store devices data
+                    availableCamerasData = videoDevices.map((device, index) => {
+                        let label = device.label || `Camera ${index + 1}`;
+                        
+                        // Mobile device camera labeling - EXACTLY like PROTECH
+                        if (isMobileDevice) {
+                            if (device.label) {
+                                if (/front/i.test(device.label)) {
+                                    label = `Front Camera (${label})`;
+                                } else if (/back/i.test(device.label)) {
+                                    label = `Back Camera (${label})`;
+                                }
+                            }
+                            
+                            // If no identification in label, make a best guess
+                            if (videoDevices.length === 2) {
+                                if (index === 0) {
+                                    label = label.includes('Front') ? label : `Front Camera`;
+                                } else {
+                                    label = label.includes('Back') ? label : `Back Camera`;
+                                }
+                            }
+                        }
+                        
+                        return {
+                            deviceId: device.deviceId,
+                            label: label
+                        };
+                    });
+                    
+                    console.log(`✅ Loaded ${videoDevices.length} camera(s):`, availableCamerasData.map(c => c.label).join(', '));
+                    
+                    // If no cameras found
+                    if (videoDevices.length === 0) {
+                        selectors.forEach(selector => {
+                            const option = document.createElement('option');
+                            option.textContent = 'No cameras found';
+                            option.disabled = true;
+                            selector.appendChild(option);
+                        });
+                    } else {
+                        // Populate all dropdowns
+                        updateAllDropdowns();
+                    }
+                });
+        } catch (error) {
+            console.error('Error accessing media devices:', error);
+            const selectors = document.querySelectorAll('.camera-selector');
+            const errorOption = document.createElement('option');
+            
+            if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
+                errorOption.textContent = 'Camera permission denied';
+            } else if (error.name === 'NotFoundError') {
+                errorOption.textContent = 'No cameras available';
+            } else {
+                errorOption.textContent = 'Error accessing cameras';
+            }
+            
+            errorOption.disabled = true;
+            selectors.forEach(selector => {
+                selector.innerHTML = '';
+                selector.appendChild(errorOption.cloneNode(true));
+            });
+            
+            // Show appropriate error message
+            let errorMsg = 'Unable to access cameras.';
+            if (isMobileDevice) {
+                errorMsg += ' Please ensure you have granted camera permissions in your browser settings and try again.';
+            } else {
+                errorMsg += ' Please ensure your camera is connected and you have granted permission.';
+            }
+            alert(errorMsg);
+        }
+    }
+    
+    // Update all dropdowns based on current assignments
+    function updateAllDropdowns() {
+        const selectors = document.querySelectorAll('.camera-selector');
+        const devicesInUse = Object.values(cameraAssignments);
+        
+        selectors.forEach((selector) => {
+            const currentBoxId = String(selector.getAttribute('data-box-id'));
+            const currentSelection = cameraAssignments[currentBoxId] || null;
+            
+            selector.innerHTML = '';
+            
+            // Add default option
+            const defaultOption = document.createElement('option');
+            defaultOption.value = '';
+            defaultOption.textContent = 'Select a camera';
+            if (currentSelection === null) {
+                defaultOption.selected = true;
+            }
+            selector.appendChild(defaultOption);
+            
+            // Add camera options
+            availableCamerasData.forEach(camera => {
+                const option = document.createElement('option');
+                option.value = camera.deviceId;
+                option.textContent = camera.label;
+                
+                // Disable if in use by another box
+                if (devicesInUse.includes(camera.deviceId) && camera.deviceId !== currentSelection) {
+                    option.disabled = true;
+                    option.textContent = camera.label + ' (In Use)';
+                }
+                
+                // Select if current camera for this box
+                if (camera.deviceId === currentSelection) {
+                    option.selected = true;
+                }
+                
+                selector.appendChild(option);
+            });
+        });
+    }
+    
+    // Start camera test - EXACTLY like PROTECH
+    async function startCameraTest(deviceId) {
+        try {
+            // Stop any existing test stream
+            currentTestStream = stopMediaStream(currentTestStream);
+            
+            // Create appropriate constraints - EXACTLY like PROTECH
+            const constraints = {
+                video: {
+                    deviceId: deviceId ? { exact: deviceId } : undefined,
+                }
+            };
+            
+            // Add device-specific settings
+            if (isMobileDevice) {
+                constraints.video.width = { ideal: 720 };
+                constraints.video.height = { ideal: 1280 };
+                constraints.video.facingMode = { ideal: "user" };
+            } else {
+                constraints.video.width = { ideal: 1280 };
+                constraints.video.height = { ideal: 720 };
+            }
+            
+            currentTestStream = await navigator.mediaDevices.getUserMedia(constraints);
+            testVideo.srcObject = currentTestStream;
+            
+            // Show the modal
+            modal.classList.add('active');
+        } catch (error) {
+            console.error('Error starting camera test:', error);
+            
+            let errorMsg = 'Failed to access the camera.';
+            if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
+                errorMsg += ' Please check camera permissions and try again.';
+            } else if (error.name === 'NotReadableError' || error.name === 'TrackStartError') {
+                errorMsg += ' The camera may be in use by another application.';
+            } else if (error.name === 'OverconstrainedError') {
+                errorMsg += ' The selected camera cannot satisfy required constraints.';
+            } else {
+                errorMsg += ' Please try selecting a different camera.';
+            }
+            
+            alert(errorMsg);
+        }
+    }
+    
+    // Hide modal and stop test stream
+    function hideModal() {
+        modal.classList.remove('active');
+        currentTestStream = stopMediaStream(currentTestStream);
+        testVideo.srcObject = null;
+    }
+    
+    // Apply camera to box - deviceId is the browser deviceId now, not camera integer ID
+    async function applyCameraToBox(boxId, deviceId, cameraLabel) {
+        const imgElement = document.getElementById(`camera-frame-${boxId}`);
+        
+        console.log(`🎬 Applying deviceId ${deviceId} (${cameraLabel}) to Box ${parseInt(boxId) + 1}...`);
+        
+        try {
+            // Find the camera index in availableCamerasData
+            const cameraIndex = availableCamerasData.findIndex(cam => cam.deviceId === deviceId);
+            
+            if (cameraIndex === -1) {
+                throw new Error('Camera device not found');
+            }
+            
+            // Use the camera index as the camera_id for the backend
+            const backendCameraId = cameraIndex;
+            
+            // Initialize the camera on the backend
+            const initResponse = await fetch('/api/initialize-live-feed-camera/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken'),
+                },
+                body: JSON.stringify({
+                    camera_id: backendCameraId,
+                    box_id: boxId
+                })
+            });
+            
+            const initData = await initResponse.json();
+            
+            if (initData.success) {
+                // Update assignment with deviceId
+                cameraAssignments[boxId] = deviceId;
+                
+                // Update video feed
+                if (imgElement) {
+                    imgElement.src = `/video-feed/${backendCameraId}/?box_id=${boxId}&t=${Date.now()}`;
+                }
+                
+                console.log(`✅ Camera successfully assigned to Box ${parseInt(boxId) + 1}`);
+                
+                // Update all dropdowns
+                updateAllDropdowns();
+            } else {
+                throw new Error(initData.message || 'Failed to initialize camera');
+            }
+        } catch (error) {
+            console.error('Error applying camera:', error);
+            alert(`Failed to apply camera: ${error.message}`);
+            
+            // Revert dropdown
+            updateAllDropdowns();
+        }
+    }
+    
+    // Handle camera selection change
+    document.querySelectorAll('.camera-selector').forEach(selector => {
+        selector.addEventListener('change', function(e) {
+            const boxId = String(this.getAttribute('data-box-id'));
+            const selectedDeviceId = this.value;
+            const selectedCameraLabel = this.options[this.selectedIndex].text;
+            const previousValue = cameraAssignments[boxId] || null;
+            
+            console.log(`📝 Box ${boxId} dropdown changed to device ${selectedDeviceId}`);
+            
+            // If no camera selected (empty value)
+            if (!selectedDeviceId) {
+                // Release camera from this box
+                if (boxId in cameraAssignments) {
+                    delete cameraAssignments[boxId];
+                    
+                    const imgElement = document.getElementById(`camera-frame-${boxId}`);
+                    if (imgElement) {
+                        const fallbackCameraId = initialCameras[parseInt(boxId)] ?? 0;
+                        imgElement.src = `/video-feed/${fallbackCameraId}/?box_id=${boxId}&t=${Date.now()}`;
+                    }
+                }
+                updateAllDropdowns();
+                return;
+            }
+            
+            // Skip modal if already selected in this box
+            if (selectedDeviceId === previousValue) {
+                console.log('Same camera already selected, skipping modal');
+                return;
+            }
+            
+            // Store pending selection with deviceId
+            pendingSelection = {
+                selector: this,
+                boxId: boxId,
+                deviceId: selectedDeviceId,
+                cameraLabel: selectedCameraLabel,
+                previousValue: previousValue
+            };
+            
+            // Start camera test with deviceId
+            startCameraTest(selectedDeviceId);
+        });
+    });
+    
+    // Modal close handlers
+    closeModal.addEventListener('click', () => {
+        hideModal();
+        if (pendingSelection) {
+            // Revert dropdown to previous value
+            const { selector, previousValue } = pendingSelection;
+            selector.value = previousValue !== null ? previousValue : '';
+            pendingSelection = null;
+        }
+    });
+    
+    cancelCamera.addEventListener('click', () => {
+        hideModal();
+        if (pendingSelection) {
+            // Revert dropdown to previous value
+            const { selector, previousValue } = pendingSelection;
+            selector.value = previousValue !== null ? previousValue : '';
+            pendingSelection = null;
+        }
+    });
+    
+    // Confirm camera selection
+    confirmCamera.addEventListener('click', async () => {
+        if (pendingSelection) {
+            const { boxId, deviceId, cameraLabel } = pendingSelection;
+            
+            // Hide modal first
+            hideModal();
+            
+            // Apply camera to box with deviceId
+            await applyCameraToBox(boxId, deviceId, cameraLabel);
+            
+            pendingSelection = null;
+        }
+    });
+    
+    // Load cameras on page load - Use PROTECH method
+    getAvailableCameras();
+    
+    // Cleanup on page unload
+    window.addEventListener('beforeunload', () => {
+        const activeBoxes = Object.keys(cameraAssignments);
+        if (activeBoxes.length > 0) {
+            fetch('/api/stop-live-feed/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken'),
+                },
+                body: JSON.stringify({ boxes: activeBoxes }),
+                keepalive: true,
+            }).catch(err => console.warn('Warning: could not notify server to stop live feed', err));
+        }
+    });
+});
+</script>
+
+{% endblock content %}
