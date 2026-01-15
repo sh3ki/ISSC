@@ -178,26 +178,14 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # settings.py
 
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = 'smtp.gmail.com'  # Use your email provider
-EMAIL_PORT = 587
-EMAIL_USE_TLS = True
-# NOTE: The project previously allowed overriding these via environment variables.
-# For immediate testing with the SMTP credentials you provided, we set the
-# Gmail account and its App Password here. In production you should instead
-# set environment variables and NOT commit secrets in code.
-
-# Gmail account used for sending notifications
-EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER') or 'vinceerickquiozon14@gmail.com'
-
-# Gmail App Password (16 characters). Remove spaces if you copied it grouped.
-# The app password you provided was "viqb pwkq lhle rgez" — the actual
-# credential used by SMTP should have no spaces: "viqbpwklhle rgez" -> fix below.
-# Set EMAIL_HOST_PASSWORD via env var in production instead of editing this file.
-EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD') or 'viqbpwklhlergez'
-
-# Default from email for outgoing messages
-DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+# Email Configuration - Read from environment variables
+EMAIL_BACKEND = os.getenv('EMAIL_BACKEND', 'django.core.mail.backends.smtp.EmailBackend')
+EMAIL_HOST = os.getenv('EMAIL_HOST', 'smtp.gmail.com')
+EMAIL_PORT = int(os.getenv('EMAIL_PORT', '587'))
+EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS', 'True').lower() == 'true'
+EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', 'vinceerickquiozon14@gmail.com')
+EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', 'viqbpwklhlergez')
+DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', EMAIL_HOST_USER)
 
 # PhilSMS Configuration
 PHILSMS_API_BASE = os.getenv('PHILSMS_API_BASE', 'https://dashboard.philsms.com/api/v3')

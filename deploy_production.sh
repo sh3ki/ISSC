@@ -51,7 +51,7 @@ echo -e "${YELLOW}Step 5: Configuring production .env file...${NC}"
 # Create .env file with production settings
 cat > "$PRODUCTION_ENV_FILE" << 'EOF'
 # Django Settings
-SECRET_KEY='your-production-secret-key-change-this'
+SECRET_KEY='django-insecure-prod-key-change-in-production-2026'
 DEBUG=False
 ALLOWED_HOSTS=issc.study,www.issc.study,72.62.66.193
 
@@ -62,9 +62,14 @@ DB_PASSWORD=Issc@2024
 DB_HOST=127.0.0.1
 DB_PORT=3306
 
-# Email Configuration (Gmail)
+# Email Configuration (Gmail) - SMTP Settings
+EMAIL_BACKEND=django.core.mail.backends.smtp.EmailBackend
+EMAIL_HOST=smtp.gmail.com
+EMAIL_PORT=587
+EMAIL_USE_TLS=True
 EMAIL_HOST_USER=vinceerickquiozon14@gmail.com
 EMAIL_HOST_PASSWORD=viqbpwklhlergez
+DEFAULT_FROM_EMAIL=vinceerickquiozon14@gmail.com
 
 # PhilSMS Configuration
 PHILSMS_API_BASE=https://dashboard.philsms.com/api/v3
