@@ -132,6 +132,17 @@ body {
     transition: color 0.3s ease-in-out, transform 0.3s ease-in-out;
 }
 
+.nav-notification-dot {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    margin-left: 6px;
+    border-radius: 9999px;
+    background-color: #c1121f;
+    box-shadow: 0 0 0 2px #ffffff;
+    vertical-align: middle;
+}
+
 
 .secondary-navbar ul li a:hover {
     color: rgb(215, 215, 215);
