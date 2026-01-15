@@ -10,6 +10,69 @@
     margin-bottom: 2rem;
     color: #2d3436;
   }
+
+  /* Summary Cards */
+  .summary-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2.5rem;
+    max-width: 1200px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .stat-card {
+    background: linear-gradient(135deg, #fff 0%, #f8f9fa 100%);
+    border-radius: 12px;
+    padding: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    transition: all 0.3s ease;
+    border-left: 4px solid;
+  }
+
+  .stat-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+  }
+
+  .stat-card.stat-open {
+    border-left-color: #dc3545;
+  }
+
+  .stat-card.stat-pending {
+    border-left-color: #ffc107;
+  }
+
+  .stat-card.stat-closed {
+    border-left-color: #28a745;
+  }
+
+  .stat-card.stat-total {
+    border-left-color: #800000;
+  }
+
+  .stat-icon {
+    font-size: 2.5rem;
+    line-height: 1;
+  }
+
+  .stat-info h3 {
+    font-size: 2rem;
+    font-weight: 700;
+    margin: 0;
+    color: #2d3436;
+  }
+
+  .stat-info p {
+    font-size: 0.9rem;
+    color: #636e72;
+    margin: 0.25rem 0 0 0;
+    font-weight: 500;
+  }
   
   .graph-container {
     display: grid;
@@ -25,6 +88,19 @@
     width: 100%;
     max-width: 800px;
     margin: 0 auto;
+  }
+
+  /* Wide graph for status trends */
+  .graph-wide {
+    grid-column: 1 / -1;
+    background: #fff;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  }
+
+  /* Doughnut chart styling */
+  .graph-doughnut {
+    background: #fff;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
   }
 
   #monthFilterForm {
@@ -64,12 +140,14 @@
   .graph-section {
     padding: 1.5rem;
     border-radius: 12px;
+    background: #fff;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
     transition: transform 0.3s ease, box-shadow 0.3s ease;
   }
   
   .graph-section:hover {
     transform: translateY(-4px);
-    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.15);
   }
   
   
@@ -79,6 +157,10 @@
     display: block;
     margin: auto;
   }
+
+  .graph-wide canvas {
+    height: 350px !important;
+  }
   
   
   .graph-section h3 {
@@ -86,6 +168,15 @@
     font-weight: 500;
     color: #2d3436;  
     margin-bottom: 1rem;
+  }
+
+  .chart-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #2d3436;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid #f0f0f0;
   }
   
   
@@ -101,6 +192,12 @@
     }
     .graph-monthly, .graph-incident, .graph-department, .graph-vehicles {
       grid-column: span 1;
+    }
+    .graph-wide, .wide-centered-graph {
+      grid-column: span 1;
+    }
+    .summary-cards {
+      grid-template-columns: 1fr;
     }
   }
 
