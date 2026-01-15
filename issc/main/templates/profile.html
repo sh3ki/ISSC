@@ -1,0 +1,99 @@
+{% extends 'base.html' %}
+{% block title %}Profile{% endblock title %}
+{% load static %}
+
+{% block content %}
+<div class="container" style="max-width: 960px; width: 100%; margin: 0 auto;">
+  <h2 style="margin-bottom: 16px; color: #4b0000;">Profile</h2>
+
+  {% if messages %}
+    <div style="margin-bottom: 16px;">
+      {% for message in messages %}
+        <div style="padding: 10px 12px; border-radius: 6px; margin-bottom: 8px; background: {% if message.tags == 'error' %}#fee2e2{% else %}#e0f2fe{% endif %}; color: #111827; border: 1px solid {% if message.tags == 'error' %}#fca5a5{% else %}#bae6fd{% endif %};">
+          {{ message }}
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  <div style="display: grid; grid-template-columns: 1fr; gap: 16px;">
+    <div style="background: #fff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px; box-shadow: 0 2px 6px rgba(0,0,0,0.05);">
+      <h3 style="margin: 0 0 12px; color: #1f2937;">Basic Information</h3>
+      <form method="POST">
+        {% csrf_token %}
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px;">
+          <div>
+            <label style="font-weight: 600;">First Name</label>
+            <input type="text" name="first_name" required value="{{ account.first_name }}" style="width:100%; padding:10px; border:1px solid #d1d5db; border-radius:6px;">
+          </div>
+          <div>
+            <label style="font-weight: 600;">Middle Name</label>
+            <input type="text" name="middle_name" value="{{ account.middle_name }}" style="width:100%; padding:10px; border:1px solid #d1d5db; border-radius:6px;">
+          </div>
+          <div>
+            <label style="font-weight: 600;">Last Name</label>
+            <input type="text" name="last_name" required value="{{ account.last_name }}" style="width:100%; padding:10px; border:1px solid #d1d5db; border-radius:6px;">
+          </div>
+          <div>
+            <label style="font-weight: 600;">Email</label>
+            <input type="email" name="email" required value="{{ account.email }}" style="width:100%; padding:10px; border:1px solid #d1d5db; border-radius:6px;">
+          </div>
+          <div>
+            <label style="font-weight: 600;">Phone Number</label>
+            <input type="tel" name="contact_number" required value="{{ account.contact_number }}" style="width:100%; padding:10px; border:1px solid #d1d5db; border-radius:6px;">
+          </div>
+          <div>
+            <label style="font-weight: 600;">Gender</label>
+            <select name="gender" required style="width:100%; padding:10px; border:1px solid #d1d5db; border-radius:6px;">
+              <option value="M" {% if account.gender == 'M' %}selected{% endif %}>Male</option>
+              <option value="F" {% if account.gender == 'F' %}selected{% endif %}>Female</option>
+              <option value="O" {% if account.gender == 'O' %}selected{% endif %}>Other</option>
+            </select>
+          </div>
+        </div>
+        <div style="margin-top: 14px; text-align: right;">
+          <button type="submit" name="profile_update" style="background:#4b0000; color:#fff; padding:10px 16px; border:none; border-radius:6px; cursor:pointer;">Save Changes</button>
+        </div>
+      </form>
+    </div>
+
+    <div style="background: #fff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px; box-shadow: 0 2px 6px rgba(0,0,0,0.05);">
+      <h3 style="margin: 0 0 12px; color: #1f2937;">Change Password</h3>
+      <form method="POST">
+        {% csrf_token %}
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px;">
+          <div>
+            <label style="font-weight: 600;">Current Password</label>
+            <input type="password" name="current_password" required style="width:100%; padding:10px; border:1px solid #d1d5db; border-radius:6px;">
+          </div>
+          <div>
+            <label style="font-weight: 600;">New Password</label>
+            <input type="password" name="new_password" required style="width:100%; padding:10px; border:1px solid #d1d5db; border-radius:6px;">
+          </div>
+          <div>
+            <label style="font-weight: 600;">Confirm New Password</label>
+            <input type="password" name="confirm_password" required style="width:100%; padding:10px; border:1px solid #d1d5db; border-radius:6px;">
+          </div>
+        </div>
+        <div style="margin-top: 14px; text-align: right;">
+          <button type="submit" name="password_change" style="background:#374151; color:#fff; padding:10px 16px; border:none; border-radius:6px; cursor:pointer;">Update Password</button>
+        </div>
+      </form>
+    </div>
+
+    <div style="background: #fff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px; box-shadow: 0 2px 6px rgba(0,0,0,0.05);">
+      <h3 style="margin: 0 0 8px; color: #b91c1c;">Delete Account</h3>
+      <p style="margin: 0 0 12px; color: #6b7280;">This action cannot be undone. Type <strong>DELETE</strong> or your username to confirm.</p>
+      <form method="POST">
+        {% csrf_token %}
+        <div style="display: grid; grid-template-columns: 1fr; gap: 12px;">
+          <input type="text" name="confirm_delete" placeholder="Type DELETE or your username" style="width:100%; padding:10px; border:1px solid #d1d5db; border-radius:6px;">
+        </div>
+        <div style="margin-top: 14px; text-align: right;">
+          <button type="submit" name="delete_account" style="background:#dc2626; color:#fff; padding:10px 16px; border:none; border-radius:6px; cursor:pointer;">Delete Account</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock content %}
