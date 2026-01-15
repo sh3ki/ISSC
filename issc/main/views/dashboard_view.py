@@ -17,16 +17,17 @@ from django.utils import timezone
 from django.template.loader import render_to_string
 # import pdfkit  # Temporarily commented out
 
-def incident_rate():
-    current_year = now().year
-    reports = IncidentReport.objects.filter(date__year=current_year)
+def incident_rate(selected_year=None):
+    if selected_year is None:
+        selected_year = now().year
+    
+    reports = IncidentReport.objects.filter(date__year=selected_year)
 
     # Count incidents per month
     incident_counts = Counter(report.date.month for report in reports)
 
-    # Ensure all months are represented (only up to current month or all 12 months)
-    current_month = now().month
-    months = list(range(1, min(current_month + 1, 13)))  # Don't exceed month 12
+    # Show all 12 months for complete graph
+    months = list(range(1, 13))
     counts = [incident_counts.get(m, 0) for m in months]
 
     # Calculate percentage increase
@@ -47,10 +48,12 @@ def incident_rate():
         "percentage_increase": percentage_increase
     }
 
-def incident_status_breakdown():
+def incident_status_breakdown(selected_year=None):
     """Get current breakdown of incidents by status"""
-    current_year = now().year
-    reports = IncidentReport.objects.filter(date__year=current_year, is_archived=False)
+    if selected_year is None:
+        selected_year = now().year
+    
+    reports = IncidentReport.objects.filter(date__year=selected_year, is_archived=False)
     
     status_counts = Counter(report.status for report in reports)
     
@@ -64,11 +67,13 @@ def incident_status_breakdown():
         "total": sum(status_counts.values())
     }
 
-def monthly_status_trends():
+def monthly_status_trends(selected_year=None):
     """Get monthly trends for open and pending cases"""
-    current_year = now().year
-    current_month = now().month
-    months = list(range(1, min(current_month + 1, 13)))
+    if selected_year is None:
+        selected_year = now().year
+    
+    # Show all 12 months for complete graph
+    months = list(range(1, 13))
     
     open_counts = []
     pending_counts = []
@@ -76,7 +81,7 @@ def monthly_status_trends():
     
     for month in months:
         reports = IncidentReport.objects.filter(
-            date__year=current_year,
+            date__year=selected_year,
             date__month=month,
             is_archived=False
         )
@@ -91,17 +96,19 @@ def monthly_status_trends():
         "closed_cases": closed_counts
     }
 
-def resolution_time_analysis():
+def resolution_time_analysis(selected_year=None):
     """Analyze average resolution times"""
-    current_year = now().year
-    current_month = now().month
-    months = list(range(1, min(current_month + 1, 13)))
+    if selected_year is None:
+        selected_year = now().year
+    
+    # Show all 12 months for complete graph
+    months = list(range(1, 13))
     
     avg_resolution_days = []
     
     for month in months:
         closed_reports = IncidentReport.objects.filter(
-            date__year=current_year,
+            date__year=selected_year,
             date__month=month,
             status='closed',
             is_archived=False
@@ -125,16 +132,21 @@ def resolution_time_analysis():
 
 
 
-def monthly_incident_graph():
-    incidents = IncidentReport.objects.all()
-    if not incidents.exists():
-        return None
-
-    months = [incident.date.strftime('%B') for incident in incidents]
-    month_counts = Counter(months)
+def monthly_incident_graph(selected_year=None):
+    if selected_year is None:
+        selected_year = now().year
+        
+    incidents = IncidentReport.objects.filter(date__year=selected_year)
+    
+    # Get all 12 months for complete visualization
     all_months = list(calendar.month_name)[1:]
-
-    incident_data = [month_counts.get(month, 0) for month in all_months]
+    
+    if incidents.exists():
+        months = [incident.date.strftime('%B') for incident in incidents]
+        month_counts = Counter(months)
+        incident_data = [month_counts.get(month, 0) for month in all_months]
+    else:
+        incident_data = [0] * 12
 
     # Return raw data
     return {
@@ -270,26 +282,46 @@ def base(request):
     if user.privilege == 'student':
         return redirect('about')
 
-    monthly_incident_data = monthly_incident_graph()
+    # Get filter parameters
+    selected_year = request.GET.get('year')
+    selected_month = request.GET.get('month')
+    
+    # Convert year to int if provided, otherwise use current year
+    if selected_year:
+        try:
+            selected_year = int(selected_year)
+        except ValueError:
+            selected_year = now().year
+    else:
+        selected_year = now().year
+    
+    # Get available years for filter dropdown
+    years = IncidentReport.objects.dates('date', 'year', order='DESC')
+    available_years = [date.year for date in years]
+    if not available_years:
+        available_years = [now().year]
+
+    monthly_incident_data = monthly_incident_graph(selected_year)
     department_incident_data = department_incident_graph()
     vehicle_data = vehicle_graph()
-    incident_data = incident_rate()
-    selected_month = request.GET.get('month')
+    incident_data = incident_rate(selected_year)
     incident_subject = incident_type(selected_month)
 
     # Pass the image data along with other context variables
     context = {
         'user_role': user.privilege,  
         'user_data': user,
-        'monthly_incident_data': monthly_incident_graph(),
-        'department_incident_data': department_incident_graph(),
-        'vehicle_data': vehicle_graph(),
-        'incident_data': incident_rate(),
+        'monthly_incident_data': monthly_incident_data,
+        'department_incident_data': department_incident_data,
+        'vehicle_data': vehicle_data,
+        'incident_data': incident_data,
         'incident_type': incident_subject,
         'selected_month': selected_month or '',
-        'status_breakdown': incident_status_breakdown(),
-        'status_trends': monthly_status_trends(),
-        'resolution_analysis': resolution_time_analysis()
+        'selected_year': selected_year,
+        'available_years': available_years,
+        'status_breakdown': incident_status_breakdown(selected_year),
+        'status_trends': monthly_status_trends(selected_year),
+        'resolution_analysis': resolution_time_analysis(selected_year)
     }
 
     print(incident_subject)
