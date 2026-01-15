@@ -90,6 +90,13 @@
       margin-bottom: 30px;
     }
 
+    .status-filter {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      margin: 10px 0 30px;
+    }
+
     .filter-buttons {
       display: flex;
       justify-content: center;
@@ -120,6 +127,10 @@
       color: white;
       border-color: #800000;
       box-shadow: 0 4px 12px rgba(128, 0, 0, 0.3);
+    }
+
+    .status-filter .filter-btn {
+      min-width: 90px;
     }
 
     .filter-form-container {
@@ -423,6 +434,13 @@
             </form>
           </div>
         </div>
+
+        <div class="status-filter">
+          <button class="filter-btn status-filter-btn" data-status="all" onclick="setStatusFilter('all')">All</button>
+          <button class="filter-btn status-filter-btn" data-status="open" onclick="setStatusFilter('open')">Open</button>
+          <button class="filter-btn status-filter-btn" data-status="pending" onclick="setStatusFilter('pending')">Ongoing</button>
+          <button class="filter-btn status-filter-btn" data-status="closed" onclick="setStatusFilter('closed')">Closed</button>
+        </div>
       </div>
 
       {% if request.GET.filter %}
@@ -451,6 +469,35 @@
         else if (type === 'semester') document.getElementById('semesterFilter').style.display = 'block';
         else if (type === 'year') document.getElementById('yearFilter').style.display = 'block';
       }
+
+      // Status filter for table rows
+      function setStatusFilter(status) {
+        const rows = document.querySelectorAll('tbody tr');
+        const buttons = document.querySelectorAll('.status-filter-btn');
+
+        buttons.forEach(btn => {
+          if (btn.dataset.status === status) {
+            btn.classList.add('active');
+          } else {
+            btn.classList.remove('active');
+          }
+        });
+
+        rows.forEach(row => {
+          const rowStatus = row.getAttribute('data-status');
+          if (status === 'all' || rowStatus === status) {
+            row.style.display = '';
+          } else {
+            row.style.display = 'none';
+          }
+        });
+
+        // Persist status filter in the URL so refresh/export uses the same view
+        const params = new URLSearchParams(window.location.search);
+        params.set('status', status);
+        const newUrl = `${window.location.pathname}?${params.toString()}`;
+        window.history.replaceState({}, '', newUrl);
+      }
     </script>
 
       <div class="table-wrapper">
@@ -478,7 +525,7 @@
           </thead>
           <tbody>
             {% for incident in incidents %}
-            <tr>
+            <tr data-status="{{ incident.status }}">
               <td>{{ incident.date_joined|date:'M. d, Y, h:i a' }}</td>
               <td class="runtime-cell" 
                   data-created="{{ incident.date_joined|date:'c' }}"
@@ -573,6 +620,9 @@
     
     // Calculate on load
     calculateAllRuntimes();
+    const params = new URLSearchParams(window.location.search);
+    const statusFromUrl = params.get('status') || 'all';
+    setStatusFilter(statusFromUrl);
     
     // Update every 30 seconds for open/pending cases
     setInterval(calculateAllRuntimes, 30000);
