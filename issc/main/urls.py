@@ -30,6 +30,7 @@ urlpatterns = [
     path('get-user/', auth_view.getUser, name='get_user'),
     path('get-admin-contact/', auth_view.get_admin_contact, name='get_admin_contact'),
     path('save-admin-contact/', auth_view.save_admin_contact, name='save_admin_contact'),
+    path('profile/', auth_view.profile, name='profile'),
 
     path("account/password-reset/", auth_view.CustomPasswordResetView.as_view(), name="password_reset"),
     # path("account/password-reset/done/", auth_view.CustomPasswordResetDoneView.as_view(), name="password_reset_done"),
