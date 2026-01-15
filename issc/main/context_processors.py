@@ -36,7 +36,7 @@ def incident_notifications(request):
     ).filter(Q(last_updated_by__isnull=True) | Q(last_updated_by=""))
 
     if account.privilege == "faculty":
-        incident_qs = incident_qs.filter(department__iexact=account.department)
+        incident_qs = incident_qs.filter(department__iexact=account.department).exclude(faculty_involved=account)
     elif account.privilege == "student":
         incident_qs = incident_qs.filter(id_number=account.id_number)
     else:  # admin
