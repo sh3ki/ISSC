@@ -130,6 +130,60 @@ def resolution_time_analysis(selected_year=None):
         "avg_days": avg_resolution_days
     }
 
+def incidents_by_category(selected_year=None):
+    """Analyze incidents by category over time using keyword detection"""
+    if selected_year is None:
+        selected_year = now().year
+    
+    # Define categories with keywords
+    categories = {
+        'Theft': ['theft', 'steal', 'stolen', 'missing', 'lost'],
+        'Vandalism': ['vandalism', 'damage', 'broken', 'destroyed', 'graffiti'],
+        'Emergency': ['emergency', 'urgent', 'accident', 'injury', 'medical'],
+        'Security': ['security', 'suspicious', 'trespassing', 'unauthorized'],
+        'Harassment': ['harassment', 'bullying', 'threat', 'intimidation'],
+        'Other': []  # Will catch everything else
+    }
+    
+    # Show all 12 months for complete graph
+    months = list(range(1, 13))
+    
+    # Initialize data structure
+    category_data = {cat: [0] * 12 for cat in categories.keys()}
+    
+    for month in months:
+        reports = IncidentReport.objects.filter(
+            date__year=selected_year,
+            date__month=month,
+            is_archived=False
+        )
+        
+        for report in reports:
+            subject_lower = report.subject.lower()
+            incident_lower = report.incident.lower()
+            combined_text = f"{subject_lower} {incident_lower}"
+            
+            categorized = False
+            for category, keywords in categories.items():
+                if category == 'Other':
+                    continue
+                for keyword in keywords:
+                    if keyword in combined_text:
+                        category_data[category][month - 1] += 1
+                        categorized = True
+                        break
+                if categorized:
+                    break
+            
+            # If not categorized, add to Other
+            if not categorized:
+                category_data['Other'][month - 1] += 1
+    
+    return {
+        "months": [calendar.month_abbr[m] for m in months],
+        "categories": category_data
+    }
+
 
 
 def monthly_incident_graph(selected_year=None):
@@ -321,7 +375,8 @@ def base(request):
         'available_years': available_years,
         'status_breakdown': incident_status_breakdown(selected_year),
         'status_trends': monthly_status_trends(selected_year),
-        'resolution_analysis': resolution_time_analysis(selected_year)
+        'resolution_analysis': resolution_time_analysis(selected_year),
+        'category_trends': incidents_by_category(selected_year)
     }
 
     print(incident_subject)
