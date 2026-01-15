@@ -21,6 +21,7 @@ from django.contrib.auth.views import PasswordResetView
 from django.contrib import messages
 from django.core.mail import send_mail, BadHeaderError, get_connection
 from django.conf import settings
+from django.contrib.auth.hashers import check_password
 
 import pandas as pd
 from datetime import datetime
@@ -282,6 +283,72 @@ def account_details(request, username):
 def logout(request):
     auth_logout(request)
     return redirect('login')
+
+
+@login_required(login_url='/login/')
+def profile(request):
+    """Allow any logged-in user (admin/faculty/student) to manage their profile."""
+    account = get_object_or_404(AccountRegistration, username=request.user.username)
+    user_data = AccountRegistration.objects.filter(username=request.user.username).values().first()
+
+    if request.method == 'POST':
+        # Update profile details
+        if 'profile_update' in request.POST:
+            first_name = request.POST.get('first_name', '').strip()
+            middle_name = request.POST.get('middle_name', '').strip()
+            last_name = request.POST.get('last_name', '').strip()
+            email = request.POST.get('email', '').strip()
+            contact_number = request.POST.get('contact_number', '').strip()
+            gender = request.POST.get('gender', '').strip()
+
+            # Unique email check
+            if AccountRegistration.objects.filter(email=email).exclude(pk=account.pk).exists():
+                messages.error(request, 'Email is already in use by another account.')
+            else:
+                account.first_name = first_name
+                account.middle_name = middle_name
+                account.last_name = last_name
+                account.email = email
+                account.contact_number = contact_number
+                account.gender = gender
+                account.save()
+                messages.success(request, 'Profile updated successfully.')
+
+        # Change password
+        elif 'password_change' in request.POST:
+            current_password = request.POST.get('current_password', '')
+            new_password = request.POST.get('new_password', '')
+            confirm_password = request.POST.get('confirm_password', '')
+
+            if not account.check_password(current_password):
+                messages.error(request, 'Current password is incorrect.')
+            elif new_password != confirm_password:
+                messages.error(request, 'New passwords do not match.')
+            elif len(new_password) < 8:
+                messages.error(request, 'New password must be at least 8 characters.')
+            else:
+                account.set_password(new_password)
+                account.save()
+                auth_login(request, account)
+                messages.success(request, 'Password changed successfully.')
+
+        # Delete account
+        elif 'delete_account' in request.POST:
+            confirm_text = request.POST.get('confirm_delete', '').strip().lower()
+            if confirm_text in ['delete', account.username.lower()]:
+                auth_logout(request)
+                account.delete()
+                return redirect('login')
+            else:
+                messages.error(request, 'Type DELETE or your username to confirm account deletion.')
+
+    context = {
+        'user_role': account.privilege,
+        'user_data': user_data,
+        'account': account,
+    }
+    template = loader.get_template('profile.html')
+    return HttpResponse(template.render(context, request))
 
 def import_data(request):
     template = loader.get_template('import.html')
