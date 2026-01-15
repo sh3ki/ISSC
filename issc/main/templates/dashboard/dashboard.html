@@ -132,8 +132,8 @@
         borderWidth: 2,
         borderRadius: 8,
         hoverBackgroundColor: '#a52a2a',
-        barThickness: 50,
-        maxBarThickness: 80
+        barThickness: 30,
+        maxBarThickness: 40
       }]
     },
     options: {
@@ -280,7 +280,9 @@
           borderColor: '#dc3545',
           borderWidth: 2,
           borderRadius: 6,
-          hoverBackgroundColor: '#c82333'
+          hoverBackgroundColor: '#c82333',
+          barThickness: 25,
+          maxBarThickness: 35
         },
         {
           label: 'Pending Cases',
@@ -289,7 +291,9 @@
           borderColor: '#ffc107',
           borderWidth: 2,
           borderRadius: 6,
-          hoverBackgroundColor: '#e0a800'
+          hoverBackgroundColor: '#e0a800',
+          barThickness: 25,
+          maxBarThickness: 35
         },
         {
           label: 'Closed Cases',
@@ -298,7 +302,9 @@
           borderColor: '#28a745',
           borderWidth: 2,
           borderRadius: 6,
-          hoverBackgroundColor: '#218838'
+          hoverBackgroundColor: '#218838',
+          barThickness: 25,
+          maxBarThickness: 35
         }
       ]
     },
@@ -392,8 +398,8 @@
         borderWidth: 2,
         borderRadius: 8,
         hoverBackgroundColor: '#138496',
-        barThickness: 50,
-        maxBarThickness: 80
+        barThickness: 30,
+        maxBarThickness: 40
       }]
     },
     options: {
@@ -508,7 +514,7 @@
       }
     });
 
-  // Graph: Incident Growth Rate (Line Chart with Bars)
+  // Graph: Incident Growth Rate (Improved Layout)
   new Chart(document.getElementById('incidentRateChart'), {
     type: 'bar',
     data: {
@@ -521,26 +527,29 @@
           borderColor: '#5a0000',
           borderWidth: 2,
           borderRadius: 6,
-          hoverBackgroundColor: '#5a0000',
+          hoverBackgroundColor: '#a52a2a',
           yAxisID: 'y',
-          barThickness: 40
+          barThickness: 30,
+          maxBarThickness: 40,
+          order: 2
         },
         {
           label: '% Change',
           data: incidentRate.percentage_increase,
           type: 'line',
           borderColor: '#d63031',
-          backgroundColor: 'rgba(214, 48, 49, 0.2)',
-          borderDash: [5, 5],
-          tension: 0.3,
+          backgroundColor: 'rgba(214, 48, 49, 0)',
+          borderDash: [8, 4],
+          tension: 0.4,
           fill: false,
           yAxisID: 'y1',
           borderWidth: 3,
-          pointRadius: 8,
-          pointHoverRadius: 10,
+          pointRadius: 6,
+          pointHoverRadius: 8,
           pointBackgroundColor: '#d63031',
           pointBorderColor: '#fff',
-          pointBorderWidth: 2
+          pointBorderWidth: 2,
+          order: 1
         }
       ]
     },
@@ -606,7 +615,9 @@
         },
         y1: {
           position: 'right',
-          beginAtZero: false,
+          beginAtZero: true,
+          suggestedMin: -100,
+          suggestedMax: 100,
           grid: { 
             drawOnChartArea: false 
           },
@@ -631,6 +642,11 @@
         x: {
           grid: {
             display: false
+          },
+          ticks: {
+            font: {
+              size: 11
+            }
           },
           title: {
             display: true,
