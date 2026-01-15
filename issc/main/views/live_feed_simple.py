@@ -26,6 +26,7 @@ import os
 from datetime import datetime
 from django.conf import settings
 from ..utils.philsms import send_sms_async, PHILSMS_DEFAULT_RECIPIENT
+import platform
 
 # DeepFace library with TensorFlow backend - reliable and well-maintained
 print(f"✅ Face Recognition using DeepFace library (TensorFlow backend)")
@@ -46,6 +47,36 @@ unauthorized_last_save = {}  # {box_id: timestamp of last save}
 unauthorized_save_lock = Lock()
 authorized_last_save = {}  # {(box_id, id_number): timestamp}
 authorized_save_lock = Lock()
+
+
+def find_camera_index_by_label(target_label):
+    """Best-effort mapping of a browser camera label to a Windows DirectShow index."""
+    if not target_label:
+        return None
+
+    # Only attempt this on Windows where DirectShow device order is available
+    if platform.system().lower() != 'windows':
+        return None
+
+    try:
+        from pygrabber.dshow_graph import FilterGraph
+
+        graph = FilterGraph()
+        devices = graph.get_input_devices()  # Ordered as DirectShow presents them
+        target_lower = target_label.lower()
+
+        for idx, name in enumerate(devices):
+            if target_lower in name.lower():
+                print(f"🔎 Matched camera label '{target_label}' to DirectShow device '{name}' at index {idx}")
+                return idx
+
+        print(f"⚠️ No DirectShow device matched label '{target_label}'. Devices: {devices}")
+    except ImportError:
+        print("⚠️ pygrabber not installed; skipping DirectShow camera label mapping. Run `pip install pygrabber` to enable precise mapping.")
+    except Exception as e:
+        print(f"⚠️ Could not enumerate DirectShow devices: {e}")
+
+    return None
 
 # Recognition settings
 RECOGNITION_THRESHOLD = 0.45  # Cosine distance threshold (smaller = more similar)
@@ -715,8 +746,13 @@ def initialize_live_feed_camera(request):
         data = json_module.loads(request.body)
         box_id = str(data.get('box_id'))
         camera_id = int(data.get('camera_id'))
+        camera_label = data.get('camera_label', '')
+        device_id = data.get('device_id', '')
         
-        print(f"🎬 Initializing Camera {camera_id} for Box {box_id} with face recognition...")
+        print(f"🎬 Initializing camera for Box {box_id}:")
+        print(f"   Requested camera_id: {camera_id}")
+        print(f"   Camera label: {camera_label}")
+        print(f"   Device ID: {device_id[:20]}...")
         
         # Note: Face embeddings are already loaded when live-feed page loaded
         # No need to check/load here
@@ -727,8 +763,34 @@ def initialize_live_feed_camera(request):
             live_feed_cameras[box_id].release()
             live_feed_cameras[box_id] = None
         
+        # Try to map by label first (Windows DirectShow)
+        actual_camera_id = find_camera_index_by_label(camera_label)
+
+        # If not found by label, try the provided index
+        if actual_camera_id is None:
+            print("🔍 Searching for a working camera index...")
+            max_cameras_to_test = 10
+
+            for test_id in range(max_cameras_to_test):
+                test_cap = cv2.VideoCapture(test_id, cv2.CAP_DSHOW)
+                if test_cap.isOpened():
+                    ret, frame = test_cap.read()
+                    if ret and frame is not None:
+                        print(f"   ✓ Found working camera at index {test_id}")
+                        if test_id == camera_id:
+                            actual_camera_id = test_id
+                            test_cap.release()
+                            print(f"   ✅ Using requested camera index {actual_camera_id}")
+                            break
+                    test_cap.release()
+
+        if actual_camera_id is None:
+            # Fallback to the provided camera_id
+            actual_camera_id = camera_id
+            print(f"   ⚠️ Using fallback camera index {actual_camera_id}")
+        
         # Open the selected camera
-        cap = cv2.VideoCapture(camera_id, cv2.CAP_DSHOW)
+        cap = cv2.VideoCapture(actual_camera_id, cv2.CAP_DSHOW)
         
         # Set camera properties for optimal performance
         cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
@@ -737,20 +799,20 @@ def initialize_live_feed_camera(request):
         cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)  # Minimize latency
         
         if not cap.isOpened():
-            print(f"❌ Failed to open Camera {camera_id}")
+            print(f"❌ Failed to open Camera {actual_camera_id}")
             return JsonResponse({
                 'success': False,
-                'error': f'Failed to open camera {camera_id}'
+                'error': f'Failed to open camera {actual_camera_id}'
             })
         
         # Test read a frame
         ret, frame = cap.read()
         if not ret or frame is None:
-            print(f"❌ Camera {camera_id} opened but cannot read frames")
+            print(f"❌ Camera {actual_camera_id} opened but cannot read frames")
             cap.release()
             return JsonResponse({
                 'success': False,
-                'error': f'Camera {camera_id} cannot read frames'
+                'error': f'Camera {actual_camera_id} cannot read frames'
             })
         
         # Store camera
@@ -760,7 +822,7 @@ def initialize_live_feed_camera(request):
         
         # Start frame capture thread (reads from camera, outputs to raw_frame_queue)
         def capture_frames(box_id, camera_id):
-            print(f"📹 Frame capture thread started for Box {box_id}, Camera {camera_id}")
+            print(f"📹 Frame capture thread started for Box {box_id}, Camera {camera_id} ({camera_label})")
             while True:
                 try:
                     # Defensive lookups to avoid KeyError if the box is stopped
@@ -791,20 +853,22 @@ def initialize_live_feed_camera(request):
                     time.sleep(0.1)
             print(f"🛑 Frame capture thread stopped for Box {box_id}")
         
-        capture_thread = Thread(target=capture_frames, args=(box_id, camera_id), daemon=True)
+        capture_thread = Thread(target=capture_frames, args=(box_id, actual_camera_id), daemon=True)
         capture_thread.start()
         live_feed_threads[box_id] = capture_thread
-        
+
         # Start face recognition thread (reads from raw_frame_queue, processes, outputs to live_feed_queue)
-        recognition_thread = Thread(target=face_recognition_worker, args=(box_id, camera_id), daemon=True)
+        recognition_thread = Thread(target=face_recognition_worker, args=(box_id, actual_camera_id), daemon=True)
         recognition_thread.start()
         face_recognition_threads[box_id] = recognition_thread
-        
-        print(f"✅ Camera {camera_id} initialized successfully for Box {box_id} with face recognition")
-        
+
+        print(f"✅ Camera '{camera_label}' (index {actual_camera_id}) initialized successfully for Box {box_id}")
+
         return JsonResponse({
             'success': True,
-            'message': f'Camera {camera_id} initialized for Box {box_id}'
+            'message': f'Camera {actual_camera_id} initialized for Box {box_id}',
+            'camera_id': actual_camera_id,
+            'camera_label': camera_label
         })
         
     except Exception as e:
