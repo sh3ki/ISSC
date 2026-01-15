@@ -44,13 +44,63 @@ def get_database_config():
         }
     return None
 
-def create_mysql_backup(db_config, backup_file):
-    """Create MySQL database backup"""
+def find_mysqldump():
+    """Find mysqldump executable on Windows and Linux"""
     system = platform.system()
     
-    # Base command without password
+    # Try to find in PATH first
+    import shutil
+    mysqldump_path = shutil.which('mysqldump')
+    if mysqldump_path:
+        return mysqldump_path
+    
+    # Windows: Search common MySQL installation directories
+    if system == 'Windows':
+        common_paths = [
+            r'C:\laragon\bin\mysql\mysql-*\bin\mysqldump.exe',
+            r'C:\Program Files\MySQL\MySQL Server 8.0\bin\mysqldump.exe',
+            r'C:\Program Files\MySQL\MySQL Server 8.4\bin\mysqldump.exe',
+            r'C:\Program Files\MySQL\MySQL Server 5.7\bin\mysqldump.exe',
+            r'C:\Program Files (x86)\MySQL\MySQL Server 8.0\bin\mysqldump.exe',
+            r'C:\Program Files (x86)\MySQL\MySQL Server 5.7\bin\mysqldump.exe',
+            r'C:\xampp\mysql\bin\mysqldump.exe',
+            r'C:\wamp64\bin\mysql\mysql8.0.*\bin\mysqldump.exe',
+        ]
+        
+        for path in common_paths:
+            # Handle wildcards for version numbers
+            if '*' in path or 'x' in path:
+                import glob
+                matches = glob.glob(path.replace('x', '*'))
+                if matches:
+                    return matches[0]
+            elif os.path.exists(path):
+                return path
+    
+    return None
+
+def create_mysql_backup(db_config, backup_file):
+    """Create MySQL database backup - works on both Windows and Linux"""
+    system = platform.system()
+    
+    # Find mysqldump executable
+    mysqldump_cmd = find_mysqldump()
+    if not mysqldump_cmd:
+        if system == 'Linux':
+            return False, "mysqldump not found. Install with: sudo apt-get install mysql-client"
+        else:
+            return False, "mysqldump not found. Install MySQL or add MySQL bin directory to system PATH. Common location: C:\\Program Files\\MySQL\\MySQL Server X.X\\bin"
+    
+    print(f"Using mysqldump: {mysqldump_cmd}")
+    
+    # Prepare environment variables for password (works on all systems)
+    env = os.environ.copy()
+    if db_config['password']:
+        env['MYSQL_PWD'] = db_config['password']
+    
+    # Build mysqldump command (no password in command line for security)
     cmd = [
-        'mysqldump',
+        mysqldump_cmd,
         '-h', db_config['host'],
         '-P', str(db_config['port']),
         '-u', db_config['user'],
@@ -58,71 +108,69 @@ def create_mysql_backup(db_config, backup_file):
         '--routines',
         '--triggers',
         '--events',
-        '--skip-comments',
         '--add-drop-table',
+        '--result-file', backup_file,  # Write directly to file
         db_config['name']
     ]
     
-    # Prepare environment variables for password (more secure for Linux)
-    env = os.environ.copy()
-    
-    if system == 'Windows':
-        # Windows: Add password directly to command if provided
-        if db_config['password']:
-            cmd.insert(4, f'-p{db_config["password"]}')
-    else:
-        # Linux/Ubuntu: Use environment variable for password (more secure)
-        if db_config['password']:
-            env['MYSQL_PWD'] = db_config['password']
-    
     try:
-        # Execute mysqldump and capture output
+        print(f"Executing mysqldump command: {' '.join(cmd[:-1])} [database_name]")
+        
+        # Execute mysqldump
         result = subprocess.run(
             cmd, 
-            stdout=subprocess.PIPE, 
             stderr=subprocess.PIPE, 
             text=True,
             encoding='utf-8',
             errors='replace',
-            env=env
+            env=env,
+            timeout=300  # 5 minute timeout
         )
         
-        # Check for errors (ignore password warning on stderr)
+        # Check for errors
         if result.returncode != 0:
             error_msg = result.stderr.strip()
-            # Filter out password warning which is common and not an actual error
-            if 'mysql: [Warning] Using a password on the command line' not in error_msg:
-                print(f"mysqldump error: {error_msg}")
-                return False, f"mysqldump failed: {error_msg}"
+            print(f"mysqldump error (code {result.returncode}): {error_msg}")
+            
+            # Clean up any partial file
+            if os.path.exists(backup_file):
+                try:
+                    os.remove(backup_file)
+                except:
+                    pass
+            
+            return False, f"mysqldump failed: {error_msg}"
         
-        # Check if output is not empty
-        if not result.stdout or len(result.stdout.strip()) == 0:
-            return False, "mysqldump produced empty output. Check database connection and credentials."
+        # Verify the file was created and has content
+        if not os.path.exists(backup_file):
+            return False, "Backup file was not created by mysqldump"
         
-        # Write the SQL dump to file with proper permissions on Linux
-        with open(backup_file, 'w', encoding='utf-8') as f:
-            f.write(result.stdout)
+        file_size = os.path.getsize(backup_file)
+        if file_size == 0:
+            os.remove(backup_file)
+            return False, "mysqldump created an empty file. Check database connection and credentials."
         
-        # Set file permissions on Linux (read/write for owner only)
+        # Set secure file permissions on Linux
         if system != 'Windows':
             os.chmod(backup_file, 0o600)
         
-        # Verify the file was created and has content
-        if os.path.exists(backup_file):
-            file_size = os.path.getsize(backup_file)
-            if file_size > 0:
-                print(f"Backup created successfully: {backup_file} ({file_size} bytes)")
-                return True, "Backup created successfully"
-            else:
-                return False, "Backup file is empty"
-        else:
-            return False, "Backup file was not created"
+        print(f"Backup created successfully: {backup_file} ({file_size} bytes)")
+        return True, "Backup created successfully"
             
-    except FileNotFoundError:
-        system_hint = "apt install mysql-client" if system == 'Linux' else "Install MySQL client tools"
-        return False, f"mysqldump command not found. Please install MySQL client: {system_hint}"
+    except subprocess.TimeoutExpired:
+        if os.path.exists(backup_file):
+            try:
+                os.remove(backup_file)
+            except:
+                pass
+        return False, "mysqldump timed out (5 minutes). Database may be too large or connection is slow."
     except Exception as e:
         print(f"Backup exception: {str(e)}")
+        if os.path.exists(backup_file):
+            try:
+                os.remove(backup_file)
+            except:
+                pass
         return False, f"Error creating backup: {str(e)}"
 
 def create_sqlite_backup(db_config, backup_file):
