@@ -9,20 +9,71 @@
 <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
 
 <div class="dashboard-wrapper">
-  <h2>Incident Overview</h2>
+  <h2>Incident Overview & Analytics</h2>
+
+  <!-- Summary Cards -->
+  <div class="summary-cards">
+    <div class="stat-card stat-open">
+      <div class="stat-icon">⚠️</div>
+      <div class="stat-info">
+        <h3>{{ status_breakdown.counts.0 }}</h3>
+        <p>Open Cases</p>
+      </div>
+    </div>
+    <div class="stat-card stat-pending">
+      <div class="stat-icon">🔄</div>
+      <div class="stat-info">
+        <h3>{{ status_breakdown.counts.1 }}</h3>
+        <p>Pending Cases</p>
+      </div>
+    </div>
+    <div class="stat-card stat-closed">
+      <div class="stat-icon">✅</div>
+      <div class="stat-info">
+        <h3>{{ status_breakdown.counts.2 }}</h3>
+        <p>Resolved Cases</p>
+      </div>
+    </div>
+    <div class="stat-card stat-total">
+      <div class="stat-icon">📊</div>
+      <div class="stat-info">
+        <h3>{{ status_breakdown.total }}</h3>
+        <p>Total Active</p>
+      </div>
+    </div>
+  </div>
 
   <div class="graph-container">
 
+    <!-- Row 1: Monthly Incidents and Status Breakdown -->
     <div class="graph-section graph1">
-      <h3 class="chart-title">Monthly Incident</h3>
+      <h3 class="chart-title">Monthly Incident Overview</h3>
       <canvas id="monthlyIncidentsChart" class="chart-canvas"></canvas>
     </div>
 
+    <div class="graph-section graph-doughnut">
+      <h3 class="chart-title">Current Status Distribution</h3>
+      <canvas id="statusBreakdownChart" class="chart-canvas"></canvas>
+    </div>
+
+    <!-- Row 2: Status Trends -->
+    <div class="graph-section graph-wide">
+      <h3 class="chart-title">Case Status Trends (Open vs Pending vs Closed)</h3>
+      <canvas id="statusTrendsChart" class="chart-canvas"></canvas>
+    </div>
+
+    <!-- Row 3: Resolution Analysis and Incident Rate -->
     <div class="graph-section graph3">
-      <h3 class="chart-title">Incident Data</h3>
+      <h3 class="chart-title">Average Resolution Time (Days)</h3>
+      <canvas id="resolutionTimeChart" class="chart-canvas"></canvas>
+    </div>
+
+    <div class="graph-section graph3">
+      <h3 class="chart-title">Incident Growth Rate</h3>
       <canvas id="incidentRateChart" class="chart-canvas"></canvas>
     </div>
 
+    <!-- Hidden graph kept for backward compatibility -->
     <div class="graph-section graph2 wide-centered-graph" style="display:none;">
       <h3 class="chart-title">Incident Type (by Subject)</h3>
       
@@ -42,6 +93,9 @@
   const monthlyData = {{ monthly_incident_data|safe }};
   const incidentTypeData = {{ incident_type|safe }};
   const incidentRate = {{ incident_data|safe }};
+  const statusBreakdown = {{ status_breakdown|safe }};
+  const statusTrends = {{ status_trends|safe }};
+  const resolutionAnalysis = {{ resolution_analysis|safe }};
 
   // Graph 1: Monthly Incident (Bar Chart)
   new Chart(document.getElementById('monthlyIncidentsChart'), {
@@ -53,17 +107,25 @@
         data: monthlyData.incident_data,
         backgroundColor: '#800000',
         borderRadius: 8,
-        hoverBackgroundColor: '#a29bfe'
+        hoverBackgroundColor: '#a52a2a'
       }]
     },
     options: {
       responsive: true,
+      maintainAspectRatio: true,
       animation: {
         duration: 1000,
         easing: 'easeOutBounce'
       },
       plugins: {
-        legend: { display: false }
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: function(context) {
+              return 'Incidents: ' + context.parsed.y;
+            }
+          }
+        }
       },
       scales: {
         y: {
@@ -71,6 +133,210 @@
           ticks: {
             stepSize: 1,
             precision: 0
+          },
+          title: {
+            display: true,
+            text: 'Number of Incidents'
+          }
+        },
+        x: {
+          title: {
+            display: true,
+            text: 'Month'
+          }
+        }
+      }
+    }
+  });
+
+  // New Graph: Status Breakdown (Doughnut Chart)
+  new Chart(document.getElementById('statusBreakdownChart'), {
+    type: 'doughnut',
+    data: {
+      labels: statusBreakdown.statuses,
+      datasets: [{
+        data: statusBreakdown.counts,
+        backgroundColor: [
+          '#dc3545',  // Open - Red
+          '#ffc107',  // Pending - Amber
+          '#28a745'   // Closed - Green
+        ],
+        borderWidth: 2,
+        borderColor: '#fff',
+        hoverOffset: 10
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      animation: {
+        duration: 1200,
+        easing: 'easeOutQuart'
+      },
+      plugins: {
+        legend: {
+          position: 'bottom',
+          labels: {
+            padding: 15,
+            font: {
+              size: 12
+            },
+            generateLabels: function(chart) {
+              const data = chart.data;
+              return data.labels.map((label, i) => ({
+                text: `${label}: ${data.datasets[0].data[i]}`,
+                fillStyle: data.datasets[0].backgroundColor[i],
+                hidden: false,
+                index: i
+              }));
+            }
+          }
+        },
+        tooltip: {
+          callbacks: {
+            label: function(context) {
+              const total = context.dataset.data.reduce((a, b) => a + b, 0);
+              const percentage = ((context.parsed / total) * 100).toFixed(1);
+              return `${context.label}: ${context.parsed} (${percentage}%)`;
+            }
+          }
+        }
+      }
+    }
+  });
+
+  // New Graph: Status Trends (Multi-line Chart)
+  new Chart(document.getElementById('statusTrendsChart'), {
+    type: 'line',
+    data: {
+      labels: statusTrends.months,
+      datasets: [
+        {
+          label: 'Open Cases',
+          data: statusTrends.open_cases,
+          borderColor: '#dc3545',
+          backgroundColor: 'rgba(220, 53, 69, 0.1)',
+          tension: 0.4,
+          fill: true,
+          pointRadius: 5,
+          pointHoverRadius: 7,
+          borderWidth: 3
+        },
+        {
+          label: 'Pending Cases',
+          data: statusTrends.pending_cases,
+          borderColor: '#ffc107',
+          backgroundColor: 'rgba(255, 193, 7, 0.1)',
+          tension: 0.4,
+          fill: true,
+          pointRadius: 5,
+          pointHoverRadius: 7,
+          borderWidth: 3
+        },
+        {
+          label: 'Closed Cases',
+          data: statusTrends.closed_cases,
+          borderColor: '#28a745',
+          backgroundColor: 'rgba(40, 167, 69, 0.1)',
+          tension: 0.4,
+          fill: true,
+          pointRadius: 5,
+          pointHoverRadius: 7,
+          borderWidth: 3
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      interaction: {
+        mode: 'index',
+        intersect: false
+      },
+      animation: {
+        duration: 1200,
+        easing: 'easeInOutQuart'
+      },
+      plugins: {
+        legend: {
+          position: 'top',
+          labels: {
+            usePointStyle: true,
+            padding: 15
+          }
+        },
+        tooltip: {
+          mode: 'index',
+          intersect: false
+        }
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          ticks: {
+            stepSize: 1,
+            precision: 0
+          },
+          title: {
+            display: true,
+            text: 'Number of Cases'
+          }
+        },
+        x: {
+          title: {
+            display: true,
+            text: 'Month'
+          }
+        }
+      }
+    }
+  });
+
+  // New Graph: Resolution Time Analysis (Bar Chart)
+  new Chart(document.getElementById('resolutionTimeChart'), {
+    type: 'bar',
+    data: {
+      labels: resolutionAnalysis.months,
+      datasets: [{
+        label: 'Avg Days to Resolve',
+        data: resolutionAnalysis.avg_days,
+        backgroundColor: '#17a2b8',
+        borderRadius: 8,
+        hoverBackgroundColor: '#138496'
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      animation: {
+        duration: 1000,
+        easing: 'easeOutBounce'
+      },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: function(context) {
+              return 'Avg Days: ' + context.parsed.y;
+            }
+          }
+        }
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          ticks: {
+            precision: 1
+          },
+          title: {
+            display: true,
+            text: 'Days'
+          }
+        },
+        x: {
+          title: {
+            display: true,
+            text: 'Month'
           }
         }
       }
@@ -115,7 +381,7 @@
       }
     });
 
-  // Graph 3: Incident Data (Line Chart)
+  // Graph: Incident Growth Rate (Line Chart)
   new Chart(document.getElementById('incidentRateChart'), {
     type: 'line',
     data: {
@@ -129,22 +395,25 @@
           tension: 0.3,
           fill: true,
           pointRadius: 5,
-          pointHoverRadius: 7
+          pointHoverRadius: 7,
+          borderWidth: 3
         },
         {
-          label: '% Increase',
+          label: '% Change',
           data: incidentRate.percentage_increase,
           borderColor: '#d63031',
           backgroundColor: 'rgba(214, 48, 49, 0.1)',
           borderDash: [5, 5],
           tension: 0.3,
           fill: false,
-          yAxisID: 'y1'
+          yAxisID: 'y1',
+          borderWidth: 2
         }
       ]
     },
     options: {
       responsive: true,
+      maintainAspectRatio: true,
       interaction: {
         mode: 'index',
         intersect: false
