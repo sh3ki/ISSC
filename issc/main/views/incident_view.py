@@ -256,6 +256,11 @@ def incident_forms(request):
         incident = request.POST['incident']
         people_involved = request.POST.get('people_involved', '').strip()
         request_for_action = request.POST['request_for_action']
+        # If user selected "Other/s", fall back to the free-text field
+        if request_for_action == 'Other/s':
+            request_for_action_other = request.POST.get('request_for_action_other', '').strip()
+            if request_for_action_other:
+                request_for_action = request_for_action_other
         # Use current user's name and contact for reported_by and phone_number (fields removed from visible form)
         reported_by = f"{user[0]['first_name']} {user[0]['last_name']}"
         position = request.POST['position']
@@ -302,6 +307,7 @@ def base_print(request):
     from datetime import datetime
     filter_type = request.GET.get('filter')
     export_excel = request.GET.get('export') == 'excel'
+    status_filter = request.GET.get('status', 'all')
     from django.utils import timezone
     now = timezone.now()
     
@@ -315,6 +321,10 @@ def base_print(request):
     if user_privilege == 'faculty':
         user_department = user[0]['department']
         incidents = incidents.filter(department__iexact=user_department)
+
+    # Apply status filter when provided (for both on-page view and export)
+    if status_filter in ['open', 'pending', 'closed']:
+        incidents = incidents.filter(status=status_filter)
 
     # Generate years list for dropdowns (last 10 years)
     current_year = now.year
