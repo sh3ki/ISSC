@@ -179,6 +179,10 @@ def incident_details(request, id):
             incident.last_updated_by = created_by
             incident.save()
 
+            # Update faculty_involved - filter out empty strings (None option)
+            faculty_involved_ids = [fid for fid in request.POST.getlist('faculty_involved') if fid]
+            incident.faculty_involved.set(faculty_involved_ids)
+
             return redirect(request.META.get('HTTP_REFERER', '/'))
 
         # If the Update Case modal was submitted, create an IncidentUpdate
