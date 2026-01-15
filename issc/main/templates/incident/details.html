@@ -254,6 +254,17 @@
                             </div>
 
                             <div style="margin-top:16px;">
+                                <label><strong>Faculty Involved</strong></label>
+                                <select name="faculty_involved" multiple size="6" style="width:100%;padding:8px;border:1px solid #d1d5db;border-radius:6px;">
+                                    <option value="" style="font-style:italic;color:#999;">None</option>
+                                    {% for faculty in faculty_users %}
+                                        <option value="{{ faculty.id }}" {% if faculty in incident.faculty_involved.all %}selected{% endif %}>{{ faculty.first_name }} {{ faculty.last_name }} ({{ faculty.id_number }})</option>
+                                    {% endfor %}
+                                </select>
+                                <small style="color:#666;font-size:11px;display:block;margin-top:4px;">Hold Ctrl/Cmd to select multiple faculty members.</small>
+                            </div>
+
+                            <div style="margin-top:16px;">
                                 <label><strong>Incident Description</strong></label>
                                 <textarea name="incident" rows="4" placeholder="Describe the incident in detail" required style="width:100%;padding:8px;border:1px solid #d1d5db;border-radius:6px;">{{ incident.incident }}</textarea>
                             </div>
