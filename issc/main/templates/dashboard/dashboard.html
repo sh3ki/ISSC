@@ -85,8 +85,8 @@
     </div>
 
     <div class="graph-section graph3">
-      <h3 class="chart-title">Incident Growth Rate ({{ selected_year }})</h3>
-      <canvas id="incidentRateChart" class="chart-canvas"></canvas>
+      <h3 class="chart-title">Incidents by Category ({{ selected_year }})</h3>
+      <canvas id="categoryTrendsChart" class="chart-canvas"></canvas>
     </div>
 
     <!-- Hidden graph kept for backward compatibility -->
@@ -118,6 +118,7 @@
   const statusBreakdown = {{ status_breakdown|safe }};
   const statusTrends = {{ status_trends|safe }};
   const resolutionAnalysis = {{ resolution_analysis|safe }};
+  const categoryTrends = {{ category_trends|safe }};
 
   // Graph 1: Monthly Incident (Bar Chart)
   new Chart(document.getElementById('monthlyIncidentsChart'), {
@@ -514,42 +515,101 @@
       }
     });
 
-  // Graph: Incident Growth Rate (Improved Layout)
-  new Chart(document.getElementById('incidentRateChart'), {
-    type: 'bar',
+  // Graph: Incidents by Category (Line Chart with Multiple Lines)
+  new Chart(document.getElementById('categoryTrendsChart'), {
+    type: 'line',
     data: {
-      labels: incidentRate.months,
+      labels: categoryTrends.months,
       datasets: [
         {
-          label: 'Total Incidents',
-          data: incidentRate.incident_counts,
-          backgroundColor: '#800000',
-          borderColor: '#5a0000',
-          borderWidth: 2,
-          borderRadius: 6,
-          hoverBackgroundColor: '#a52a2a',
-          yAxisID: 'y',
-          barThickness: 30,
-          maxBarThickness: 40,
-          order: 2
-        },
-        {
-          label: '% Change',
-          data: incidentRate.percentage_increase,
-          type: 'line',
-          borderColor: '#d63031',
-          backgroundColor: 'rgba(214, 48, 49, 0)',
-          borderDash: [8, 4],
-          tension: 0.4,
-          fill: false,
-          yAxisID: 'y1',
+          label: 'Theft',
+          data: categoryTrends.categories.Theft,
+          borderColor: '#e74c3c',
+          backgroundColor: 'rgba(231, 76, 60, 0.1)',
           borderWidth: 3,
-          pointRadius: 6,
-          pointHoverRadius: 8,
-          pointBackgroundColor: '#d63031',
+          tension: 0.4,
+          fill: true,
+          pointRadius: 5,
+          pointHoverRadius: 7,
+          pointBackgroundColor: '#e74c3c',
           pointBorderColor: '#fff',
           pointBorderWidth: 2,
-          order: 1
+          borderDash: []
+        },
+        {
+          label: 'Vandalism',
+          data: categoryTrends.categories.Vandalism,
+          borderColor: '#f39c12',
+          backgroundColor: 'rgba(243, 156, 18, 0.1)',
+          borderWidth: 3,
+          tension: 0.4,
+          fill: true,
+          pointRadius: 5,
+          pointHoverRadius: 7,
+          pointBackgroundColor: '#f39c12',
+          pointBorderColor: '#fff',
+          pointBorderWidth: 2,
+          borderDash: [5, 5]
+        },
+        {
+          label: 'Emergency',
+          data: categoryTrends.categories.Emergency,
+          borderColor: '#e67e22',
+          backgroundColor: 'rgba(230, 126, 34, 0.1)',
+          borderWidth: 3,
+          tension: 0.4,
+          fill: true,
+          pointRadius: 5,
+          pointHoverRadius: 7,
+          pointBackgroundColor: '#e67e22',
+          pointBorderColor: '#fff',
+          pointBorderWidth: 2,
+          borderDash: [10, 5]
+        },
+        {
+          label: 'Security',
+          data: categoryTrends.categories.Security,
+          borderColor: '#3498db',
+          backgroundColor: 'rgba(52, 152, 219, 0.1)',
+          borderWidth: 3,
+          tension: 0.4,
+          fill: true,
+          pointRadius: 5,
+          pointHoverRadius: 7,
+          pointBackgroundColor: '#3498db',
+          pointBorderColor: '#fff',
+          pointBorderWidth: 2,
+          borderDash: [2, 2]
+        },
+        {
+          label: 'Harassment',
+          data: categoryTrends.categories.Harassment,
+          borderColor: '#9b59b6',
+          backgroundColor: 'rgba(155, 89, 182, 0.1)',
+          borderWidth: 3,
+          tension: 0.4,
+          fill: true,
+          pointRadius: 5,
+          pointHoverRadius: 7,
+          pointBackgroundColor: '#9b59b6',
+          pointBorderColor: '#fff',
+          pointBorderWidth: 2,
+          borderDash: [15, 3, 3, 3]
+        },
+        {
+          label: 'Other',
+          data: categoryTrends.categories.Other,
+          borderColor: '#95a5a6',
+          backgroundColor: 'rgba(149, 165, 166, 0.1)',
+          borderWidth: 2,
+          tension: 0.4,
+          fill: true,
+          pointRadius: 4,
+          pointHoverRadius: 6,
+          pointBackgroundColor: '#95a5a6',
+          pointBorderColor: '#fff',
+          pointBorderWidth: 2,
+          borderDash: [1, 1]
         }
       ]
     },
@@ -561,23 +621,24 @@
         intersect: false
       },
       animation: {
-        duration: 1000,
-        easing: 'easeOutCirc'
+        duration: 1200,
+        easing: 'easeInOutQuart'
       },
       plugins: {
         legend: { 
           position: 'top',
           labels: {
             usePointStyle: true,
-            padding: 15,
+            padding: 12,
             font: {
-              size: 13,
+              size: 12,
               weight: 'bold'
             }
           }
         },
         tooltip: { 
           mode: 'index',
+          intersect: false,
           backgroundColor: 'rgba(0, 0, 0, 0.8)',
           padding: 12,
           titleFont: {
@@ -585,13 +646,17 @@
           },
           bodyFont: {
             size: 13
+          },
+          callbacks: {
+            label: function(context) {
+              return context.dataset.label + ': ' + context.parsed.y + ' incident(s)';
+            }
           }
         }
       },
       scales: {
         y: { 
           beginAtZero: true,
-          position: 'left',
           ticks: {
             stepSize: 1,
             precision: 0,
@@ -603,45 +668,19 @@
             display: true, 
             text: 'Number of Incidents',
             font: {
-              size: 14,
+              size: 13,
               weight: 'bold'
             }
           },
           grid: {
             display: true,
-            color: 'rgba(0, 0, 0, 0.1)',
-            drawBorder: true
-          }
-        },
-        y1: {
-          position: 'right',
-          beginAtZero: true,
-          suggestedMin: -100,
-          suggestedMax: 100,
-          grid: { 
-            drawOnChartArea: false 
-          },
-          ticks: {
-            precision: 0,
-            font: {
-              size: 12
-            },
-            callback: function(value) {
-              return value + '%';
-            }
-          },
-          title: { 
-            display: true, 
-            text: '% Change',
-            font: {
-              size: 14,
-              weight: 'bold'
-            }
+            color: 'rgba(0, 0, 0, 0.1)'
           }
         },
         x: {
           grid: {
-            display: false
+            display: true,
+            color: 'rgba(0, 0, 0, 0.05)'
           },
           ticks: {
             font: {
