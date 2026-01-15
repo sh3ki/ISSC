@@ -10,14 +10,14 @@
 
     <div class="create-search">
         <a href="{% url 'incident_forms' %}" class="create-new-btn">File New Incident</a>
-        <a href="{% url 'incidents' %}?archive=true" class="create-new-btn">Archive</a>
+        <!-- <a href="{% url 'incidents' %}?archive=true" class="create-new-btn">Archive</a> -->
     </div>
 
     <div class="p-4 mt-2 mb-4rounded">
     <div class="flex justify-end mb-4 space-x-2">
-        <button onclick="showSection('open')" class="px-4 py-2 bg-red-900 text-white rounded-xl transition-all duration-300 transform shadow-md hover:shadow-xl hover:translate-y-[-3px] active:translate-y-[0px] active:shadow-sm">Open Cases</button>
-        <button onclick="showSection('pending')" class="px-4 py-2 bg-red-900 text-white rounded-xl transition-all duration-300 transform shadow-md hover:shadow-xl hover:translate-y-[-3px] active:translate-y-[0px] active:shadow-sm">Ongoing Cases</button>
-        <button onclick="showSection('closed')" class="px-4 py-2 bg-red-900 text-white rounded-xl transition-all duration-300 transform shadow-md hover:shadow-xl hover:translate-y-[-3px] active:translate-y-[0px] active:shadow-sm">Closed Cases</button>
+        <button id="btn-open" onclick="showSection('open')" class="px-4 py-2 bg-red-900 text-white rounded-xl transition-all duration-300 transform shadow-md hover:shadow-xl hover:translate-y-[-3px] active:translate-y-[0px] active:shadow-sm">Open Cases</button>
+        <button id="btn-pending" onclick="showSection('pending')" class="px-4 py-2 bg-white text-gray-700 border-2 border-gray-300 rounded-xl transition-all duration-300 transform shadow-md hover:shadow-xl hover:translate-y-[-3px] active:translate-y-[0px] active:shadow-sm">Ongoing Cases</button>
+        <button id="btn-closed" onclick="showSection('closed')" class="px-4 py-2 bg-white text-gray-700 border-2 border-gray-300 rounded-xl transition-all duration-300 transform shadow-md hover:shadow-xl hover:translate-y-[-3px] active:translate-y-[0px] active:shadow-sm">Closed Cases</button>
     </div>
 
     <!-- Open Cases Section -->
@@ -181,18 +181,35 @@
 
 <script>
     function showSection(type) {
-        // Hide all
+        // Hide all sections
         document.getElementById('open-section').classList.add('hidden');
         document.getElementById('pending-section').classList.add('hidden');
         document.getElementById('closed-section').classList.add('hidden');
 
-        // Show selected
+        // Reset all buttons to inactive state
+        const buttons = ['btn-open', 'btn-pending', 'btn-closed'];
+        buttons.forEach(btnId => {
+            const btn = document.getElementById(btnId);
+            btn.classList.remove('bg-red-900', 'text-white');
+            btn.classList.add('bg-white', 'text-gray-700', 'border-2', 'border-gray-300');
+        });
+
+        // Show selected section and activate corresponding button
         if (type === 'open') {
             document.getElementById('open-section').classList.remove('hidden');
+            const btn = document.getElementById('btn-open');
+            btn.classList.remove('bg-white', 'text-gray-700', 'border-2', 'border-gray-300');
+            btn.classList.add('bg-red-900', 'text-white');
         } else if (type === 'pending') {
             document.getElementById('pending-section').classList.remove('hidden');
+            const btn = document.getElementById('btn-pending');
+            btn.classList.remove('bg-white', 'text-gray-700', 'border-2', 'border-gray-300');
+            btn.classList.add('bg-red-900', 'text-white');
         } else if (type === 'closed') {
             document.getElementById('closed-section').classList.remove('hidden');
+            const btn = document.getElementById('btn-closed');
+            btn.classList.remove('bg-white', 'text-gray-700', 'border-2', 'border-gray-300');
+            btn.classList.add('bg-red-900', 'text-white');
         }
     }
 </script>
