@@ -1,0 +1,318 @@
+
+.dashboard-wrapper {
+    padding: 2rem;
+    font-family: 'Segoe UI', sans-serif;
+  }
+  
+  .dashboard-wrapper h2 {
+    font-size: 1.75rem;
+    font-weight: 600;
+    margin-bottom: 1.5rem;
+    color: #2d3436;
+  }
+
+  /* Filter Section */
+  .filter-section {
+    background: linear-gradient(135deg, #800000 0%, #a52a2a 100%);
+    padding: 1.25rem 1.5rem;
+    border-radius: 12px;
+    margin-bottom: 2rem;
+    box-shadow: 0 4px 12px rgba(128, 0, 0, 0.2);
+    max-width: 1200px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .filter-form {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.5rem;
+    align-items: center;
+  }
+
+  .filter-group {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .filter-group label {
+    color: #fff;
+    font-weight: 600;
+    font-size: 0.95rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .filter-group select {
+    padding: 0.5rem 1rem;
+    border: 2px solid #fff;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    background: #fff;
+    color: #2d3436;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    min-width: 120px;
+    font-weight: 500;
+  }
+
+  .filter-group select:hover {
+    border-color: #ffd700;
+    box-shadow: 0 2px 8px rgba(255, 215, 0, 0.3);
+  }
+
+  .filter-group select:focus {
+    outline: none;
+    border-color: #ffd700;
+    box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.2);
+  }
+
+  /* Summary Cards */
+  .summary-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2.5rem;
+    max-width: 1200px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .stat-card {
+    background: linear-gradient(135deg, #fff 0%, #f8f9fa 100%);
+    border-radius: 12px;
+    padding: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    transition: all 0.3s ease;
+    border-left: 4px solid;
+  }
+
+  .stat-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+  }
+
+  .stat-card.stat-open {
+    border-left-color: #dc3545;
+  }
+
+  .stat-card.stat-pending {
+    border-left-color: #ffc107;
+  }
+
+  .stat-card.stat-closed {
+    border-left-color: #28a745;
+  }
+
+  .stat-card.stat-total {
+    border-left-color: #800000;
+  }
+
+  .stat-icon {
+    font-size: 2.5rem;
+    line-height: 1;
+  }
+
+  .stat-info h3 {
+    font-size: 2rem;
+    font-weight: 700;
+    margin: 0;
+    color: #2d3436;
+  }
+
+  .stat-info p {
+    font-size: 0.9rem;
+    color: #636e72;
+    margin: 0.25rem 0 0 0;
+    font-weight: 500;
+  }
+  
+  .graph-container {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr); 
+    gap: 1.5rem;  
+    max-width: 1200px; 
+    margin: 0 auto;
+  }
+
+  /* Target Graph 2 specifically */
+  .wide-centered-graph {
+    grid-column: 1 / -1;
+    width: 100%;
+    max-width: 800px;
+    margin: 0 auto;
+  }
+
+  /* Wide graph for status trends */
+  .graph-wide {
+    grid-column: 1 / -1;
+    background: #fff;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  }
+
+  /* Doughnut chart styling */
+  .graph-doughnut {
+    background: #fff;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  }
+
+  #monthFilterForm {
+    margin-bottom: 1.5rem;
+    padding: 1.25rem;
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border: 2px solid #800000;
+    border-radius: 10px;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+  }
+
+  .month-filter-form .filter-group-inline {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  .month-filter-form label {
+    color: #2d3436;
+    font-weight: 600;
+    font-size: 0.95rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  #monthFilterForm input[type="month"] {
+    padding: 0.6rem 1rem;
+    border: 2px solid #800000;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    background: #fff;
+    color: #2d3436;
+    font-weight: 500;
+    transition: all 0.3s ease;
+  }
+
+  #monthFilterForm input[type="month"]:hover {
+    border-color: #a52a2a;
+    box-shadow: 0 2px 8px rgba(128, 0, 0, 0.2);
+  }
+
+  #monthFilterForm input[type="month"]:focus {
+    outline: none;
+    border-color: #a52a2a;
+    box-shadow: 0 0 0 3px rgba(128, 0, 0, 0.1);
+  }
+
+  .filter-btn {
+    background: linear-gradient(135deg, #800000 0%, #a52a2a 100%);
+    color: white;
+    border: none;
+    padding: 0.6rem 1.5rem;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(128, 0, 0, 0.3);
+  }
+
+  .filter-btn:hover {
+    background: linear-gradient(135deg, #a52a2a 0%, #8b0000 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(128, 0, 0, 0.4);
+  }
+
+  .clear-btn {
+    background: #6c757d;
+    color: white;
+    border: none;
+    padding: 0.6rem 1.5rem;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    text-decoration: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: inline-block;
+  }
+
+  .clear-btn:hover {
+    background: #5a6268;
+    transform: translateY(-2px);
+  }
+  
+  .graph-section {
+    padding: 1.5rem;
+    border-radius: 12px;
+    background: #fff;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+  }
+  
+  .graph-section:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.15);
+  }
+  
+  
+  .graph-section canvas {
+    width: 100%;
+    height: 300px !important;
+    display: block;
+    margin: auto;
+  }
+
+  .graph-wide canvas {
+    height: 350px !important;
+  }
+  
+  
+  .graph-section h3 {
+    font-size: 1.1rem;
+    font-weight: 500;
+    color: #2d3436;  
+    margin-bottom: 1rem;
+  }
+
+  .chart-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #2d3436;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid #f0f0f0;
+  }
+  
+  
+  .graph-monthly { grid-column: 1 / span 1; }
+  .graph-incident { grid-column: 2 / span 1; }
+  .graph-department { grid-column: 1 / span 1; }
+  .graph-vehicles { grid-column: 2 / span 1; }
+  
+  
+  @media (max-width: 768px) {
+    .graph-container {
+      grid-template-columns: 1fr; 
+    }
+    .graph-monthly, .graph-incident, .graph-department, .graph-vehicles {
+      grid-column: span 1;
+    }
+    .graph-wide, .wide-centered-graph {
+      grid-column: span 1;
+    }
+    .summary-cards {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  @media print {
+  .print-btn {
+    display: none;
+  }
+}
+  
