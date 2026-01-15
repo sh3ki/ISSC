@@ -557,7 +557,7 @@ def face_recognition_worker(box_id, camera_id):
 @login_required(login_url='/login/')
 def live_feed_simple(request):
     """
-    Live feed view with face recognition
+    Live feed view with face recognition - PROTECH-style camera selection
     """
     # ALWAYS load face embeddings when page loads (this ensures new enrollments are picked up)
     print("📚 Loading face embeddings from database...")
@@ -565,7 +565,7 @@ def live_feed_simple(request):
     
     user = AccountRegistration.objects.filter(username=request.user).values()
     
-    template = loader.get_template('live-feed/live-feed.html')
+    template = loader.get_template('live-feed/live-feed-v2.html')
     
     context = {
         'user_role': user[0]['privilege'] if user else 'Unknown',
