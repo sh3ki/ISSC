@@ -41,13 +41,10 @@
         <p>
           <strong>{{ user_data.privilege}}</strong>
         </p>
-        <div style="display:flex; gap:8px; align-items:center; justify-content:flex-end;">
-          <a href="{% url 'profile' %}" class="logout-btn" style="padding:6px 10px; border:1px solid #e5e7eb; border-radius:6px; color:#fff; text-decoration:none;">Profile</a>
         <form class="logout-btn" method="POST" action="{% url 'logout' %}">
             {% csrf_token %}
             <button type="submit">Logout</button>
         </form>
-        </div>
       </div>
     </nav>
   
@@ -124,6 +121,12 @@
                   </a>
                 </li>
                 {% endif %}
+                <li>
+                  <a href="/profile/" class="{% if request.resolver_match.url_name == 'profile' %}active{% endif %}">
+                    <span class="icon"></span>
+                    <span class="text">Profile</span>
+                  </a>
+                </li>
               </ul>
             </aside>
         </ul>
