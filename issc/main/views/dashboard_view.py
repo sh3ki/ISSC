@@ -47,6 +47,82 @@ def incident_rate():
         "percentage_increase": percentage_increase
     }
 
+def incident_status_breakdown():
+    """Get current breakdown of incidents by status"""
+    current_year = now().year
+    reports = IncidentReport.objects.filter(date__year=current_year, is_archived=False)
+    
+    status_counts = Counter(report.status for report in reports)
+    
+    return {
+        "statuses": ['Open', 'Pending', 'Closed'],
+        "counts": [
+            status_counts.get('open', 0),
+            status_counts.get('pending', 0),
+            status_counts.get('closed', 0)
+        ],
+        "total": sum(status_counts.values())
+    }
+
+def monthly_status_trends():
+    """Get monthly trends for open and pending cases"""
+    current_year = now().year
+    current_month = now().month
+    months = list(range(1, min(current_month + 1, 13)))
+    
+    open_counts = []
+    pending_counts = []
+    closed_counts = []
+    
+    for month in months:
+        reports = IncidentReport.objects.filter(
+            date__year=current_year,
+            date__month=month,
+            is_archived=False
+        )
+        open_counts.append(reports.filter(status='open').count())
+        pending_counts.append(reports.filter(status='pending').count())
+        closed_counts.append(reports.filter(status='closed').count())
+    
+    return {
+        "months": [calendar.month_abbr[m] for m in months],
+        "open_cases": open_counts,
+        "pending_cases": pending_counts,
+        "closed_cases": closed_counts
+    }
+
+def resolution_time_analysis():
+    """Analyze average resolution times"""
+    current_year = now().year
+    current_month = now().month
+    months = list(range(1, min(current_month + 1, 13)))
+    
+    avg_resolution_days = []
+    
+    for month in months:
+        closed_reports = IncidentReport.objects.filter(
+            date__year=current_year,
+            date__month=month,
+            status='closed',
+            is_archived=False
+        )
+        
+        if closed_reports.exists():
+            total_days = 0
+            count = 0
+            for report in closed_reports:
+                days_to_close = (report.last_updated.date() - report.date).days
+                total_days += days_to_close
+                count += 1
+            avg_resolution_days.append(round(total_days / count, 1) if count > 0 else 0)
+        else:
+            avg_resolution_days.append(0)
+    
+    return {
+        "months": [calendar.month_abbr[m] for m in months],
+        "avg_days": avg_resolution_days
+    }
+
 
 
 def monthly_incident_graph():
@@ -210,7 +286,10 @@ def base(request):
         'vehicle_data': vehicle_graph(),
         'incident_data': incident_rate(),
         'incident_type': incident_subject,
-        'selected_month': selected_month or ''
+        'selected_month': selected_month or '',
+        'status_breakdown': incident_status_breakdown(),
+        'status_trends': monthly_status_trends(),
+        'resolution_analysis': resolution_time_analysis()
     }
 
     print(incident_subject)
