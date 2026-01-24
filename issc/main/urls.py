@@ -16,7 +16,8 @@ from .views import (
         simple_lightning_camera,
         ultra_fast_camera,
         live_feed_simple,
-        backup_view
+        backup_view,
+        face_recognition_views
     ) 
 urlpatterns = [
 
@@ -102,6 +103,12 @@ urlpatterns = [
     path('api/camera-status/', live_feed_api.get_camera_status_api, name='get_camera_status_api'),
     path('api/refresh-embeddings/', live_feed_api.refresh_face_embeddings_api, name='refresh_face_embeddings_api'),
     path('api/verify-embeddings/', live_feed_api.verify_face_embeddings_api, name='verify_face_embeddings_api'),
+    
+    # Face Recognition API endpoints
+    path('api/recognize-faces/', face_recognition_views.recognize_faces_api, name='recognize_faces_api'),
+    path('api/record-face-log/', face_recognition_views.record_face_log_api, name='record_face_log_api'),
+    path('api/save-unauthorized-face/', face_recognition_views.save_unauthorized_face_api, name='save_unauthorized_face_api'),
+    
     path('live-feed/start-record', video_feed_view.start_record, name='start_record'),
     path('live-feed/stop-record', video_feed_view.stop_record, name='stop_record'),
     path('check_cams/', video_feed_view.check_cams, name='check_cams'),
