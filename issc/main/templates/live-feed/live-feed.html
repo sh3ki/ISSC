@@ -155,8 +155,14 @@
                     </div>
                 </div>
             </div>
-            <div class="camera-wrapper">
+            <div class="camera-wrapper" style="position: relative;">
                 <img class="camera-frame" id="camera-frame-{{ forloop.counter0 }}" src="{% url 'video_feed' camera_id=camera_id %}" alt="Camera {{ camera_id }}">
+                <!-- Canvas overlay for bounding boxes -->
+                <canvas id="face-canvas-{{ forloop.counter0 }}" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 10;"></canvas>
+                <!-- FPS Counter -->
+                <div style="position: absolute; top: 10px; right: 10px; background-color: rgba(0, 0, 0, 0.7); color: #22C55E; padding: 5px 10px; border-radius: 5px; font-weight: bold; font-size: 14px; z-index: 11;">
+                    <span id="fps-counter-{{ forloop.counter0 }}">0 FPS</span>
+                </div>
             </div>
         </div>
     {% endfor %}
@@ -497,6 +503,33 @@ document.addEventListener('DOMContentLoaded', function() {
             pendingSelection = null;
         }
     });
+});
+</script>
+
+<!-- Face Recognition Integration -->
+<!-- face-api.js library for face detection and embeddings -->
+<script src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.12/dist/face-api.min.js" crossorigin="anonymous"></script>
+
+<!-- Live Feed Face Recognition System -->
+<script src="{% static 'js/live-feed-face-recognition.js' %}"></script>
+
+<script>
+// Initialize face recognition for all camera boxes after page loads
+document.addEventListener('DOMContentLoaded', function() {
+    // Wait for face-api models to be available
+    setTimeout(function() {
+        {% for camera_id in camera_ids %}
+            // Initialize face recognition for each camera box
+            // Pass the img element ID - it will be converted to video internally
+            initializeFaceRecognition(
+                'camera-frame-{{ forloop.counter0 }}',  // Image element ID (will be converted to video)
+                'face-canvas-{{ forloop.counter0 }}',   // Canvas for bounding boxes
+                {{ forloop.counter0 }},                 // Camera box ID
+                'fps-counter-{{ forloop.counter0 }}'    // FPS counter element
+            );
+            console.log('✅ Initialized face recognition for Box {{ forloop.counter }}');
+        {% endfor %}
+    }, 1000);  // Give time for face-api to load
 });
 </script>
 
