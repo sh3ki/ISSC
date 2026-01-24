@@ -192,6 +192,7 @@
             </div>
             <div class="camera-wrapper">
                 <img class="camera-frame" id="camera-frame-{{ forloop.counter0 }}" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='640' height='480'%3E%3Crect width='640' height='480' fill='%23000'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-family='Arial' font-size='24' fill='%23999'%3ENo Camera Selected%3C/text%3E%3C/svg%3E" alt="Box {{ forloop.counter }}">
+                <canvas id="face-canvas-{{ forloop.counter0 }}" class="face-canvas"></canvas>
             </div>
         </div>
     {% endfor %}
