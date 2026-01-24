@@ -468,11 +468,13 @@ class UltraFastFaceRecognition {
     async processFrame() {
         // For MJPEG <img> streams, check if image is loaded
         if (!this.modelsLoaded || !this.video || !this.video.complete) {
+            console.log(`[Box ${this.cameraBoxId}] ⏸️ Frame skip - modelsLoaded: ${this.modelsLoaded}, video: ${!!this.video}, complete: ${this.video?.complete}`);
             return;
         }
 
         let detections = [];
         try {
+            console.log(`[Box ${this.cameraBoxId}] 🔍 Running face detection on image ${this.video.width}x${this.video.height}...`);
             detections = await faceapi
                 .detectAllFaces(this.video, this.detectorOptions)
                 .withFaceLandmarks()
@@ -480,6 +482,8 @@ class UltraFastFaceRecognition {
             
             if (detections.length > 0) {
                 console.log(`[Box ${this.cameraBoxId}] 👤 Detected ${detections.length} face(s)`);
+            } else {
+                console.log(`[Box ${this.cameraBoxId}] ❌ No faces detected in this frame`);
             }
         } catch (error) {
             console.error(`[Box ${this.cameraBoxId}] Detection error:`, error);
@@ -752,13 +756,14 @@ class UltraFastFaceRecognition {
 
             const fpsElement = document.getElementById(this.fpsElementId);
             if (fpsElement) {
+                fpsElement.style.display = 'block';
                 fpsElement.textContent = this.fps + ' FPS';
                 if (this.fps >= 10) {
-                    fpsElement.className = 'text-green-500 font-bold';
+                    fpsElement.style.color = '#22C55E'; // green
                 } else if (this.fps >= 5) {
-                    fpsElement.className = 'text-yellow-500 font-bold';
+                    fpsElement.style.color = '#F59E0B'; // yellow
                 } else {
-                    fpsElement.className = 'text-red-500 font-bold';
+                    fpsElement.style.color = '#EF4444'; // red
                 }
             }
         }

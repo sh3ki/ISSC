@@ -193,6 +193,7 @@
             <div class="camera-wrapper">
                 <img class="camera-frame" id="camera-frame-{{ forloop.counter0 }}" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='640' height='480'%3E%3Crect width='640' height='480' fill='%23000'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-family='Arial' font-size='24' fill='%23999'%3ENo Camera Selected%3C/text%3E%3C/svg%3E" alt="Box {{ forloop.counter }}">
                 <canvas id="face-canvas-{{ forloop.counter0 }}" class="face-canvas"></canvas>
+                <div id="fps-{{ forloop.counter0 }}" class="fps-display" style="position: absolute; top: 10px; right: 10px; background: rgba(0, 0, 0, 0.7); color: #22C55E; padding: 5px 10px; border-radius: 5px; font-weight: bold; font-size: 14px; z-index: 20; display: none;">0 FPS</div>
             </div>
         </div>
     {% endfor %}
