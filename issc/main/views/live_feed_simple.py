@@ -20,7 +20,18 @@ from threading import Thread, Lock
 from queue import Queue
 import time
 import numpy as np
-from deepface import DeepFace
+# Lazy import DeepFace to avoid TensorFlow loading at startup
+# from deepface import DeepFace
+_deepface_module = None
+
+def get_deepface():
+    """Lazy-load DeepFace only when needed"""
+    global _deepface_module
+    if _deepface_module is None:
+        from deepface import DeepFace
+        _deepface_module = DeepFace
+    return _deepface_module
+
 import json
 import os
 from datetime import datetime
@@ -484,6 +495,7 @@ def face_recognition_worker(box_id, camera_id):
             
             try:
                 # Detect faces using DeepFace
+                DeepFace = get_deepface()
                 face_objs = DeepFace.extract_faces(
                     img_path=rgb_frame,
                     detector_backend='mtcnn',
@@ -511,6 +523,7 @@ def face_recognition_worker(box_id, camera_id):
                     
                     # Extract embedding from detected face
                     try:
+                        DeepFace = get_deepface()
                         result = DeepFace.represent(
                             img_path=face,
                             model_name='Facenet',

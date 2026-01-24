@@ -1,6 +1,7 @@
 import cv2
 import numpy as np
-from deepface import DeepFace
+# Lazy import DeepFace to avoid TensorFlow loading at startup
+# from deepface import DeepFace
 import hashlib
 from PIL import Image
 import os
@@ -20,11 +21,20 @@ class FaceEnrollment:
         self.model_name = 'Facenet'  # Use Facenet for 128-dim embeddings
         self.is_bgr = True  # OpenCV uses BGR color order
         self.last_error_time = 0  # For throttling error messages
+        self._deepface = None  # Lazy-loaded DeepFace module
         
-        print(f"✅ FaceEnrollment using DeepFace with {self.model_name} model")
+        print(f"✅ FaceEnrollment initialized (DeepFace will load on first use)")
         
         # Note: face_recognition library doesn't need GPU initialization
         # It uses dlib which is CPU-optimized and very fast
+    
+    @property
+    def DeepFace(self):
+        """Lazy-load DeepFace only when needed"""
+        if self._deepface is None:
+            from deepface import DeepFace
+            self._deepface = DeepFace
+        return self._deepface
         
     def __del__(self):
         """Cleanup resources when object is destroyed"""
@@ -69,7 +79,7 @@ class FaceEnrollment:
                 image_rgb = image
             
             # Detect faces using DeepFace
-            face_objs = DeepFace.extract_faces(
+            face_objs = self.DeepFace.extract_faces(
                 img_path=image_rgb,
                 detector_backend='mtcnn',  # Use MTCNN for face detection
                 enforce_detection=False,  # Don't throw error if no face found
@@ -135,7 +145,7 @@ class FaceEnrollment:
                 face_rgb = face_image
             
             # Get face representation (embedding) using DeepFace
-            result = DeepFace.represent(
+            result = self.DeepFace.represent(
                 img_path=face_rgb,
                 model_name=self.model_name,  # 'Facenet' for 128-dim or 'Facenet512' for 512-dim
                 detector_backend='skip',  # Skip detection since face is already cropped
