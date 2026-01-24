@@ -46,33 +46,40 @@ class UltraFastFaceRecognition {
             this.video = document.getElementById(this.imgElementId); // MJPEG <img> element
             this.canvas = document.getElementById(this.canvasId);
 
+            console.log(`[Box ${this.cameraBoxId}] Looking for elements:`, {
+                imgId: this.imgElementId,
+                canvasId: this.canvasId,
+                imgFound: !!this.video,
+                canvasFound: !!this.canvas
+            });
+
             if (!this.video || !this.canvas) {
-                console.error('Video or canvas element not found.');
+                console.error(`[Box ${this.cameraBoxId}] ❌ Elements not found!`);
                 return;
             }
 
             this.ctx = this.canvas.getContext('2d', { alpha: true });
             if (!this.ctx) {
-                console.error('Unable to obtain 2D canvas context.');
+                console.error(`[Box ${this.cameraBoxId}] ❌ Unable to obtain 2D canvas context.`);
                 return;
             }
 
+            console.log(`[Box ${this.cameraBoxId}] Loading face-api models...`);
             await this.loadModels();
             if (!this.modelsLoaded) {
-                console.error('face-api models failed to load.');
+                console.error(`[Box ${this.cameraBoxId}] ❌ face-api models failed to load.`);
                 return;
             }
 
             this.registerVideoEvents();
 
-            // For MJPEG streams (<img> tags), start immediately when image loads
-            if (this.video.complete && this.video.naturalWidth > 0) {
-                this.onVideoReady();
-            } else {
-                this.video.addEventListener('load', () => this.onVideoReady());
-            }
+            // For MJPEG streams, start immediately since image is already loading
+            console.log(`[Box ${this.cameraBoxId}] Starting recognition loop...`);
+            this.onVideoReady();
+            
+            console.log(`[Box ${this.cameraBoxId}] ✅ Face recognition ACTIVE`);
         } catch (error) {
-            console.error('Failed to initialise face recognition:', error);
+            console.error(`[Box ${this.cameraBoxId}] ❌ Failed to initialize:`, error);
         }
     }
 
@@ -82,24 +89,31 @@ class UltraFastFaceRecognition {
         }
 
         if (typeof faceapi === 'undefined') {
-            console.error('face-api.js is not available on window.');
+            console.error(`[Box ${this.cameraBoxId}] ❌ face-api.js is not available!`);
             return;
         }
 
         try {
-            await Promise.all([
-                faceapi.nets.tinyFaceDetector.loadFromUri(FACE_API_MODEL_URL),
-                faceapi.nets.faceLandmark68Net.loadFromUri(FACE_API_MODEL_URL),
-                faceapi.nets.faceRecognitionNet.loadFromUri(FACE_API_MODEL_URL)
-            ]);
+            // Models are shared globally
+            if (!window.faceApiModelsLoaded) {
+                console.log('Loading face-api models from CDN...');
+                await Promise.all([
+                    faceapi.nets.tinyFaceDetector.loadFromUri(FACE_API_MODEL_URL),
+                    faceapi.nets.faceLandmark68Net.loadFromUri(FACE_API_MODEL_URL),
+                    faceapi.nets.faceRecognitionNet.loadFromUri(FACE_API_MODEL_URL)
+                ]);
+                window.faceApiModelsLoaded = true;
+                console.log('✅ face-api models loaded (shared)');
+            }
+            
             this.detectorOptions = new faceapi.TinyFaceDetectorOptions({
                 inputSize: 224,
                 scoreThreshold: 0.5
             });
             this.modelsLoaded = true;
-            console.log('face-api models loaded.');
+            console.log(`[Box ${this.cameraBoxId}] Models ready`);
         } catch (error) {
-            console.error('Error loading face-api models:', error);
+            console.error(`[Box ${this.cameraBoxId}] ❌ Error loading models:`, error);
         }
     }
 
@@ -116,23 +130,31 @@ class UltraFastFaceRecognition {
     }
 
     onVideoReady() {
-        // For MJPEG <img> elements, check naturalWidth/Height
-        if (!this.video.naturalWidth || !this.video.naturalHeight) {
-            return;
-        }
+        // For MJPEG <img> elements, wait until image has dimensions
+        // Try multiple times since MJPEG streams load continuously
+        const checkDimensions = () => {
+            if (this.video.naturalWidth && this.video.naturalHeight) {
+                console.log(`[Box ${this.cameraBoxId}] Image dimensions: ${this.video.naturalWidth}x${this.video.naturalHeight}`);
+                this.syncCanvasSize();
 
-        this.syncCanvasSize();
-
-        if (!this.isRunning) {
-            this.isRunning = true;
-            requestAnimationFrame(() => this.recognitionLoop());
-            console.log('Face recognition loop started.');
-        }
+                if (!this.isRunning) {
+                    this.isRunning = true;
+                    requestAnimationFrame(() => this.recognitionLoop());
+                    console.log(`[Box ${this.cameraBoxId}] 🔄 Recognition loop STARTED`);
+                }
+            } else {
+                console.log(`[Box ${this.cameraBoxId}] Waiting for image dimensions...`);
+                setTimeout(checkDimensions, 200);
+            }
+        };
+        
+        checkDimensions();
     }
 
     syncCanvasSize() {
         // For MJPEG <img> elements
         if (!this.video.naturalWidth || !this.video.naturalHeight) {
+            console.log(`[Box ${this.cameraBoxId}] Cannot sync canvas - no image dimensions yet`);
             return;
         }
 
@@ -149,6 +171,8 @@ class UltraFastFaceRecognition {
 
         this.scaleX = this.canvas.width / this.video.naturalWidth;
         this.scaleY = this.canvas.height / this.video.naturalHeight;
+        
+        console.log(`[Box ${this.cameraBoxId}] Canvas synced: ${this.canvas.width}x${this.canvas.height}`);
     }
 
     async recognitionLoop() {
@@ -453,7 +477,12 @@ class UltraFastFaceRecognition {
                 .detectAllFaces(this.video, this.detectorOptions)
                 .withFaceLandmarks()
                 .withFaceDescriptors();
+            
+            if (detections.length > 0) {
+                console.log(`[Box ${this.cameraBoxId}] 👤 Detected ${detections.length} face(s)`);
+            }
         } catch (error) {
+            console.error(`[Box ${this.cameraBoxId}] Detection error:`, error);
             console.error('face-api detection error:', error);
             return;
         }
