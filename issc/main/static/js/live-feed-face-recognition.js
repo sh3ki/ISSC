@@ -1,19 +1,19 @@
-/**
- * ISSC Live Feed Face Recognition System
- * Carbon copy of PROTECH implementation WITHOUT spoofing detection
- * Supports multiple cameras with real-time face recognition
+﻿/**
+ * Live Feed Face Recognition (EXACT COPY from PROTECH ultra-fast)
+ * Adapted for MJPEG image streams in ISSC live feed
+ * Uses face-api.js (TinyFaceDetector + FaceRecognitionNet) for embeddings
+ * and delegates identity matching to the Django backend.
  */
 
-const FACE_API_MODEL_URL = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.12/model';
+const FACE_API_MODEL_URL = window.FACE_API_MODEL_URL || 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.12/model';
 
-class LiveFeedFaceRecognition {
-    constructor(videoId, canvasId, cameraBoxId, fpsCounterId) {
-        this.videoId = videoId;
-        this.canvasId = canvasId;
+class UltraFastFaceRecognition {
+    constructor(cameraBoxId, imgElementId, canvasId, fpsElementId) {
         this.cameraBoxId = cameraBoxId;
-        this.fpsCounterId = fpsCounterId;
-        
-        this.video = null;
+        this.imgElementId = imgElementId;
+        this.canvasId = canvasId;
+        this.fpsElementId = fpsElementId;
+        this.video = null; // Will actually be an <img> element for MJPEG
         this.canvas = null;
         this.ctx = null;
         this.isRunning = false;
@@ -23,105 +23,57 @@ class LiveFeedFaceRecognition {
         this.fps = 0;
         this.lastFpsUpdate = Date.now();
         this.recognitionCooldown = new Map();
-        this.cooldownMs = 5000;  // 5 seconds cooldown per user
+        this.cooldownMs = 5000;
         this.resizeObserver = null;
         this.scaleX = 1;
         this.scaleY = 1;
-        this.processIntervalMs = 500;  // Process every 500ms
+        this.processIntervalMs = 500; // throttle recognition to twice per second
         this.lastRecognitionTime = 0;
         this.lastResults = [];
         this.modelsLoaded = false;
         this.detectorOptions = null;
-        this.unauthorizedCooldown = new Map();
-        this.unauthorizedCooldownMs = 2000;
-        
-        // Track recognized users
-        this.recognizedUsers = new Map();
+        this.previousDetections = [];
+        this.motionThreshold = 0.012; // Minimum normalized motion to accept as live
+        this.maxStaticFrames = 6; // Frames a face can stay static before being blocked
+        this.blinkEarThreshold = 0.21;
+        this.unauthorizedCooldown = new Map(); // Track unauthorized faces to avoid duplicate saves
+        this.unauthorizedCooldownMs = 2000; // Save same unauthorized face only once per 2 seconds
+        this.spoofProofEnabled = false; // DISABLED for live feed as requested
     }
 
     async initialize() {
         try {
-            // Support both video elements and img elements (for MJPEG streams)
-            this.video = document.getElementById(this.videoId);
+            this.video = document.getElementById(this.imgElementId); // MJPEG <img> element
             this.canvas = document.getElementById(this.canvasId);
 
             if (!this.video || !this.canvas) {
-                console.error(`[Camera ${this.cameraBoxId}] Video or canvas element not found.`);
+                console.error('Video or canvas element not found.');
                 return;
-            }
-
-            // If video is actually an img element (MJPEG stream), we need to convert it
-            if (this.video.tagName === 'IMG') {
-                console.log(`[Camera ${this.cameraBoxId}] Converting IMG stream to video...`);
-                this.isImageStream = true;
-                this.imgElement = this.video;
-                
-                // Create a hidden video element
-                this.video = document.createElement('video');
-                this.video.autoplay = true;
-                this.video.muted = true;
-                this.video.playsInline = true;
-                this.video.style.display = 'none';
-                this.imgElement.parentElement.appendChild(this.video);
-                
-                // Start syncing image to video
-                this.startImageToVideoSync();
             }
 
             this.ctx = this.canvas.getContext('2d', { alpha: true });
             if (!this.ctx) {
-                console.error(`[Camera ${this.cameraBoxId}] Unable to obtain 2D canvas context.`);
+                console.error('Unable to obtain 2D canvas context.');
                 return;
             }
 
             await this.loadModels();
             if (!this.modelsLoaded) {
-                console.error(`[Camera ${this.cameraBoxId}] face-api models failed to load.`);
+                console.error('face-api models failed to load.');
                 return;
             }
 
             this.registerVideoEvents();
 
-            if (this.video.readyState >= 2 && !this.video.paused && !this.video.ended) {
+            // For MJPEG streams (<img> tags), start immediately when image loads
+            if (this.video.complete && this.video.naturalWidth > 0) {
                 this.onVideoReady();
+            } else {
+                this.video.addEventListener('load', () => this.onVideoReady());
             }
-            
-            console.log(`[Camera ${this.cameraBoxId}] ✅ Face recognition initialized successfully.`);
         } catch (error) {
-            console.error(`[Camera ${this.cameraBoxId}] Failed to initialize face recognition:`, error);
+            console.error('Failed to initialise face recognition:', error);
         }
-    }
-
-    startImageToVideoSync() {
-        // Create canvas for converting image to video stream
-        this.syncCanvas = document.createElement('canvas');
-        this.syncCtx = this.syncCanvas.getContext('2d');
-        
-        const syncFrame = () => {
-            if (!this.isRunning && !this.imgElement) {
-                return;
-            }
-            
-            try {
-                if (this.imgElement && this.imgElement.complete && this.imgElement.naturalWidth > 0) {
-                    this.syncCanvas.width = this.imgElement.naturalWidth;
-                    this.syncCanvas.height = this.imgElement.naturalHeight;
-                    this.syncCtx.drawImage(this.imgElement, 0, 0);
-                    
-                    // Convert canvas to video stream (only create once)
-                    if (!this.video.srcObject) {
-                        const stream = this.syncCanvas.captureStream(30); // 30 FPS
-                        this.video.srcObject = stream;
-                    }
-                }
-            } catch (error) {
-                console.error(`[Camera ${this.cameraBoxId}] Error syncing image to video:`, error);
-            }
-            
-            requestAnimationFrame(syncFrame);
-        };
-        
-        syncFrame();
     }
 
     async loadModels() {
@@ -130,38 +82,30 @@ class LiveFeedFaceRecognition {
         }
 
         if (typeof faceapi === 'undefined') {
-            console.error(`[Camera ${this.cameraBoxId}] face-api.js is not available.`);
+            console.error('face-api.js is not available on window.');
             return;
         }
 
         try {
-            // Models are shared globally, so only load once
-            if (!window.faceApiModelsLoaded) {
-                console.log('Loading face-api models...');
-                await Promise.all([
-                    faceapi.nets.tinyFaceDetector.loadFromUri(FACE_API_MODEL_URL),
-                    faceapi.nets.faceLandmark68Net.loadFromUri(FACE_API_MODEL_URL),
-                    faceapi.nets.faceRecognitionNet.loadFromUri(FACE_API_MODEL_URL)
-                ]);
-                window.faceApiModelsLoaded = true;
-                console.log('✅ face-api models loaded (shared).');
-            }
-            
+            await Promise.all([
+                faceapi.nets.tinyFaceDetector.loadFromUri(FACE_API_MODEL_URL),
+                faceapi.nets.faceLandmark68Net.loadFromUri(FACE_API_MODEL_URL),
+                faceapi.nets.faceRecognitionNet.loadFromUri(FACE_API_MODEL_URL)
+            ]);
             this.detectorOptions = new faceapi.TinyFaceDetectorOptions({
                 inputSize: 224,
                 scoreThreshold: 0.5
             });
             this.modelsLoaded = true;
-            console.log(`[Camera ${this.cameraBoxId}] face-api models ready.`);
+            console.log('face-api models loaded.');
         } catch (error) {
-            console.error(`[Camera ${this.cameraBoxId}] Error loading face-api models:`, error);
+            console.error('Error loading face-api models:', error);
         }
     }
 
     registerVideoEvents() {
-        const handleReady = () => this.onVideoReady();
-        this.video.addEventListener('loadedmetadata', handleReady);
-        this.video.addEventListener('play', handleReady);
+        // For MJPEG <img> streams, we only need resize handling
+        // Image load is handled in initialize()
 
         if (typeof ResizeObserver !== 'undefined') {
             this.resizeObserver = new ResizeObserver(() => this.syncCanvasSize());
@@ -172,7 +116,8 @@ class LiveFeedFaceRecognition {
     }
 
     onVideoReady() {
-        if (!this.video.videoWidth || !this.video.videoHeight) {
+        // For MJPEG <img> elements, check naturalWidth/Height
+        if (!this.video.naturalWidth || !this.video.naturalHeight) {
             return;
         }
 
@@ -181,17 +126,18 @@ class LiveFeedFaceRecognition {
         if (!this.isRunning) {
             this.isRunning = true;
             requestAnimationFrame(() => this.recognitionLoop());
-            console.log(`[Camera ${this.cameraBoxId}] Face recognition loop started.`);
+            console.log('Face recognition loop started.');
         }
     }
 
     syncCanvasSize() {
-        if (!this.video.videoWidth || !this.video.videoHeight) {
+        // For MJPEG <img> elements
+        if (!this.video.naturalWidth || !this.video.naturalHeight) {
             return;
         }
 
-        this.canvas.width = this.video.videoWidth;
-        this.canvas.height = this.video.videoHeight;
+        this.canvas.width = this.video.naturalWidth;
+        this.canvas.height = this.video.naturalHeight;
 
         const rect = this.video.getBoundingClientRect();
         this.canvas.style.width = rect.width + 'px';
@@ -201,8 +147,8 @@ class LiveFeedFaceRecognition {
         this.canvas.style.left = '0';
         this.canvas.style.pointerEvents = 'none';
 
-        this.scaleX = this.canvas.width / this.video.videoWidth;
-        this.scaleY = this.canvas.height / this.video.videoHeight;
+        this.scaleX = this.canvas.width / this.video.naturalWidth;
+        this.scaleY = this.canvas.height / this.video.naturalHeight;
     }
 
     async recognitionLoop() {
@@ -215,7 +161,7 @@ class LiveFeedFaceRecognition {
         if (!this.processingFrame) {
             this.processingFrame = true;
             this.processFrame()
-                .catch(error => console.error(`[Camera ${this.cameraBoxId}] Error processing frame:`, error))
+                .catch(error => console.error('Error processing frame:', error))
                 .finally(() => {
                     this.processingFrame = false;
                 });
@@ -235,34 +181,49 @@ class LiveFeedFaceRecognition {
             if (detection.status === 'matched') {
                 const result = detection.result || {};
                 const lines = [];
-                
-                // Display full name
-                const name = result.name || '';
+                const lrn = result.lrn || result.student_id;
+                const segments = [];
+                if (result.first_name) {
+                    segments.push(result.first_name);
+                }
+                if (result.last_name) {
+                    segments.push(result.last_name);
+                }
+                const name = result.name || segments.join(' ').trim();
+
+                if (lrn) {
+                    lines.push('LRN: ' + lrn);
+                }
                 if (name) {
                     lines.push(name);
                 }
-                
-                // Display ID number
-                if (result.id_number) {
-                    lines.push('ID: ' + result.id_number);
-                }
-                
-                // Display confidence
                 if (typeof result.confidence === 'number') {
                     lines.push('Confidence: ' + (result.confidence * 100).toFixed(1) + '%');
                 }
 
-                // GREEN bounding box for AUTHORIZED
                 this.drawStyledBox(detection.box, {
-                    stroke: '#22C55E',  // Green
+                    stroke: '#22C55E',
                     fill: 'rgba(34, 197, 94, 0.25)',
-                    labelLines: lines.length ? lines : ['Authorized'],
+                    labelLines: lines.length ? lines : ['Recognized'],
                     labelColor: '#000000'
                 });
-            } else {
-                // RED bounding box for UNAUTHORIZED
+            } else if (detection.status === 'needs_motion') {
                 this.drawStyledBox(detection.box, {
-                    stroke: '#EF4444',  // Red
+                    stroke: '#F97316',
+                    fill: 'rgba(249, 115, 22, 0.18)',
+                    labelLines: ['Move face to verify'],
+                    labelColor: '#FFFFFF'
+                });
+            } else if (detection.status === 'spoof') {
+                this.drawStyledBox(detection.box, {
+                    stroke: '#EF4444',
+                    fill: 'rgba(239, 68, 68, 0.25)',
+                    labelLines: ['Spoof blocked'],
+                    labelColor: '#FFFFFF'
+                });
+            } else {
+                this.drawStyledBox(detection.box, {
+                    stroke: '#EF4444',
                     fill: 'rgba(239, 68, 68, 0.25)',
                     labelLines: ['UNAUTHORIZED'],
                     labelColor: '#FFFFFF'
@@ -286,9 +247,16 @@ class LiveFeedFaceRecognition {
         const start = box.start || [0, 0];
         const end = box.end || [0, 0];
 
-        const x1 = Math.max(0, Math.min(start[0], this.canvas.width));
+        // Flip coordinates horizontally for mirrored video
+        const canvasWidth = this.canvas.width;
+        const x1_original = Math.max(0, Math.min(start[0], canvasWidth));
+        const x2_original = Math.max(0, Math.min(end[0], canvasWidth));
+        
+        // Mirror the X coordinates
+        const x1 = canvasWidth - x2_original;
+        const x2 = canvasWidth - x1_original;
+        
         const y1 = Math.max(0, Math.min(start[1], this.canvas.height));
-        const x2 = Math.max(0, Math.min(end[0], this.canvas.width));
         const y2 = Math.max(0, Math.min(end[1], this.canvas.height));
 
         const width = Math.max(0, x2 - x1);
@@ -328,8 +296,154 @@ class LiveFeedFaceRecognition {
         this.ctx.restore();
     }
 
+    evaluateLiveness(detections) {
+        if (!this.spoofProofEnabled) {
+            const liveResults = detections.map(detection => {
+                const box = detection.detection.box;
+                const landmarks = detection.landmarks.positions.map(pt => ({ x: pt.x, y: pt.y }));
+                const center = { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+                return {
+                    status: 'live',
+                    motionScore: 1,
+                    blink: { detected: false, ear: 1 },
+                    landmarks,
+                    center,
+                    staticFrames: 0
+                };
+            });
+            this.previousDetections = liveResults.map(item => ({ center: item.center, landmarks: item.landmarks, staticFrames: 0 }));
+            return liveResults;
+        }
+
+        const results = [];
+        const previous = [...this.previousDetections];
+        const usedPrev = new Set();
+
+        detections.forEach(detection => {
+            const box = detection.detection.box;
+            const landmarks = detection.landmarks.positions.map(pt => ({ x: pt.x, y: pt.y }));
+            const center = {
+                x: box.x + box.width / 2,
+                y: box.y + box.height / 2
+            };
+
+            const prevIndex = this.matchPreviousDetection(center, previous, usedPrev);
+            const prev = prevIndex !== -1 ? previous[prevIndex] : null;
+
+            const centerDelta = prev ? { dx: center.x - prev.center.x, dy: center.y - prev.center.y } : { dx: 0, dy: 0 };
+
+            const motionScore = prev ? this.computeMotionScore(prev.landmarks, landmarks, box, centerDelta) : 0;
+            const blinkInfo = this.detectBlink(landmarks);
+
+            let staticFrames = prev ? prev.staticFrames : 0;
+            let status = 'liveness_required';
+
+            if (motionScore >= this.motionThreshold || blinkInfo.detected) {
+                staticFrames = 0;
+                status = 'live';
+            } else {
+                staticFrames += 1;
+                if (staticFrames >= this.maxStaticFrames) {
+                    status = 'spoof';
+                }
+            }
+
+            results.push({
+                status,
+                motionScore,
+                blink: blinkInfo,
+                landmarks,
+                center,
+                staticFrames
+            });
+        });
+
+        this.previousDetections = results.map(item => ({
+            center: item.center,
+            landmarks: item.landmarks,
+            staticFrames: item.staticFrames
+        }));
+
+        return results;
+    }
+
+    matchPreviousDetection(center, previous, usedPrev) {
+        let bestIndex = -1;
+        let bestDistance = Infinity;
+
+        previous.forEach((prev, idx) => {
+            if (usedPrev.has(idx)) {
+                return;
+            }
+            const dx = center.x - prev.center.x;
+            const dy = center.y - prev.center.y;
+            const distance = Math.hypot(dx, dy);
+            if (distance < bestDistance) {
+                bestDistance = distance;
+                bestIndex = idx;
+            }
+        });
+
+        if (bestIndex !== -1) {
+            usedPrev.add(bestIndex);
+        }
+
+        return bestIndex;
+    }
+
+    computeMotionScore(prevLandmarks, currentLandmarks, box, centerDelta) {
+        if (!prevLandmarks || !currentLandmarks || !prevLandmarks.length || !currentLandmarks.length) {
+            return 0;
+        }
+
+        const len = Math.min(prevLandmarks.length, currentLandmarks.length);
+        let total = 0;
+
+        for (let i = 0; i < len; i++) {
+            const dx = (currentLandmarks[i].x - prevLandmarks[i].x) - centerDelta.dx;
+            const dy = (currentLandmarks[i].y - prevLandmarks[i].y) - centerDelta.dy;
+            total += Math.hypot(dx, dy);
+        }
+
+        const average = total / len;
+        const normalization = Math.max(box.width + box.height, 1);
+        return average / normalization;
+    }
+
+    detectBlink(landmarks) {
+        if (!landmarks || landmarks.length < 48) {
+            return { detected: false, ear: 1 };
+        }
+
+        const leftEye = [36, 37, 38, 39, 40, 41].map(i => landmarks[i]);
+        const rightEye = [42, 43, 44, 45, 46, 47].map(i => landmarks[i]);
+
+        const leftEAR = this.calculateEAR(leftEye);
+        const rightEAR = this.calculateEAR(rightEye);
+        const ear = (leftEAR + rightEAR) / 2;
+
+        return {
+            detected: ear < this.blinkEarThreshold,
+            ear
+        };
+    }
+
+    calculateEAR(eyePoints) {
+        if (!eyePoints || eyePoints.length < 6) {
+            return 1;
+        }
+
+        const vertical1 = Math.hypot(eyePoints[1].x - eyePoints[5].x, eyePoints[1].y - eyePoints[5].y);
+        const vertical2 = Math.hypot(eyePoints[2].x - eyePoints[4].x, eyePoints[2].y - eyePoints[4].y);
+        const horizontal = Math.hypot(eyePoints[0].x - eyePoints[3].x, eyePoints[0].y - eyePoints[3].y);
+
+        const ear = (vertical1 + vertical2) / (2 * horizontal || 1);
+        return ear;
+    }
+
     async processFrame() {
-        if (!this.modelsLoaded || !this.video || this.video.readyState < 2) {
+        // For MJPEG <img> streams, check if image is loaded
+        if (!this.modelsLoaded || !this.video || !this.video.complete) {
             return;
         }
 
@@ -340,13 +454,14 @@ class LiveFeedFaceRecognition {
                 .withFaceLandmarks()
                 .withFaceDescriptors();
         } catch (error) {
-            console.error(`[Camera ${this.cameraBoxId}] face-api detection error:`, error);
+            console.error('face-api detection error:', error);
             return;
         }
 
         if (!detections.length) {
             this.currentDetections = [];
             this.lastResults = [];
+            this.previousDetections = [];
             this.updateFPS();
             return;
         }
@@ -359,40 +474,78 @@ class LiveFeedFaceRecognition {
             };
         });
 
+        const livenessStates = this.evaluateLiveness(detections);
+
         const now = Date.now();
         const shouldRecognize = now - this.lastRecognitionTime >= this.processIntervalMs;
 
         let recognitionResults;
 
         if (shouldRecognize) {
-            const descriptors = detections.map(det => Array.from(det.descriptor));
-            const results = await this.recognizeFaces(descriptors);
-            
-            recognitionResults = this.normalizeResults(results, boxes.length);
+            const liveDescriptors = [];
+            const liveIndices = [];
+
+            detections.forEach((det, index) => {
+                const liveState = livenessStates[index];
+                if (liveState && liveState.status === 'live') {
+                    liveDescriptors.push(Array.from(det.descriptor));
+                    liveIndices.push(index);
+                }
+            });
+
+            const recognitionFallback = new Array(detections.length).fill({ matched: false });
+
+            if (liveDescriptors.length) {
+                const results = await this.recognizeFaces(liveDescriptors);
+                liveIndices.forEach((originalIndex, resultIndex) => {
+                    recognitionFallback[originalIndex] = results[resultIndex] || { matched: false };
+                });
+            }
+
+            recognitionResults = this.normalizeResults(recognitionFallback, boxes.length);
             this.lastResults = recognitionResults;
             this.lastRecognitionTime = now;
         } else {
             recognitionResults = this.normalizeResults(this.lastResults, boxes.length);
+            this.lastResults = recognitionResults;
         }
 
         this.currentDetections = boxes.map((box, index) => {
             const result = recognitionResults[index];
+            const liveState = livenessStates[index] || {};
             const matched = result && result.matched;
-            
+            let status = matched ? 'matched' : 'unknown';
+
+            if (liveState.status === 'spoof') {
+                status = 'spoof';
+            } else if (liveState.status === 'liveness_required') {
+                status = 'needs_motion';
+            }
             return {
                 box: box,
                 result: result,
-                status: matched ? 'matched' : 'unknown'
+                status: status,
+                live: liveState,
+                detectionIndex: index
             };
         });
 
         if (shouldRecognize) {
             for (const detection of this.currentDetections) {
                 if (detection.status === 'matched') {
-                    await this.recordFaceLog(detection.result);
-                } else {
+                    this.autoRecordAttendance(detection.result).catch(error => {
+                        console.error('Failed to record attendance:', error);
+                    });
+                } else if (detection.status === 'unknown') {
                     // Save unauthorized face
-                    await this.saveUnauthorizedFace(detection);
+                    this.saveUnauthorizedFace(detection).catch(error => {
+                        console.error('Failed to save unauthorized face:', error);
+                    });
+                } else if (detection.status === 'spoof' && this.spoofProofEnabled) {
+                    // Log spoof attempts as unauthorized when spoof-proofing is on
+                    this.saveUnauthorizedFace(detection).catch(error => {
+                        console.error('Failed to save spoof attempt:', error);
+                    });
                 }
             }
         }
@@ -415,7 +568,7 @@ class LiveFeedFaceRecognition {
             });
 
             if (!response.ok) {
-                console.error(`[Camera ${this.cameraBoxId}] Recognition API error:`, response.status);
+                console.error('Recognition API error:', response.status, await response.text());
                 return faceEmbeddings.map(() => ({ matched: false }));
             }
 
@@ -426,7 +579,7 @@ class LiveFeedFaceRecognition {
 
             return faceEmbeddings.map(() => ({ matched: false }));
         } catch (error) {
-            console.error(`[Camera ${this.cameraBoxId}] Error calling recognition API:`, error);
+            console.error('Error calling recognition API:', error);
             return faceEmbeddings.map(() => ({ matched: false }));
         }
     }
@@ -447,60 +600,94 @@ class LiveFeedFaceRecognition {
         return results;
     }
 
-    async recordFaceLog(result) {
-        const id_number = result && result.id_number;
-        if (!id_number) {
+    async autoRecordAttendance(result) {
+        const studentId = result && result.student_id;
+        if (!studentId) {
             return;
         }
 
-        // Check cooldown
-        const lastTime = this.recognitionCooldown.get(id_number);
         const now = Date.now();
-        if (lastTime && (now - lastTime) < this.cooldownMs) {
-            return;
+        if (this.recognitionCooldown.has(studentId)) {
+            const last = this.recognitionCooldown.get(studentId);
+            if (now - last < this.cooldownMs) {
+                return;
+            }
         }
-
-        this.recognitionCooldown.set(id_number, now);
 
         try {
-            const response = await fetch('/api/record-face-log/', {
+            const response = await fetch('/api/record-attendance/', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ id_number: id_number })
+                body: JSON.stringify({
+                    student_id: studentId,
+                    type: this.attendanceType
+                })
             });
 
             const data = await response.json();
-            if (data.success && !data.is_duplicate) {
-                console.log(`✅ [Camera ${this.cameraBoxId}] Face log recorded: ${result.name}`);
+            if (data && data.success) {
+                this.recognitionCooldown.set(studentId, now);
+                this.showNotification(data.message || 'Attendance recorded.', 'success');
+                this.playSound('success');
+            } else {
+                console.warn('Attendance recording failed:', data ? (data.error || data.message) : 'Unknown error');
             }
         } catch (error) {
-            console.error(`[Camera ${this.cameraBoxId}] Error recording face log:`, error);
+            console.error('Failed to record attendance:', error);
         }
     }
 
     async saveUnauthorizedFace(detection) {
-        const now = Date.now();
-        const boxKey = `box_${this.cameraBoxId}`;
-        
-        const lastTime = this.unauthorizedCooldown.get(boxKey);
-        if (lastTime && (now - lastTime) < this.unauthorizedCooldownMs) {
+        if (!detection || !detection.box) {
             return;
         }
 
-        this.unauthorizedCooldown.set(boxKey, now);
+        // Generate a hash of the box position to track unique faces
+        const boxHash = `${Math.floor(detection.box.start[0])}_${Math.floor(detection.box.start[1])}`;
+        
+        const now = Date.now();
+        if (this.unauthorizedCooldown.has(boxHash)) {
+            const last = this.unauthorizedCooldown.get(boxHash);
+            if (now - last < this.unauthorizedCooldownMs) {
+                return; // Don't save the same face too frequently
+            }
+        }
 
         try {
-            // Capture image from video
-            const tempCanvas = document.createElement('canvas');
-            tempCanvas.width = this.video.videoWidth;
-            tempCanvas.height = this.video.videoHeight;
-            const tempCtx = tempCanvas.getContext('2d');
-            tempCtx.drawImage(this.video, 0, 0);
+            // Capture the face region from video
+            const canvas = document.createElement('canvas');
+            const box = detection.box;
             
-            const imageData = tempCanvas.toDataURL('image/jpeg', 0.8);
-
+            // Calculate face region with some padding
+            const padding = 50;
+            const x = Math.max(0, box.start[0] - padding);
+            const y = Math.max(0, box.start[1] - padding);
+            const width = Math.min(this.video.videoWidth - x, box.end[0] - box.start[0] + padding * 2);
+            const height = Math.min(this.video.videoHeight - y, box.end[1] - box.start[1] + padding * 2);
+            
+            canvas.width = width;
+            canvas.height = height;
+            
+            const ctx = canvas.getContext('2d');
+            
+            // Draw the face region from video
+            ctx.drawImage(
+                this.video,
+                x, y, width, height,
+                0, 0, width, height
+            );
+            
+            // Convert to base64
+            const imageData = canvas.toDataURL('image/jpeg', 0.9);
+            
+            // Determine camera name based on attendance type
+            const cameraName = this.attendanceType === 'time_in' ? 'Time In Camera' : 
+                               this.attendanceType === 'time_out' ? 'Time Out Camera' : 
+                               'Hybrid Camera';
+            
+            // Send to backend
             const response = await fetch('/api/save-unauthorized-face/', {
                 method: 'POST',
                 headers: {
@@ -508,21 +695,24 @@ class LiveFeedFaceRecognition {
                 },
                 body: JSON.stringify({
                     image: imageData,
-                    camera_box_id: this.cameraBoxId
+                    camera_name: cameraName
                 })
             });
 
             const data = await response.json();
-            if (data.success) {
-                console.log(`⚠️ [Camera ${this.cameraBoxId}] Unauthorized face saved`);
+            if (data && data.success) {
+                this.unauthorizedCooldown.set(boxHash, now);
+                console.log('✅ Unauthorized face saved:', data.photo_path);
+            } else {
+                console.warn('Failed to save unauthorized face:', data ? data.error : 'Unknown error');
             }
         } catch (error) {
-            console.error(`[Camera ${this.cameraBoxId}] Error saving unauthorized face:`, error);
+            console.error('Error saving unauthorized face:', error);
         }
     }
 
     updateFPS() {
-        this.frameCount++;
+        this.frameCount += 1;
         const now = Date.now();
         const elapsed = now - this.lastFpsUpdate;
 
@@ -531,28 +721,86 @@ class LiveFeedFaceRecognition {
             this.frameCount = 0;
             this.lastFpsUpdate = now;
 
-            const fpsElement = document.getElementById(this.fpsCounterId);
+            const fpsElement = document.getElementById(this.fpsElementId);
             if (fpsElement) {
-                fpsElement.textContent = `${this.fps} FPS`;
+                fpsElement.textContent = this.fps + ' FPS';
+                if (this.fps >= 10) {
+                    fpsElement.className = 'text-green-500 font-bold';
+                } else if (this.fps >= 5) {
+                    fpsElement.className = 'text-yellow-500 font-bold';
+                } else {
+                    fpsElement.className = 'text-red-500 font-bold';
+                }
             }
         }
     }
 
+    showNotification(message, type) {
+        const toast = document.createElement('div');
+        const baseClass = 'fixed top-5 right-5 px-6 py-4 rounded-lg shadow-lg text-white animate-fade-in z-50';
+        let variant = 'bg-blue-500';
+        if (type === 'success') {
+            variant = 'bg-green-500';
+        } else if (type === 'error') {
+            variant = 'bg-red-500';
+        }
+        toast.className = baseClass + ' ' + variant;
+        toast.textContent = message || '';
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 3000);
+    }
+
+    playSound(type) {
+        const src = type === 'success' ? '/static/sounds/success.mp3' : '/static/sounds/error.mp3';
+        const audio = new Audio(src);
+        audio.volume = 0.3;
+        audio.play().catch(() => {});
+    }
+
     stop() {
         this.isRunning = false;
+        this.currentDetections = [];
+        if (this.ctx) {
+            this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        }
         if (this.resizeObserver) {
             this.resizeObserver.disconnect();
         }
     }
 }
 
-// Global instances for each camera
-window.faceRecognitionInstances = {};
+// Store all face recognition instances globally
+window.liveFeedFaceRecognitionInstances = {};
 
-// Initialize face recognition for a camera
-function initializeFaceRecognition(videoId, canvasId, cameraBoxId, fpsCounterId) {
-    const instance = new LiveFeedFaceRecognition(videoId, canvasId, cameraBoxId, fpsCounterId);
-    instance.initialize();
-    window.faceRecognitionInstances[cameraBoxId] = instance;
-    return instance;
-}
+// Initialize face recognition for a specific camera box
+window.initializeFaceRecognitionForBox = function(boxId) {
+    const imgId = `camera-stream-${boxId}`;
+    const canvasId = `face-canvas-${boxId}`;
+    const fpsId = `fps-display-${boxId}`;
+    
+    console.log(`[Box ${boxId}] Initializing face recognition...`);
+    
+    // Wait for image element to be ready
+    const checkReady = setInterval(() => {
+        const imgElement = document.getElementById(imgId);
+        if (imgElement && imgElement.src) {
+            clearInterval(checkReady);
+            
+            // Create and initialize
+            const recognition = new UltraFastFaceRecognition(boxId, imgId, canvasId, fpsId);
+            recognition.initialize();
+            
+            // Store instance
+            window.liveFeedFaceRecognitionInstances[boxId] = recognition;
+            
+            console.log(`[Box ${boxId}] ✅ Face recognition initialized`);
+        }
+    }, 100);
+    
+    // Timeout after 5 seconds
+    setTimeout(() => {
+        clearInterval(checkReady);
+    }, 5000);
+};
+
+console.log('✅ Live Feed Face Recognition loaded (PROTECH ultra-fast version)');

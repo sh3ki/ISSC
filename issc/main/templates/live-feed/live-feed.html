@@ -446,6 +446,12 @@ document.addEventListener('DOMContentLoaded', function() {
                     
                     console.log(`📹 Box ${parseInt(boxId) + 1} now streaming from Camera ${cameraId} (${cameraName})`);
                     console.log('Current assignments:', cameraAssignments);
+                    
+                    // ✅ Initialize face recognition for this box
+                    if (typeof window.initializeFaceRecognitionForBox === 'function') {
+                        console.log(`🔍 Initializing face recognition for Box ${boxId}...`);
+                        window.initializeFaceRecognitionForBox(boxId);
+                    }
                 }
                 
             } catch (error) {
