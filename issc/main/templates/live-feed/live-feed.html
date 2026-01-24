@@ -520,9 +520,20 @@ document.addEventListener('DOMContentLoaded', function() {
 <script src="{% static 'js/live-feed-face-recognition.js' %}"></script>
 
 <script>
-// Face recognition is now initialized automatically when cameras are applied
-// See the modalConfirmBtn click handler above
-console.log('✅ Face recognition system loaded and ready');
+// Verify face recognition system loaded
+console.log('🔍 Checking face recognition availability...');
+console.log('typeof window.initializeFaceRecognitionForBox:', typeof window.initializeFaceRecognitionForBox);
+console.log('typeof window.liveFeedFaceRecognitionInstances:', typeof window.liveFeedFaceRecognitionInstances);
+
+// Wait for page to fully load, then initialize for Box 0 if camera is streaming
+setTimeout(function() {
+    console.log('🚀 Auto-initializing face recognition for Box 0...');
+    if (typeof window.initializeFaceRecognitionForBox === 'function') {
+        window.initializeFaceRecognitionForBox(0);
+    } else {
+        console.error('❌ initializeFaceRecognitionForBox function NOT FOUND!');
+    }
+}, 2000);
 </script>
 
 {% endblock content %}
