@@ -516,27 +516,13 @@ document.addEventListener('DOMContentLoaded', function() {
 <!-- face-api.js library for face detection and embeddings -->
 <script src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.12/dist/face-api.min.js" crossorigin="anonymous"></script>
 
-<!-- Live Feed Face Recognition System -->
+<!-- Live Feed Face Recognition System (EXACT COPY from PROTECH) -->
 <script src="{% static 'js/live-feed-face-recognition.js' %}"></script>
 
 <script>
-// Initialize face recognition for all camera boxes after page loads
-document.addEventListener('DOMContentLoaded', function() {
-    // Wait for face-api models to be available
-    setTimeout(function() {
-        {% for camera_id in camera_ids %}
-            // Initialize face recognition for each camera box
-            // Pass the img element ID - it will be converted to video internally
-            initializeFaceRecognition(
-                'camera-frame-{{ forloop.counter0 }}',  // Image element ID (will be converted to video)
-                'face-canvas-{{ forloop.counter0 }}',   // Canvas for bounding boxes
-                {{ forloop.counter0 }},                 // Camera box ID
-                'fps-counter-{{ forloop.counter0 }}'    // FPS counter element
-            );
-            console.log('✅ Initialized face recognition for Box {{ forloop.counter }}');
-        {% endfor %}
-    }, 1000);  // Give time for face-api to load
-});
+// Face recognition is now initialized automatically when cameras are applied
+// See the modalConfirmBtn click handler above
+console.log('✅ Face recognition system loaded and ready');
 </script>
 
 {% endblock content %}

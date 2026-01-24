@@ -774,9 +774,9 @@ window.liveFeedFaceRecognitionInstances = {};
 
 // Initialize face recognition for a specific camera box
 window.initializeFaceRecognitionForBox = function(boxId) {
-    const imgId = `camera-stream-${boxId}`;
+    const imgId = `camera-frame-${boxId}`;  // Match the HTML element ID
     const canvasId = `face-canvas-${boxId}`;
-    const fpsId = `fps-display-${boxId}`;
+    const fpsId = `fps-counter-${boxId}`;
     
     console.log(`[Box ${boxId}] Initializing face recognition...`);
     
