@@ -41,6 +41,34 @@ class UltraFastFaceRecognition {
         this.spoofProofEnabled = false; // DISABLED for live feed as requested
     }
 
+    getMediaDimensions() {
+        if (!this.video) {
+            return { width: 0, height: 0 };
+        }
+
+        if (this.video.tagName === 'VIDEO') {
+            const width = this.video.videoWidth || this.video.clientWidth || 0;
+            const height = this.video.videoHeight || this.video.clientHeight || 0;
+            return { width, height };
+        }
+
+        const width = this.video.naturalWidth || this.video.clientWidth || 0;
+        const height = this.video.naturalHeight || this.video.clientHeight || 0;
+        return { width, height };
+    }
+
+    isMediaReady() {
+        if (!this.video) {
+            return false;
+        }
+
+        if (this.video.tagName === 'VIDEO') {
+            return this.video.readyState >= 2 && (this.video.videoWidth || 0) > 0;
+        }
+
+        return (this.video.naturalWidth || 0) > 0 && (this.video.naturalHeight || 0) > 0;
+    }
+
     async initialize() {
         try {
             console.log(`[Box ${this.cameraBoxId}] 🚀 INITIALIZE CALLED`);
@@ -54,6 +82,7 @@ class UltraFastFaceRecognition {
                 canvasFound: !!this.canvas,
                 videoSrc: this.video?.src,
                 videoComplete: this.video?.complete,
+                mediaTag: this.video?.tagName
             });
 
             if (!this.video || !this.canvas) {
@@ -145,8 +174,9 @@ class UltraFastFaceRecognition {
         // For MJPEG <img> elements, wait until image has dimensions
         // Try multiple times since MJPEG streams load continuously
         const checkDimensions = () => {
-            if (this.video.naturalWidth && this.video.naturalHeight) {
-                console.log(`[Box ${this.cameraBoxId}] Image dimensions: ${this.video.naturalWidth}x${this.video.naturalHeight}`);
+            if (this.isMediaReady()) {
+                const { width, height } = this.getMediaDimensions();
+                console.log(`[Box ${this.cameraBoxId}] Media dimensions: ${width}x${height}`);
                 this.syncCanvasSize();
 
                 if (!this.isRunning) {
@@ -164,14 +194,14 @@ class UltraFastFaceRecognition {
     }
 
     syncCanvasSize() {
-        // For MJPEG <img> elements
-        if (!this.video.naturalWidth || !this.video.naturalHeight) {
-            console.log(`[Box ${this.cameraBoxId}] Cannot sync canvas - no image dimensions yet`);
+        const { width, height } = this.getMediaDimensions();
+        if (!width || !height) {
+            console.log(`[Box ${this.cameraBoxId}] Cannot sync canvas - no media dimensions yet`);
             return;
         }
 
-        this.canvas.width = this.video.naturalWidth;
-        this.canvas.height = this.video.naturalHeight;
+        this.canvas.width = width;
+        this.canvas.height = height;
 
         const rect = this.video.getBoundingClientRect();
         this.canvas.style.width = rect.width + 'px';
@@ -181,8 +211,8 @@ class UltraFastFaceRecognition {
         this.canvas.style.left = '0';
         this.canvas.style.pointerEvents = 'none';
 
-        this.scaleX = this.canvas.width / this.video.naturalWidth;
-        this.scaleY = this.canvas.height / this.video.naturalHeight;
+        this.scaleX = this.canvas.width / width;
+        this.scaleY = this.canvas.height / height;
         
         console.log(`[Box ${this.cameraBoxId}] Canvas synced: ${this.canvas.width}x${this.canvas.height}`);
     }
@@ -486,6 +516,11 @@ class UltraFastFaceRecognition {
         // For MJPEG <img> streams, some browsers keep complete=false; only guard models/video
         if (!this.modelsLoaded || !this.video) {
             console.log(`[Box ${this.cameraBoxId}] ⏸️ Frame skip - modelsLoaded: ${this.modelsLoaded}, video: ${!!this.video}`);
+            return;
+        }
+
+        if (this.video.tagName === 'VIDEO' && this.video.readyState < 2) {
+            console.log(`[Box ${this.cameraBoxId}] ⏳ Video not ready (readyState=${this.video.readyState})`);
             return;
         }
 
