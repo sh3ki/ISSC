@@ -616,17 +616,24 @@ class UltraFastFaceRecognition {
         });
 
         if (shouldRecognize) {
+            console.log(`🔍 [Face Recognition] Processing ${this.currentDetections.length} detection(s) for logging...`);
+            
             for (const detection of this.currentDetections) {
+                console.log(`👤 Detection status: ${detection.status}`, detection.result);
+                
                 if (detection.status === 'matched') {
+                    console.log(`✨ [Face Recognition] Matched face detected! Calling recordFaceLog...`);
                     this.recordFaceLog(detection.result).catch(error => {
                         console.error('Failed to record face log:', error);
                     });
                 } else if (detection.status === 'unknown') {
+                    console.log(`❓ [Face Recognition] Unknown face detected, saving as unauthorized...`);
                     // Save unauthorized face
                     this.saveUnauthorizedFace(detection).catch(error => {
                         console.error('Failed to save unauthorized face:', error);
                     });
                 } else if (detection.status === 'spoof' && this.spoofProofEnabled) {
+                    console.log(`🚫 [Face Recognition] Spoof detected, saving attempt...`);
                     // Log spoof attempts as unauthorized when spoof-proofing is on
                     this.saveUnauthorizedFace(detection).catch(error => {
                         console.error('Failed to save spoof attempt:', error);
@@ -687,17 +694,27 @@ class UltraFastFaceRecognition {
 
     async recordFaceLog(result) {
         const studentId = result && result.student_id;
+        
+        console.log(`📝 [Face Log] recordFaceLog called with result:`, result);
+        
         if (!studentId) {
+            console.log(`⚠️ [Face Log] No student ID found in result, skipping log`);
             return;
         }
+
+        console.log(`✅ [Face Log] Student ID found: ${studentId}`);
 
         const now = Date.now();
         if (this.recognitionCooldown.has(studentId)) {
             const last = this.recognitionCooldown.get(studentId);
-            if (now - last < this.cooldownMs) {
+            const timeSinceLast = now - last;
+            if (timeSinceLast < this.cooldownMs) {
+                console.log(`⏳ [Face Log] Cooldown active for ${studentId}. Time since last: ${timeSinceLast}ms (need ${this.cooldownMs}ms)`);
                 return;
             }
         }
+
+        console.log(`🚀 [Face Log] Sending API request to /api/record-face-log/ for ${studentId}...`);
 
         try {
             const response = await fetch('/api/record-face-log/', {
@@ -710,16 +727,21 @@ class UltraFastFaceRecognition {
                 })
             });
 
+            console.log(`📡 [Face Log] API response status: ${response.status}`);
+
             const data = await response.json();
+            console.log(`📦 [Face Log] API response data:`, data);
+
             if (data && data.success) {
                 this.recognitionCooldown.set(studentId, now);
+                console.log(`✅ [Face Log] Successfully logged to database! Student: ${studentId}`);
                 this.showNotification(data.message || 'Face log recorded.', 'success');
                 this.playSound('success');
             } else {
-                console.warn('Face log recording failed:', data ? (data.error || data.message) : 'Unknown error');
+                console.warn(`❌ [Face Log] Recording failed:`, data ? (data.error || data.message) : 'Unknown error');
             }
         } catch (error) {
-            console.error('Failed to record face log:', error);
+            console.error(`🔥 [Face Log] Exception during API call:`, error);
         }
     }
 
