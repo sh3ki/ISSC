@@ -68,6 +68,7 @@ urlpatterns = [
     path('live-feed/archive', live_feed_simple.recording_archive_simple, name="recording_archive"),
     path('live-feed/face-logs', live_feed_simple.face_logs_simple, name='face_logs'),
     path('live-feed/unauthorized-faces', views.unauthorized_faces_archive, name='unauthorized_faces_archive'),
+    path('live-feed/unauthorized-faces/image/<uuid:detection_id>/', views.unauthorized_face_image, name='unauthorized_face_image'),
     
     # OLD LIVE FEED ROUTES (kept for reference, but not used)
     # path('video-feed/<int:camera_id>/', video_feed_view.video_feed, name='video_feed'),
