@@ -693,12 +693,12 @@ class UltraFastFaceRecognition {
     }
 
     async recordFaceLog(result) {
-        const studentId = result && result.student_id;
+        const studentId = result && (result.student_id || result.id_number || result.idNumber);
         
         console.log(`📝 [Face Log] recordFaceLog called with result:`, result);
         
         if (!studentId) {
-            console.log(`⚠️ [Face Log] No student ID found in result, skipping log`);
+            console.log(`⚠️ [Face Log] No student ID found in result, skipping log. Available keys:`, result ? Object.keys(result) : []);
             return;
         }
 
