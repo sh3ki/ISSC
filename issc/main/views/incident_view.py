@@ -407,6 +407,9 @@ def base_print(request):
             except (ValueError, TypeError):
                 pass
 
+    # Order by latest first
+    incidents = incidents.order_by('-date_joined')
+
     if export_excel:
         import pandas as pd
         data = []
@@ -419,6 +422,7 @@ def base_print(request):
             
             data.append({
                 'Date Time': i.date_joined.strftime('%b. %d, %Y, %I:%M %p'),
+                'Runtime': i.runtime,
                 'First Name': i.first_name,
                 'Last Name': i.last_name,
                 'ID Number': i.id_number,
