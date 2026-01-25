@@ -618,8 +618,8 @@ class UltraFastFaceRecognition {
         if (shouldRecognize) {
             for (const detection of this.currentDetections) {
                 if (detection.status === 'matched') {
-                    this.autoRecordAttendance(detection.result).catch(error => {
-                        console.error('Failed to record attendance:', error);
+                    this.recordFaceLog(detection.result).catch(error => {
+                        console.error('Failed to record face log:', error);
                     });
                 } else if (detection.status === 'unknown') {
                     // Save unauthorized face
@@ -685,7 +685,7 @@ class UltraFastFaceRecognition {
         return results;
     }
 
-    async autoRecordAttendance(result) {
+    async recordFaceLog(result) {
         const studentId = result && result.student_id;
         if (!studentId) {
             return;
@@ -700,27 +700,26 @@ class UltraFastFaceRecognition {
         }
 
         try {
-            const response = await fetch('/api/record-attendance/', {
+            const response = await fetch('/api/record-face-log/', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
-                    student_id: studentId,
-                    type: this.attendanceType
+                    id_number: studentId
                 })
             });
 
             const data = await response.json();
             if (data && data.success) {
                 this.recognitionCooldown.set(studentId, now);
-                this.showNotification(data.message || 'Attendance recorded.', 'success');
+                this.showNotification(data.message || 'Face log recorded.', 'success');
                 this.playSound('success');
             } else {
-                console.warn('Attendance recording failed:', data ? (data.error || data.message) : 'Unknown error');
+                console.warn('Face log recording failed:', data ? (data.error || data.message) : 'Unknown error');
             }
         } catch (error) {
-            console.error('Failed to record attendance:', error);
+            console.error('Failed to record face log:', error);
         }
     }
 
@@ -768,10 +767,6 @@ class UltraFastFaceRecognition {
             const imageData = canvas.toDataURL('image/jpeg', 0.9);
             
             // Determine camera name based on attendance type
-            const cameraName = this.attendanceType === 'time_in' ? 'Time In Camera' : 
-                               this.attendanceType === 'time_out' ? 'Time Out Camera' : 
-                               'Hybrid Camera';
-            
             // Send to backend
             const response = await fetch('/api/save-unauthorized-face/', {
                 method: 'POST',
@@ -780,7 +775,7 @@ class UltraFastFaceRecognition {
                 },
                 body: JSON.stringify({
                     image: imageData,
-                    camera_name: cameraName
+                    camera_box_id: this.cameraBoxId
                 })
             });
 
