@@ -414,6 +414,27 @@ def base_print(request):
         import pandas as pd
         data = []
         for i in incidents:
+            # Calculate runtime
+            if i.status == 'closed' and hasattr(i, 'closed_date') and i.closed_date:
+                end_date = i.closed_date
+            else:
+                end_date = now
+            
+            diff = end_date - i.date_joined
+            days = diff.days
+            hours = diff.seconds // 3600
+            minutes = (diff.seconds % 3600) // 60
+            seconds = diff.seconds % 60
+            
+            if days > 0:
+                runtime_text = f"{days}d {hours}h {minutes}m"
+            elif hours > 0:
+                runtime_text = f"{hours}h {minutes}m"
+            elif minutes > 0:
+                runtime_text = f"{minutes}m {seconds}s"
+            else:
+                runtime_text = f"{seconds}s"
+            
             # Get all updates for this incident
             updates_list = []
             for update in i.updates.all():
@@ -422,7 +443,7 @@ def base_print(request):
             
             data.append({
                 'Date Time': i.date_joined.strftime('%b. %d, %Y, %I:%M %p'),
-                'Runtime': i.runtime,
+                'Runtime': runtime_text,
                 'First Name': i.first_name,
                 'Last Name': i.last_name,
                 'ID Number': i.id_number,
