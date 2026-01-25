@@ -469,9 +469,9 @@ class UltraFastFaceRecognition {
     }
 
     async processFrame() {
-        // For MJPEG <img> streams, check if image is loaded
-        if (!this.modelsLoaded || !this.video || !this.video.complete) {
-            console.log(`[Box ${this.cameraBoxId}] ⏸️ Frame skip - modelsLoaded: ${this.modelsLoaded}, video: ${!!this.video}, complete: ${this.video?.complete}`);
+        // For MJPEG <img> streams, some browsers keep complete=false; only guard models/video
+        if (!this.modelsLoaded || !this.video) {
+            console.log(`[Box ${this.cameraBoxId}] ⏸️ Frame skip - modelsLoaded: ${this.modelsLoaded}, video: ${!!this.video}`);
             return;
         }
 
