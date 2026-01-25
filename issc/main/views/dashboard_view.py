@@ -58,10 +58,10 @@ def incident_status_breakdown(selected_year=None):
     status_counts = Counter(report.status for report in reports)
     
     return {
-        "statuses": ['Open', 'Pending', 'Closed'],
+        "statuses": ['Open', 'Ongoing', 'Closed'],
         "counts": [
             status_counts.get('open', 0),
-            status_counts.get('pending', 0),
+            status_counts.get('ongoing', 0),
             status_counts.get('closed', 0)
         ],
         "total": sum(status_counts.values())
