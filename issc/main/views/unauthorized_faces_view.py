@@ -3,10 +3,12 @@ Unauthorized Faces Archive View
 Displays all unauthorized face detections with pagination
 """
 
-from django.shortcuts import render
+from django.shortcuts import render, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 from django.conf import settings
+from django.http import FileResponse, Http404
+import os
 from ..models import AccountRegistration, UnauthorizedFaceDetection
 
 
@@ -40,3 +42,15 @@ def unauthorized_faces_archive(request):
     }
     
     return render(request, 'unauthorized_faces/archive.html', context)
+
+
+@login_required(login_url='/login/')
+def unauthorized_face_image(request, detection_id):
+    detection = get_object_or_404(UnauthorizedFaceDetection, detection_id=detection_id)
+    relative_path = detection.image_path.replace('\\', '/')
+    file_path = os.path.join(settings.MEDIA_ROOT, relative_path)
+
+    if not os.path.exists(file_path):
+        raise Http404('Image not found')
+
+    return FileResponse(open(file_path, 'rb'), content_type='image/jpeg')
