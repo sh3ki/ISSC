@@ -750,28 +750,37 @@ class UltraFastFaceRecognition {
             return;
         }
 
-        // Generate a hash of the box position to track unique faces
-        const boxHash = `${Math.floor(detection.box.start[0])}_${Math.floor(detection.box.start[1])}`;
-        
         const now = Date.now();
-        if (this.unauthorizedCooldown.has(boxHash)) {
-            const last = this.unauthorizedCooldown.get(boxHash);
+        const cameraKey = String(this.cameraBoxId);
+        if (this.unauthorizedCooldown.has(cameraKey)) {
+            const last = this.unauthorizedCooldown.get(cameraKey);
             if (now - last < this.unauthorizedCooldownMs) {
-                return; // Don't save the same face too frequently
+                return; // Don't save too frequently per camera
             }
         }
 
         try {
-            // Capture the face region from video
+            // Capture the face region from media
             const canvas = document.createElement('canvas');
             const box = detection.box;
+            const { width: mediaWidth, height: mediaHeight } = this.getMediaDimensions();
+            if (!mediaWidth || !mediaHeight) {
+                console.warn('Unauthorized face save skipped - media dimensions not ready');
+                return;
+            }
+            const scaleX = this.scaleX || 1;
+            const scaleY = this.scaleY || 1;
+            const x1 = box.start[0] / scaleX;
+            const y1 = box.start[1] / scaleY;
+            const x2 = box.end[0] / scaleX;
+            const y2 = box.end[1] / scaleY;
             
             // Calculate face region with some padding
             const padding = 50;
-            const x = Math.max(0, box.start[0] - padding);
-            const y = Math.max(0, box.start[1] - padding);
-            const width = Math.min(this.video.videoWidth - x, box.end[0] - box.start[0] + padding * 2);
-            const height = Math.min(this.video.videoHeight - y, box.end[1] - box.start[1] + padding * 2);
+            const x = Math.max(0, x1 - padding);
+            const y = Math.max(0, y1 - padding);
+            const width = Math.min(mediaWidth - x, (x2 - x1) + padding * 2);
+            const height = Math.min(mediaHeight - y, (y2 - y1) + padding * 2);
             
             canvas.width = width;
             canvas.height = height;
@@ -788,7 +797,6 @@ class UltraFastFaceRecognition {
             // Convert to base64
             const imageData = canvas.toDataURL('image/jpeg', 0.9);
             
-            // Determine camera name based on attendance type
             // Send to backend
             const response = await fetch('/api/save-unauthorized-face/', {
                 method: 'POST',
@@ -797,13 +805,14 @@ class UltraFastFaceRecognition {
                 },
                 body: JSON.stringify({
                     image: imageData,
-                    camera_box_id: this.cameraBoxId
+                    camera_box_id: Number(this.cameraBoxId) + 1,
+                    notes: `Unauthorized face detected in Box ${Number(this.cameraBoxId) + 1}`
                 })
             });
 
             const data = await response.json();
             if (data && data.success) {
-                this.unauthorizedCooldown.set(boxHash, now);
+                this.unauthorizedCooldown.set(cameraKey, now);
                 console.log('✅ Unauthorized face saved:', data.photo_path);
             } else {
                 console.warn('Failed to save unauthorized face:', data ? data.error : 'Unknown error');
