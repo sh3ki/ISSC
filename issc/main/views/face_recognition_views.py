@@ -13,6 +13,7 @@ import base64
 import cv2
 import numpy as np
 import os
+from datetime import datetime
 from django.conf import settings
 
 
@@ -143,7 +144,6 @@ def save_unauthorized_face_api(request):
         os.makedirs(unauthorized_dir, exist_ok=True)
         
         # Generate unique filename
-        from datetime import datetime
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S_%f')
         filename = f'unauthorized_cam{camera_box_id}_{timestamp}.jpg'
         filepath = os.path.join(unauthorized_dir, filename)
