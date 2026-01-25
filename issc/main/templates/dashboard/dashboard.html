@@ -40,7 +40,7 @@
       <div class="stat-icon">🔄</div>
       <div class="stat-info">
         <h3>{{ status_breakdown.counts.1 }}</h3>
-        <p>Pending Cases</p>
+        <p>Ongoing Cases</p>
       </div>
     </div>
     <div class="stat-card stat-closed">
@@ -74,7 +74,7 @@
 
     <!-- Row 2: Status Trends -->
     <div class="graph-section graph-wide">
-      <h3 class="chart-title">Case Status Trends - {{ selected_year }} (Open vs Pending vs Closed)</h3>
+      <h3 class="chart-title">Case Status Trends - {{ selected_year }} (Open vs Ongoing vs Closed)</h3>
       <canvas id="statusTrendsChart" class="chart-canvas"></canvas>
     </div>
 
@@ -286,8 +286,8 @@
           maxBarThickness: 35
         },
         {
-          label: 'Pending Cases',
-          data: statusTrends.pending_cases,
+          label: 'Ongoing Cases',
+          data: statusTrends.ongoing_cases,
           backgroundColor: '#ffc107',
           borderColor: '#ffc107',
           borderWidth: 2,
