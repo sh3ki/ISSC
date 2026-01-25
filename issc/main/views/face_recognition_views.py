@@ -138,7 +138,8 @@ def save_unauthorized_face_api(request):
             return JsonResponse({'error': 'Invalid image data'}, status=400)
         
         # Create unauthorized_faces directory if it doesn't exist
-        unauthorized_dir = os.path.join(settings.MEDIA_ROOT, 'unauthorized_faces')
+        date_folder = datetime.now().strftime('%Y-%m-%d')
+        unauthorized_dir = os.path.join(settings.MEDIA_ROOT, 'unauthorized_faces', date_folder)
         os.makedirs(unauthorized_dir, exist_ok=True)
         
         # Generate unique filename
@@ -148,10 +149,12 @@ def save_unauthorized_face_api(request):
         filepath = os.path.join(unauthorized_dir, filename)
         
         # Save image
-        cv2.imwrite(filepath, img)
+        saved = cv2.imwrite(filepath, img)
+        if not saved or not os.path.exists(filepath):
+            return JsonResponse({'error': 'Failed to save image to disk'}, status=500)
         
         # Save to database
-        relative_path = os.path.join('unauthorized_faces', filename)
+        relative_path = os.path.join('unauthorized_faces', date_folder, filename)
         detection = UnauthorizedFaceDetection.objects.create(
             image_path=relative_path,
             camera_box_id=camera_box_id,
@@ -161,7 +164,8 @@ def save_unauthorized_face_api(request):
         return JsonResponse({
             'success': True,
             'message': 'Unauthorized face saved',
-            'detection_id': str(detection.detection_id)
+            'detection_id': str(detection.detection_id),
+            'image_path': relative_path
         })
         
     except Exception as e:

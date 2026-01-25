@@ -47,10 +47,20 @@ def unauthorized_faces_archive(request):
 @login_required(login_url='/login/')
 def unauthorized_face_image(request, detection_id):
     detection = get_object_or_404(UnauthorizedFaceDetection, detection_id=detection_id)
-    relative_path = detection.image_path.replace('\\', '/')
-    file_path = os.path.join(settings.MEDIA_ROOT, relative_path)
+    stored_path = detection.image_path.replace('\\', '/').lstrip('/')
+    candidates = []
 
-    if not os.path.exists(file_path):
+    # If stored absolute path
+    if os.path.isabs(detection.image_path):
+        candidates.append(detection.image_path)
+
+    # Common relative paths
+    candidates.append(os.path.join(settings.MEDIA_ROOT, stored_path))
+    candidates.append(os.path.join(settings.MEDIA_ROOT, 'unauthorized_faces', stored_path))
+    candidates.append(os.path.join(settings.MEDIA_ROOT, 'unauthorized_faces', os.path.basename(stored_path)))
+
+    file_path = next((p for p in candidates if os.path.exists(p)), None)
+    if not file_path:
         raise Http404('Image not found')
 
     return FileResponse(open(file_path, 'rb'), content_type='image/jpeg')
