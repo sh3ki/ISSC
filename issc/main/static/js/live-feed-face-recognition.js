@@ -43,6 +43,7 @@ class UltraFastFaceRecognition {
 
     async initialize() {
         try {
+            console.log(`[Box ${this.cameraBoxId}] 🚀 INITIALIZE CALLED`);
             this.video = document.getElementById(this.imgElementId); // MJPEG <img> element
             this.canvas = document.getElementById(this.canvasId);
 
@@ -50,7 +51,9 @@ class UltraFastFaceRecognition {
                 imgId: this.imgElementId,
                 canvasId: this.canvasId,
                 imgFound: !!this.video,
-                canvasFound: !!this.canvas
+                canvasFound: !!this.canvas,
+                videoSrc: this.video?.src,
+                videoComplete: this.video?.complete
             });
 
             if (!this.video || !this.canvas) {
@@ -74,7 +77,7 @@ class UltraFastFaceRecognition {
             this.registerVideoEvents();
 
             // For MJPEG streams, start immediately since image is already loading
-            console.log(`[Box ${this.cameraBoxId}] Starting recognition loop...`);
+            console.log(`[Box ${this.cameraBoxId}] 🎬 Starting recognition loop...`);
             this.onVideoReady();
             
             console.log(`[Box ${this.cameraBoxId}] ✅ Face recognition ACTIVE`);
