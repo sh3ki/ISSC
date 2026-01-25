@@ -387,11 +387,11 @@
                 {% for detection in detections %}
                 <tr>
                     <td class="image-cell">
-                        <img src="{{ MEDIA_URL }}{{ detection.image_path }}" 
-                             alt="Unauthorized Face" 
+                            <img src="{% url 'unauthorized_face_image' detection.detection_id %}" 
+                                alt="Unauthorized Face" 
                              class="face-thumbnail"
                              style="width: 100px !important; height: 100px !important; max-width: 100px !important; max-height: 100px !important; object-fit: cover !important;"
-                             onclick="openModal('{{ MEDIA_URL }}{{ detection.image_path }}')">
+                                onclick="openModal('{% url 'unauthorized_face_image' detection.detection_id %}')">
                     </td>
                     <td class="camera-cell">
                         <span class="camera-badge">
