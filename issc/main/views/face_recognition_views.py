@@ -114,6 +114,7 @@ def save_unauthorized_face_api(request):
         data = json.loads(request.body)
         image_data = data.get('image')
         camera_box_id = data.get('camera_box_id', 0)
+        notes = data.get('notes')
         
         if not image_data:
             return JsonResponse({'error': 'No image data provided'}, status=400)
@@ -153,7 +154,8 @@ def save_unauthorized_face_api(request):
         relative_path = os.path.join('unauthorized_faces', filename)
         detection = UnauthorizedFaceDetection.objects.create(
             image_path=relative_path,
-            camera_box_id=camera_box_id
+            camera_box_id=camera_box_id,
+            notes=notes
         )
         
         return JsonResponse({
