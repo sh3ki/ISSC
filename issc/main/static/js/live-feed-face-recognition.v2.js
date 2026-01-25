@@ -23,7 +23,7 @@ class UltraFastFaceRecognition {
         this.fps = 0;
         this.lastFpsUpdate = Date.now();
         this.recognitionCooldown = new Map();
-        this.cooldownMs = 5000;
+        this.cooldownMs = 2000;
         this.resizeObserver = null;
         this.scaleX = 1;
         this.scaleY = 1;

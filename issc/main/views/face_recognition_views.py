@@ -65,9 +65,9 @@ def record_face_log_api(request):
         except AccountRegistration.DoesNotExist:
             return JsonResponse({'error': 'User not found'}, status=404)
         
-        # Check if there's already a log for this user in the last 5 seconds to avoid duplicates
+        # Check if there's already a log for this user in the last 2 seconds to avoid duplicates
         from datetime import timedelta
-        recent_threshold = timezone.now() - timedelta(seconds=5)
+        recent_threshold = timezone.now() - timedelta(seconds=2)
         recent_log = FaceLogs.objects.filter(
             id_number=user,
             created_at__gte=recent_threshold
