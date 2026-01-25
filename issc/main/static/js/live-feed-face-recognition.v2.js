@@ -53,7 +53,7 @@ class UltraFastFaceRecognition {
                 imgFound: !!this.video,
                 canvasFound: !!this.canvas,
                 videoSrc: this.video?.src,
-                videoComplete: this.video?.complete
+                videoComplete: this.video?.complete,
             });
 
             if (!this.video || !this.canvas) {
@@ -79,6 +79,15 @@ class UltraFastFaceRecognition {
             // For MJPEG streams, start immediately since image is already loading
             console.log(`[Box ${this.cameraBoxId}] 🎬 Starting recognition loop...`);
             this.onVideoReady();
+            // Safety: start even if naturalWidth never reports
+            setTimeout(() => {
+                if (!this.isRunning) {
+                    console.log(`[Box ${this.cameraBoxId}] ⚠️ Forcing recognition loop start (fallback)`);
+                    this.syncCanvasSize();
+                    this.isRunning = true;
+                    requestAnimationFrame(() => this.recognitionLoop());
+                }
+            }, 1200);
             
             console.log(`[Box ${this.cameraBoxId}] ✅ Face recognition ACTIVE`);
         } catch (error) {
@@ -181,6 +190,11 @@ class UltraFastFaceRecognition {
     async recognitionLoop() {
         if (!this.isRunning) {
             return;
+        }
+
+        // Lightweight log for first few frames to confirm loop runs
+        if (this.frameCount < 5) {
+            console.log(`[Box ${this.cameraBoxId}] 🔁 Loop frame ${this.frameCount}`);
         }
 
         this.drawDetections();
