@@ -487,6 +487,23 @@ document.addEventListener('DOMContentLoaded', () => {
         const canvas = boxFrameCanvases[boxId] || document.createElement('canvas');
         boxFrameCanvases[boxId] = canvas;
         const ctx = canvas.getContext('2d');
+        ctx.imageSmoothingEnabled = true;
+
+        const drawFrame = () => {
+            const width = streamVideo.videoWidth || 0;
+            const height = streamVideo.videoHeight || 0;
+            if (!width || !height) {
+                return;
+            }
+
+            if (canvas.width !== width || canvas.height !== height) {
+                canvas.width = width;
+                canvas.height = height;
+            }
+
+            ctx.drawImage(streamVideo, 0, 0, width, height);
+            imgElement.src = canvas.toDataURL('image/jpeg', 0.7);
+        };
 
         const loop = (timestamp) => {
             if (!streamVideo || streamVideo.readyState < 2) {
@@ -495,21 +512,26 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             if (timestamp - lastFrameTime >= targetInterval) {
-                const width = streamVideo.videoWidth || 0;
-                const height = streamVideo.videoHeight || 0;
-                if (width && height) {
-                    if (canvas.width !== width || canvas.height !== height) {
-                        canvas.width = width;
-                        canvas.height = height;
-                    }
-                    ctx.drawImage(streamVideo, 0, 0, width, height);
-                    imgElement.src = canvas.toDataURL('image/jpeg', 0.7);
-                }
+                drawFrame();
                 lastFrameTime = timestamp;
             }
 
             boxFrameLoops[boxId] = requestAnimationFrame(loop);
         };
+
+        const vfc = streamVideo.requestVideoFrameCallback;
+        if (typeof vfc === 'function') {
+            const onFrame = (now) => {
+                if (!streamVideo || streamVideo.readyState < 2) {
+                    return;
+                }
+                drawFrame();
+                streamVideo.requestVideoFrameCallback(onFrame);
+            };
+            stopFrameLoop(boxId);
+            streamVideo.requestVideoFrameCallback(onFrame);
+            return;
+        }
 
         stopFrameLoop(boxId);
         boxFrameLoops[boxId] = requestAnimationFrame(loop);
@@ -565,7 +587,14 @@ document.addEventListener('DOMContentLoaded', () => {
             imgElement.style.transform = 'scaleX(-1)'; // Mirror like selfie
             boxStreams[boxId] = stream;
             streamVideo.srcObject = stream;
-            startFrameLoop(boxId, streamVideo, imgElement);
+            streamVideo.onloadedmetadata = async () => {
+                try {
+                    await streamVideo.play();
+                } catch (err) {
+                    console.warn('Hidden stream play error:', err);
+                }
+                startFrameLoop(boxId, streamVideo, imgElement);
+            };
             
             // Update assignment
             cameraAssignments[boxId] = deviceId;
