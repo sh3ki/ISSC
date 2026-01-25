@@ -810,9 +810,9 @@ window.liveFeedFaceRecognitionInstances = {};
 window.initializeFaceRecognitionForBox = function(boxId) {
     const imgId = `camera-frame-${boxId}`;  // Match the HTML element ID
     const canvasId = `face-canvas-${boxId}`;
-    const fpsId = `fps-counter-${boxId}`;
+    const fpsId = `fps-${boxId}`;  // FIXED: Match HTML template
     
-    console.log(`[Box ${boxId}] Initializing face recognition...`);
+    console.log(`[Box ${boxId}] 🎯 Initializing face recognition...`);
     
     // Wait for image element to be ready
     const checkReady = setInterval(() => {
