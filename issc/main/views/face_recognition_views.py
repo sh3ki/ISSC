@@ -8,7 +8,8 @@ from django.views.decorators.csrf import csrf_exempt
 from django.utils import timezone
 import json
 from main.computer_vision.face_recognition_engine import face_engine
-from main.models import FaceLogs, AccountRegistration, UnauthorizedFaceDetection
+from main.models import FaceLogs, AccountRegistration, UnauthorizedFaceDetection, SystemConfig
+from main.utils.philsms import send_sms_async
 import base64
 import cv2
 import numpy as np
@@ -161,6 +162,20 @@ def save_unauthorized_face_api(request):
             notes=notes
         )
         
+        # Send SMS notification to admin contact
+        try:
+            recipient = SystemConfig.get_admin_contact()
+            if recipient:
+                msg = (
+                    "ISSC ALERT\n"
+                    "Unauthorized face detected.\n"
+                    f"Camera: Box {camera_box_id}\n"
+                    f"Time: {detection.detection_timestamp.strftime('%Y-%m-%d %I:%M:%S %p')}"
+                )
+                send_sms_async(recipient, msg)
+        except Exception as e:
+            print(f"philsms: error dispatching SMS for unauthorized detection: {e}")
+
         return JsonResponse({
             'success': True,
             'message': 'Unauthorized face saved',
