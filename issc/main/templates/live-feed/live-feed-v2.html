@@ -468,9 +468,57 @@ document.addEventListener('DOMContentLoaded', () => {
         testVideo.srcObject = null;
     }
     
+    const boxFrameLoops = {};
+    const boxFrameCanvases = {};
+
+    function stopFrameLoop(boxId) {
+        if (boxFrameLoops[boxId]) {
+            cancelAnimationFrame(boxFrameLoops[boxId]);
+            delete boxFrameLoops[boxId];
+        }
+        if (boxFrameCanvases[boxId]) {
+            delete boxFrameCanvases[boxId];
+        }
+    }
+
+    function startFrameLoop(boxId, streamVideo, imgElement) {
+        const targetInterval = 1000 / 20; // ~20 FPS
+        let lastFrameTime = 0;
+        const canvas = boxFrameCanvases[boxId] || document.createElement('canvas');
+        boxFrameCanvases[boxId] = canvas;
+        const ctx = canvas.getContext('2d');
+
+        const loop = (timestamp) => {
+            if (!streamVideo || streamVideo.readyState < 2) {
+                boxFrameLoops[boxId] = requestAnimationFrame(loop);
+                return;
+            }
+
+            if (timestamp - lastFrameTime >= targetInterval) {
+                const width = streamVideo.videoWidth || 0;
+                const height = streamVideo.videoHeight || 0;
+                if (width && height) {
+                    if (canvas.width !== width || canvas.height !== height) {
+                        canvas.width = width;
+                        canvas.height = height;
+                    }
+                    ctx.drawImage(streamVideo, 0, 0, width, height);
+                    imgElement.src = canvas.toDataURL('image/jpeg', 0.7);
+                }
+                lastFrameTime = timestamp;
+            }
+
+            boxFrameLoops[boxId] = requestAnimationFrame(loop);
+        };
+
+        stopFrameLoop(boxId);
+        boxFrameLoops[boxId] = requestAnimationFrame(loop);
+    }
+
     // Apply camera to box - PROTECH METHOD: Use browser stream directly
     async function applyCameraToBox(boxId, deviceId, cameraLabel) {
-        const videoElement = document.getElementById(`camera-frame-${boxId}`);
+        const imgElement = document.getElementById(`camera-frame-${boxId}`);
+        let streamVideo = document.getElementById(`camera-stream-${boxId}`);
         
         console.log(`🎬 Applying deviceId ${deviceId} (${cameraLabel}) to Box ${parseInt(boxId) + 1}...`);
         
@@ -503,23 +551,21 @@ document.addEventListener('DOMContentLoaded', () => {
             // Start the camera stream - EXACTLY LIKE PROTECH
             const stream = await navigator.mediaDevices.getUserMedia(constraints);
             
-            // Convert img element to video element if needed
-            if (videoElement.tagName === 'IMG') {
-                const video = document.createElement('video');
-                video.id = `camera-frame-${boxId}`;
-                video.className = videoElement.className;
-                video.autoplay = true;
-                video.playsInline = true;
-                video.muted = true;
-                video.style.transform = 'scaleX(-1)';  // Mirror like selfie
-                videoElement.parentNode.replaceChild(video, videoElement);
-                boxStreams[boxId] = stream;
-                video.srcObject = stream;
-            } else {
-                // Already a video element
-                boxStreams[boxId] = stream;
-                videoElement.srcObject = stream;
+            // Create hidden video element for stream if needed
+            if (!streamVideo) {
+                streamVideo = document.createElement('video');
+                streamVideo.id = `camera-stream-${boxId}`;
+                streamVideo.autoplay = true;
+                streamVideo.playsInline = true;
+                streamVideo.muted = true;
+                streamVideo.style.display = 'none';
+                imgElement.parentNode.appendChild(streamVideo);
             }
+
+            imgElement.style.transform = 'scaleX(-1)'; // Mirror like selfie
+            boxStreams[boxId] = stream;
+            streamVideo.srcObject = stream;
+            startFrameLoop(boxId, streamVideo, imgElement);
             
             // Update assignment
             cameraAssignments[boxId] = deviceId;
@@ -571,17 +617,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                     
                     const videoElement = document.getElementById(`camera-frame-${boxId}`);
+                    const hiddenVideo = document.getElementById(`camera-stream-${boxId}`);
+                    stopFrameLoop(boxId);
+                    if (hiddenVideo) {
+                        hiddenVideo.remove();
+                    }
                     if (videoElement) {
-                        // Stop video stream and convert back to img placeholder
-                        if (videoElement.tagName === 'VIDEO') {
-                            const img = document.createElement('img');
-                            img.id = `camera-frame-${boxId}`;
-                            img.className = videoElement.className;
-                            img.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='640' height='480'%3E%3Crect width='640' height='480' fill='%23000'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-family='Arial' font-size='24' fill='%23999'%3ENo Camera Selected%3C/text%3E%3C/svg%3E";
-                            videoElement.parentNode.replaceChild(img, videoElement);
-                        } else {
-                            videoElement.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='640' height='480'%3E%3Crect width='640' height='480' fill='%23000'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-family='Arial' font-size='24' fill='%23999'%3ENo Camera Selected%3C/text%3E%3C/svg%3E";
-                        }
+                        videoElement.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='640' height='480'%3E%3Crect width='640' height='480' fill='%23000'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-family='Arial' font-size='24' fill='%23999'%3ENo Camera Selected%3C/text%3E%3C/svg%3E";
                     }
                 }
                 updateAllDropdowns();
