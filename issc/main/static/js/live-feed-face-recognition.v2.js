@@ -906,4 +906,5 @@ window.initializeFaceRecognitionForBox = function(boxId) {
     }, 5000);
 };
 
-console.log('✅ Live Feed Face Recognition loaded (PROTECH ultra-fast version)');
+window.__faceRecognitionLoaded = true;
+console.warn('✅ Live Feed Face Recognition loaded (PROTECH ultra-fast version)');

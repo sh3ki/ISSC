@@ -701,6 +701,29 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     
     // Confirm camera selection
+    const startFaceRecognitionWithRetry = (boxId) => {
+        const startTime = Date.now();
+        const maxWaitMs = 10000;
+        const intervalMs = 500;
+        const tryStart = () => {
+            if (typeof window.initializeFaceRecognitionForBox === 'function') {
+                console.warn(`🎯 [Face Recognition] initializeFaceRecognitionForBox available. Starting for Box ${parseInt(boxId) + 1}...`);
+                window.initializeFaceRecognitionForBox(boxId);
+                console.warn(`✅ [Face Recognition] Started for Box ${parseInt(boxId) + 1}`);
+                return;
+            }
+
+            if (Date.now() - startTime < maxWaitMs) {
+                console.warn(`⏳ [Face Recognition] Waiting for script to load... Box ${parseInt(boxId) + 1}`);
+                setTimeout(tryStart, intervalMs);
+            } else {
+                console.error(`❌ [Face Recognition] Script not available after ${maxWaitMs}ms. Box ${parseInt(boxId) + 1}`);
+            }
+        };
+
+        tryStart();
+    };
+
     confirmCamera.addEventListener('click', async () => {
         if (pendingSelection) {
             const { boxId, deviceId, cameraLabel } = pendingSelection;
@@ -718,15 +741,7 @@ document.addEventListener('DOMContentLoaded', () => {
             console.log(`✅ Camera applied successfully to Box ${parseInt(boxId) + 1}!`);
             
             // Initialize face recognition for this box IMMEDIATELY after camera is confirmed
-            if (typeof window.initializeFaceRecognitionForBox === 'function') {
-                console.log(`🎯 Initializing face recognition for Box ${parseInt(boxId) + 1}...`);
-                setTimeout(() => {
-                    window.initializeFaceRecognitionForBox(boxId);
-                    console.log(`✅ Face recognition started for Box ${parseInt(boxId) + 1}!`);
-                }, 500); // Small delay to ensure camera stream is stable
-            } else {
-                console.error('❌ Face recognition function not available!');
-            }
+            startFaceRecognitionWithRetry(boxId);
             
             pendingSelection = null;
         } else {
@@ -734,6 +749,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
     
+    console.warn('✅ [Live Feed] Page script loaded');
+
     // Load cameras on page load - Use PROTECH method
     getAvailableCameras();
     
@@ -751,6 +768,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
 <!-- Live Feed Face Recognition System (EXACT COPY from PROTECH) -->
 <script defer src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
-<script src="{% static 'js/live-feed-face-recognition.v2.js' %}?cb=20260125140000"></script>
+<script src="{% static 'js/live-feed-face-recognition.v2.js' %}?cb=20260125143000"></script>
 
 {% endblock content %}
