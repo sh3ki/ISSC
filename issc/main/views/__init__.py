@@ -16,7 +16,7 @@ from .live_view import live_feed
 from .about_view import about
 
 from .face_enrollment_view import face_enrollment
-from .unauthorized_faces_view import unauthorized_faces_archive
+from .unauthorized_faces_view import unauthorized_faces_archive, unauthorized_face_image
 
 # Import simplified live feed module
 from . import live_feed_simple
