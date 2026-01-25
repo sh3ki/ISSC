@@ -646,6 +646,17 @@ document.addEventListener('DOMContentLoaded', () => {
             
             console.log(`✅ Camera applied successfully to Box ${parseInt(boxId) + 1}!`);
             
+            // Initialize face recognition for this box IMMEDIATELY after camera is confirmed
+            if (typeof window.initializeFaceRecognitionForBox === 'function') {
+                console.log(`🎯 Initializing face recognition for Box ${parseInt(boxId) + 1}...`);
+                setTimeout(() => {
+                    window.initializeFaceRecognitionForBox(boxId);
+                    console.log(`✅ Face recognition started for Box ${parseInt(boxId) + 1}!`);
+                }, 500); // Small delay to ensure camera stream is stable
+            } else {
+                console.error('❌ Face recognition function not available!');
+            }
+            
             pendingSelection = null;
         } else {
             console.warn('⚠️ No pending selection to confirm');
@@ -671,21 +682,8 @@ document.addEventListener('DOMContentLoaded', () => {
 <script defer src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
 <script src="{% static 'js/live-feed-face-recognition.js' %}"></script>
 
-<script>
-// Auto-initialize face recognition for Box 0 after page load
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('🔍 Checking face recognition availability...');
-    
-    setTimeout(() => {
-        if (typeof window.initializeFaceRecognitionForBox === 'function') {
-            console.log('✅ Face recognition function found! Initializing for Box 0...');
-            window.initializeFaceRecognitionForBox(0);
-        } else {
-            console.error('❌ Face recognition function NOT found!');
-            console.log('Available scripts:', document.querySelectorAll('script[src*="live-feed-face-recognition"]'));
-        }
-    }, 2000);
-});
-</script>
+<!-- Live Feed Face Recognition System (EXACT COPY from PROTECH) -->
+<script defer src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+<script src="{% static 'js/live-feed-face-recognition.js' %}"></script>
 
 {% endblock content %}
