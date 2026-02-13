@@ -87,17 +87,44 @@
 @media (max-width: 768px) {
     .about-container {
         padding: 15px;
+        margin: 20px auto;
     }
 
     .subheading {
-        font-size: 1.8rem;
+        font-size: 1.5rem;
     }
 
     .content {
-        font-size: 1.1rem;
+        font-size: 1rem;
+        line-height: 1.5;
     }
 
     .contact-list {
-        font-size: 1rem;
+        font-size: 0.95rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .about-container {
+        padding: 10px;
+        margin: 10px auto;
+    }
+
+    .subheading {
+        font-size: 1.3rem;
+        padding-bottom: 3px;
+    }
+
+    .content {
+        font-size: 0.9rem;
+        margin: 10px 0;
+    }
+
+    .contact-list {
+        font-size: 0.85rem;
+    }
+
+    .contact-list li {
+        margin: 8px 0;
     }
 }
