@@ -25,6 +25,16 @@
 
 </head>
 <body>
+    <!-- Mobile Hamburger Button (Only visible on mobile) -->
+    <button class="mobile-hamburger-btn" onclick="toggleMobileNav()">
+      <span class="hamburger-icon"></span>
+      <span class="hamburger-icon"></span>
+      <span class="hamburger-icon"></span>
+    </button>
+
+    <!-- Mobile Navigation Overlay -->
+    <div class="mobile-nav-overlay" onclick="closeMobileNav()"></div>
+
     <!-- Main Navbar (Top) -->
     <nav class="navbar">
       <div class="flex items-center space-x-4">
@@ -178,27 +188,55 @@
   
     <!-- JavaScript -->
     <script>
+      // Mobile Hamburger Menu Functions
+      function toggleMobileNav() {
+        const sidebar = document.querySelector('.sidebar');
+        const overlay = document.querySelector('.mobile-nav-overlay');
+        const hamburgerBtn = document.querySelector('.mobile-hamburger-btn');
+        
+        sidebar.classList.toggle('mobile-active');
+        overlay.classList.toggle('active');
+        hamburgerBtn.classList.toggle('active');
+        document.body.style.overflow = sidebar.classList.contains('mobile-active') ? 'hidden' : 'auto';
+      }
+
+      function closeMobileNav() {
+        const sidebar = document.querySelector('.sidebar');
+        const overlay = document.querySelector('.mobile-nav-overlay');
+        const hamburgerBtn = document.querySelector('.mobile-hamburger-btn');
+        
+        sidebar.classList.remove('mobile-active');
+        overlay.classList.remove('active');
+        hamburgerBtn.classList.remove('active');
+        document.body.style.overflow = 'auto';
+      }
+
       document.addEventListener('DOMContentLoaded', function () {
         const toggleBtn = document.querySelector('.toggle-btn');
         const sidebar = document.querySelector('.sidebar');
-        const secondaryNavbar = document.querySelector('.secondary-navbar');
   
-        toggleBtn.addEventListener('click', () => {
+        if (toggleBtn) {
+          toggleBtn.addEventListener('click', () => {
             sidebar.classList.toggle('hidden');
-            sidebar.classList.toggle('mobile-active');
-            });
+          });
+        }
+
+        // Close mobile nav when clicking on a link
+        const sidebarLinks = document.querySelectorAll('.sidebar a');
+        sidebarLinks.forEach(link => {
+          link.addEventListener('click', closeMobileNav);
         });
 
         window.addEventListener('scroll', function() {
-            const navbar = document.querySelector('.secondary-navbar');
-            
-            // Add 'sticky-active' class when the navbar reaches the top
-            if (window.scrollY > 50) {
-                navbar.classList.add('sticky-active');
-            } else {
-                navbar.classList.remove('sticky-active');
-            }
+          const navbar = document.querySelector('.secondary-navbar');
+          
+          if (window.scrollY > 50) {
+            navbar.classList.add('sticky-active');
+          } else {
+            navbar.classList.remove('sticky-active');
+          }
         });
+      });
     </script>
     
     <div id="loading-spinner" class="fixed inset-0 bg-black bg-opacity-50 flex flex-col justify-center items-center z-50" style="display: none;">
