@@ -255,7 +255,7 @@ footer .copyright {
 .mobile-hamburger-btn {
     display: none;
     position: relative;
-    z-index: 10001;
+    z-index: 10003;
     background: maroon;
     border: none;
     border-radius: 8px;
@@ -310,7 +310,7 @@ footer .copyright {
     width: 100%;
     height: 100%;
     background: rgba(0, 0, 0, 0.7);
-    z-index: 9998;
+    z-index: 10001;
     opacity: 0;
     transition: opacity 0.3s ease;
 }
@@ -323,6 +323,10 @@ footer .copyright {
 /* Desktop logout button */
 .desktop-logout {
     display: block;
+}
+
+.mobile-sidebar {
+    display: none;
 }
 
 .toggle-btn {
@@ -347,6 +351,10 @@ footer .copyright {
     /* Show mobile hamburger button */
     .mobile-hamburger-btn {
         display: flex !important;
+        position: fixed;
+        top: 14px;
+        right: 14px;
+        margin-left: 0;
     }
 
     /* Hide desktop logout button on mobile */
@@ -360,7 +368,7 @@ footer .copyright {
     }
 
     .navbar {
-        padding: 1rem 2rem;
+        padding: 1rem 4.5rem 1rem 1rem;
         flex-wrap: wrap;
     }
 
@@ -389,24 +397,11 @@ footer .copyright {
     }
 
     .secondary-navbar {
-        padding: 8px 0 9px 20px;
-        overflow-x: auto;
-        overflow-y: hidden;
+        display: none;
     }
 
-    .secondary-navbar ul {
-        flex-wrap: nowrap;
-        overflow-x: auto;
-        -webkit-overflow-scrolling: touch;
-    }
-
-    .secondary-navbar ul::-webkit-scrollbar {
-        height: 4px;
-    }
-
-    .secondary-navbar ul::-webkit-scrollbar-thumb {
-        background: maroon;
-        border-radius: 4px;
+    .mobile-sidebar {
+        display: block;
     }
 
     /* Mobile Sidebar Styles */
@@ -418,10 +413,10 @@ footer .copyright {
         height: 100vh;
         background: white;
         box-shadow: -2px 0 15px rgba(0,0,0,0.4);
-        z-index: 10000;
+        z-index: 10002;
         transition: right 0.3s ease;
         overflow-y: auto;
-        padding: 20px 0;
+        padding: 80px 0 20px;
     }
 
     .sidebar.mobile-active {
@@ -518,6 +513,8 @@ footer .copyright {
     .mobile-hamburger-btn {
         width: 45px;
         height: 45px;
+        top: 12px;
+        right: 12px;
     }
 
     .hamburger-icon {
@@ -526,7 +523,7 @@ footer .copyright {
     }
 
     .navbar {
-        padding: 0.8rem 1rem;
+        padding: 0.8rem 4rem 0.8rem 0.8rem;
     }
 
     .navbar-logo img {
@@ -544,15 +541,6 @@ footer .copyright {
 
     .user-info p {
         font-size: 12px;
-    }
-
-    .secondary-navbar {
-        padding: 8px 0 9px 20px;
-    }
-
-    .secondary-navbar ul li a {
-        font-size: 11px;
-        padding: 1rem 0.8rem;
     }
 
     .sidebar {
