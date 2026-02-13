@@ -536,10 +536,43 @@ select {
 
     .table-container {
         margin: 10px auto;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
     }
 
     .form-table {
         min-width: 600px;
+    }
+
+    .dataTables_wrapper {
+        width: 100%;
+        overflow-x: auto;
+    }
+
+    .dataTables_wrapper .dataTables_length,
+    .dataTables_wrapper .dataTables_filter {
+        width: 100%;
+        text-align: left;
+        margin-bottom: 8px;
+    }
+
+    .dataTables_wrapper .dataTables_length label,
+    .dataTables_wrapper .dataTables_filter label {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+
+    .dataTables_wrapper .dataTables_filter input {
+        width: min(100%, 240px);
+    }
+
+    .dataTables_wrapper .dataTables_info,
+    .dataTables_wrapper .dataTables_paginate {
+        float: none;
+        text-align: center;
+        margin-top: 10px;
     }
 
     .pagination {
@@ -593,6 +626,16 @@ select {
 
     .form-table {
         min-width: 500px;
+    }
+
+    .dataTables_wrapper .dataTables_filter input {
+        width: 100%;
+        max-width: 100%;
+    }
+
+    .dataTables_wrapper .dataTables_length label,
+    .dataTables_wrapper .dataTables_filter label {
+        display: block;
     }
 
     .create-new-btn, .pagination a, .update-btn, .delete-btn, .toggle-btn, .archive-btn {
