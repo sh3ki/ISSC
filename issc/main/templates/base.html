@@ -181,9 +181,11 @@
       document.addEventListener('DOMContentLoaded', function () {
         const toggleBtn = document.querySelector('.toggle-btn');
         const sidebar = document.querySelector('.sidebar');
+        const secondaryNavbar = document.querySelector('.secondary-navbar');
   
         toggleBtn.addEventListener('click', () => {
             sidebar.classList.toggle('hidden');
+            sidebar.classList.toggle('mobile-active');
             });
         });
 
