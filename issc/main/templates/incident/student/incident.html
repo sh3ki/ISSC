@@ -13,6 +13,42 @@
         <!-- <a href="{% url 'incidents' %}?archive=true" class="create-new-btn">Archive</a> -->
     </div>
 
+    <style>
+        @media (max-width: 768px) {
+            .create-search {
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .create-new-btn {
+                width: 100%;
+                text-align: center;
+                display: block;
+            }
+
+            .flex.justify-end.mb-4.space-x-2 {
+                flex-wrap: wrap;
+                justify-content: center !important;
+                gap: 8px;
+            }
+
+            .flex.justify-end.mb-4.space-x-2 button {
+                flex: 1 1 auto;
+                min-width: 120px;
+                font-size: 12px;
+                padding: 8px 12px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .flex.justify-end.mb-4.space-x-2 button {
+                font-size: 11px;
+                padding: 6px 10px;
+                min-width: 100px;
+            }
+        }
+    </style>
+
     <div class="p-4 mt-2 mb-4rounded">
     <div class="flex justify-end mb-4 space-x-2">
         <button id="btn-open" onclick="showSection('open')" class="px-4 py-2 bg-red-900 text-white rounded-xl transition-all duration-300 transform shadow-md hover:shadow-xl hover:translate-y-[-3px] active:translate-y-[0px] active:shadow-sm">Open Cases</button>
