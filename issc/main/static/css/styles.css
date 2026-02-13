@@ -495,17 +495,33 @@ footer .copyright {
 
     .footer-container {
         flex-direction: column;
-        gap: 2rem;
+        gap: 1.25rem;
         text-align: center;
+        align-items: center;
     }
 
     .footer-section {
+        flex: 0 0 auto;
         text-align: center;
         max-width: 100%;
+        width: 100%;
+    }
+
+    footer {
+        padding: 1.25rem 0.9rem;
+    }
+
+    .footer-section h4 {
+        margin-bottom: 0.35rem;
+    }
+
+    .footer-section p {
+        line-height: 1.35;
     }
 
     .social-icons {
         justify-content: center;
+        gap: 14px;
     }
 }
 
@@ -559,6 +575,18 @@ footer .copyright {
 
     .container {
         padding: 10px;
+    }
+
+    .footer-container {
+        gap: 1rem;
+    }
+
+    .footer-section {
+        padding: 0;
+    }
+
+    .footer-section p {
+        font-size: 0.95rem;
     }
 }
 
