@@ -480,9 +480,14 @@ select {
 
 
 @media (max-width: 768px) {
+    .forms {
+        padding: 1.5rem;
+        margin: 20px auto;
+    }
+
     .form-table th, .form-table td {
-        padding: 10px 12px;
-        font-size: 12px;
+        padding: 8px 10px;
+        font-size: 11px;
     }
 
     .form-group {
@@ -505,8 +510,98 @@ select {
     .privilege,
     .status,
     .password,
+    .people-involved,
+    .faculty-involved,
+    .incident-description,
+    .request-action,
+    .upload-file,
     .register-btn {
         grid-column: span 1;  
+    }
+
+    .create-search {
+        flex-direction: column;
+        gap: 10px;
+        padding-top: 20px;
+    }
+
+    .create-new-btn {
+        width: 100%;
+        text-align: center;
+    }
+
+    .search-container {
+        width: 100%;
+    }
+
+    .table-container {
+        margin: 10px auto;
+    }
+
+    .form-table {
+        min-width: 600px;
+    }
+
+    .pagination {
+        flex-direction: column;
+        gap: 10px;
+        text-align: center;
+    }
+
+    .dataTables_wrapper .dataTables_filter {
+        text-align: left;
+        margin-bottom: 10px;
+    }
+
+    .dataTables_wrapper .dataTables_length {
+        text-align: left;
+        margin-bottom: 10px;
+    }
+}
+
+@media (max-width: 480px) {
+    .forms {
+        padding: 1rem;
+        margin: 10px;
+    }
+
+    .form-field label {
+        font-size: 12px;
+    }
+
+    .form-field input[type="text"],
+    .form-field input[type="email"],
+    .form-field input[type="password"],
+    .form-field input[type="tel"],
+    .form-field input[type="file"],
+    .form-field textarea,
+    .form-field select {
+        font-size: 12px;
+        padding: 6px 20px;
+    }
+
+    .register-btn button[type="submit"],
+    .form-field button {
+        font-size: 13px;
+        padding: 6px 20px;
+    }
+
+    .form-table th, .form-table td {
+        padding: 6px 8px;
+        font-size: 10px;
+    }
+
+    .form-table {
+        min-width: 500px;
+    }
+
+    .create-new-btn, .pagination a, .update-btn, .delete-btn, .toggle-btn, .archive-btn {
+        font-size: 11px;
+        padding: 8px 20px;
+    }
+
+    .archive-btn {
+        font-size: 13px;
     }
 }
 
