@@ -57,44 +57,29 @@
       </div>
     </nav>
   
-    <!-- Secondary Navbar (Below Main Navbar) -->
+    <!-- Secondary Navbar (Desktop Navigation) -->
     <aside class="navbar secondary-navbar">
         <div class="sticky-logo">
             <img src="{% static 'images/pup-logo.png' %}" alt="Logo">
         </div>
-        <ul>
-                
-
-            <aside class="sidebar">
-              <ul class="nav-links">
+        <ul class="nav-links">
                 {% if user_role == 'student' %}
-                <!-- Student Menu Items -->
                 <li>
                   <a href="{% url 'about' %}" class="{% if request.resolver_match.url_name == 'about' %}active{% endif %}">
-                    <span class="icon">🏠</span>
                     <span class="text">Homepage</span>
                   </a>
                 </li>
                 <li>
                   <a href="{% url 'incidents' %}" class="{% if request.resolver_match.url_name == 'incidents' or request.resolver_match.url_name == 'incident_forms' or request.resolver_match.url_name == 'incident_details' %}active{% endif %}">
-                    <span class="icon">📋</span>
                     <span class="text">Incidents</span>
                   </a>
                 </li>
                 <li>
                   <a href="/profile/" class="{% if request.resolver_match.url_name == 'profile' %}active{% endif %}">
-                    <span class="icon">👤</span>
                     <span class="text">Profile</span>
                   </a>
                 </li>
-                <li>
-                  <a href="#" onclick="showLogoutModal(); closeMobileNav(); return false;" class="logout-menu-item">
-                    <span class="icon">🚪</span>
-                    <span class="text">Logout</span>
-                  </a>
-                </li>
                 {% else %}
-                <!-- Admin/Faculty Menu Items -->
                 <li>
                   <a href="{% url 'about' %}" class="{% if request.resolver_match.url_name == 'about' %}active{% endif %}">
                     <span class="icon"></span>
@@ -158,14 +143,6 @@
                   </a>
                 </li>
                 {% endif %}
-                {% if user_role == 'admin' %}
-                <li>
-                  <a href="{% url 'backup_page' %}" class="{% if request.resolver_match.url_name == 'backup_page' %}active{% endif %}">
-                    <span class="icon"></span>
-                    <span class="text">Backup</span>
-                  </a>
-                </li>
-                {% endif %}
                 <li>
                   <a href="/profile/" class="{% if request.resolver_match.url_name == 'profile' %}active{% endif %}">
                     <span class="icon"></span>
@@ -173,10 +150,40 @@
                   </a>
                 </li>
                 {% endif %}
-              </ul>
-            </aside>
         </ul>
     </aside>
+
+    <!-- Mobile Sidebar (Student Hamburger Menu) -->
+    {% if user_role == 'student' %}
+    <aside class="sidebar mobile-sidebar">
+      <ul class="nav-links">
+        <li>
+          <a href="{% url 'about' %}" class="{% if request.resolver_match.url_name == 'about' %}active{% endif %}">
+            <span class="icon">🏠</span>
+            <span class="text">Homepage</span>
+          </a>
+        </li>
+        <li>
+          <a href="{% url 'incidents' %}" class="{% if request.resolver_match.url_name == 'incidents' or request.resolver_match.url_name == 'incident_forms' or request.resolver_match.url_name == 'incident_details' %}active{% endif %}">
+            <span class="icon">📋</span>
+            <span class="text">Incidents</span>
+          </a>
+        </li>
+        <li>
+          <a href="/profile/" class="{% if request.resolver_match.url_name == 'profile' %}active{% endif %}">
+            <span class="icon">👤</span>
+            <span class="text">Profile</span>
+          </a>
+        </li>
+        <li>
+          <a href="#" onclick="showLogoutModal(); closeMobileNav(); return false;" class="logout-menu-item">
+            <span class="icon">🚪</span>
+            <span class="text">Logout</span>
+          </a>
+        </li>
+      </ul>
+    </aside>
+    {% endif %}
   
     <!-- Main Content -->
     <main class="container">
@@ -229,6 +236,7 @@
         const sidebar = document.querySelector('.sidebar');
         const overlay = document.querySelector('.mobile-nav-overlay');
         const hamburgerBtn = document.querySelector('.mobile-hamburger-btn');
+        if (!sidebar || !overlay || !hamburgerBtn) return;
         
         sidebar.classList.toggle('mobile-active');
         overlay.classList.toggle('active');
@@ -240,6 +248,7 @@
         const sidebar = document.querySelector('.sidebar');
         const overlay = document.querySelector('.mobile-nav-overlay');
         const hamburgerBtn = document.querySelector('.mobile-hamburger-btn');
+        if (!sidebar || !overlay || !hamburgerBtn) return;
         
         sidebar.classList.remove('mobile-active');
         overlay.classList.remove('active');
@@ -253,7 +262,9 @@
   
         if (toggleBtn) {
           toggleBtn.addEventListener('click', () => {
-            sidebar.classList.toggle('hidden');
+            if (sidebar) {
+              sidebar.classList.toggle('hidden');
+            }
           });
         }
 
@@ -261,6 +272,12 @@
         const sidebarLinks = document.querySelectorAll('.sidebar a');
         sidebarLinks.forEach(link => {
           link.addEventListener('click', closeMobileNav);
+        });
+
+        window.addEventListener('resize', function() {
+          if (window.innerWidth > 768) {
+            closeMobileNav();
+          }
         });
 
         window.addEventListener('scroll', function() {
