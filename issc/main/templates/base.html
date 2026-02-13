@@ -25,13 +25,6 @@
 
 </head>
 <body>
-    <!-- Mobile Hamburger Button (Only visible on mobile) -->
-    <button class="mobile-hamburger-btn" onclick="toggleMobileNav()">
-      <span class="hamburger-icon"></span>
-      <span class="hamburger-icon"></span>
-      <span class="hamburger-icon"></span>
-    </button>
-
     <!-- Mobile Navigation Overlay -->
     <div class="mobile-nav-overlay" onclick="closeMobileNav()"></div>
 
@@ -51,10 +44,16 @@
         <p>
           <strong>{{ user_data.privilege}}</strong>
         </p>
-        <form class="logout-btn" method="POST" action="{% url 'logout' %}" id="logout-form">
+        <form class="logout-btn desktop-logout" method="POST" action="{% url 'logout' %}" id="logout-form">
             {% csrf_token %}
             <button type="button" onclick="showLogoutModal()">Logout</button>
         </form>
+        <!-- Mobile Hamburger Button (Only visible on mobile) -->
+        <button class="mobile-hamburger-btn" onclick="toggleMobileNav()">
+          <span class="hamburger-icon"></span>
+          <span class="hamburger-icon"></span>
+          <span class="hamburger-icon"></span>
+        </button>
       </div>
     </nav>
   
@@ -68,6 +67,34 @@
 
             <aside class="sidebar">
               <ul class="nav-links">
+                {% if user_role == 'student' %}
+                <!-- Student Menu Items -->
+                <li>
+                  <a href="{% url 'about' %}" class="{% if request.resolver_match.url_name == 'about' %}active{% endif %}">
+                    <span class="icon">🏠</span>
+                    <span class="text">Homepage</span>
+                  </a>
+                </li>
+                <li>
+                  <a href="{% url 'incidents' %}" class="{% if request.resolver_match.url_name == 'incidents' or request.resolver_match.url_name == 'incident_forms' or request.resolver_match.url_name == 'incident_details' %}active{% endif %}">
+                    <span class="icon">📋</span>
+                    <span class="text">Incidents</span>
+                  </a>
+                </li>
+                <li>
+                  <a href="/profile/" class="{% if request.resolver_match.url_name == 'profile' %}active{% endif %}">
+                    <span class="icon">👤</span>
+                    <span class="text">Profile</span>
+                  </a>
+                </li>
+                <li>
+                  <a href="#" onclick="showLogoutModal(); closeMobileNav(); return false;" class="logout-menu-item">
+                    <span class="icon">🚪</span>
+                    <span class="text">Logout</span>
+                  </a>
+                </li>
+                {% else %}
+                <!-- Admin/Faculty Menu Items -->
                 <li>
                   <a href="{% url 'about' %}" class="{% if request.resolver_match.url_name == 'about' %}active{% endif %}">
                     <span class="icon"></span>
@@ -131,12 +158,21 @@
                   </a>
                 </li>
                 {% endif %}
+                {% if user_role == 'admin' %}
+                <li>
+                  <a href="{% url 'backup_page' %}" class="{% if request.resolver_match.url_name == 'backup_page' %}active{% endif %}">
+                    <span class="icon"></span>
+                    <span class="text">Backup</span>
+                  </a>
+                </li>
+                {% endif %}
                 <li>
                   <a href="/profile/" class="{% if request.resolver_match.url_name == 'profile' %}active{% endif %}">
                     <span class="icon"></span>
                     <span class="text">Profile</span>
                   </a>
                 </li>
+                {% endif %}
               </ul>
             </aside>
         </ul>
