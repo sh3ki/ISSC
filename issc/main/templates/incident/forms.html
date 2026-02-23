@@ -184,14 +184,15 @@
                 <label>Upload File</label>
                 <input type="file" name="file" id="upload-file"
                        accept="image/jpeg,image/png,image/gif,image/webp,image/bmp,image/tiff,image/svg+xml,
+                              video/mp4,video/mpeg,video/ogg,video/webm,video/quicktime,video/x-msvideo,video/x-matroska,
                               application/pdf,
                               application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,
                               application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,
                               application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation,
                               text/csv,text/plain,
                               application/vnd.oasis.opendocument.text,application/vnd.oasis.opendocument.spreadsheet,application/vnd.oasis.opendocument.presentation">
-                <small id="file-error" style="color:#dc3545;font-size:12px;display:none;">Only images (JPEG, PNG, GIF, WEBP, BMP, TIFF, SVG) and documents (PDF, Word, Excel, PowerPoint, CSV, TXT, ODP/ODS/ODT) are allowed.</small>
-                <small style="color:#666;font-size:11px;display:block;margin-top:3px;">Accepted: images (JPEG, PNG, GIF, WEBP…) and documents (PDF, Word, Excel, PowerPoint, CSV…)</small>
+                <small id="file-error" style="color:#dc3545;font-size:12px;display:none;">Only images (JPEG, PNG, GIF, WEBP, BMP, TIFF, SVG), videos (MP4, MOV, AVI, MKV, WEBM) and documents (PDF, Word, Excel, PowerPoint, CSV, TXT) are allowed.</small>
+                <small style="color:#666;font-size:11px;display:block;margin-top:3px;">Accepted: images (JPEG, PNG…), videos (MP4, MOV, AVI, MKV…), and documents (PDF, Word, Excel, PowerPoint, CSV…)</small>
             </div>
 
             <div  class="register-btn">
@@ -209,6 +210,7 @@
   (function() {
     var ALLOWED_EXT = [
       'jpg','jpeg','png','gif','webp','bmp','tiff','tif','svg',
+      'mp4','mpeg','mpg','mov','avi','mkv','webm','ogv','wmv','flv',
       'pdf',
       'doc','docx','xls','xlsx','ppt','pptx',
       'csv','txt','odt','ods','odp'
