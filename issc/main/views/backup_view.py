@@ -377,8 +377,27 @@ def delete_backup(request, filename):
             return JsonResponse({'success': False, 'message': 'Invalid file path'}, status=400)
         
         try:
+            # Ensure the file is writable before attempting removal
+            # (handles cases where file was created by a different user/process)
+            if platform.system() != 'Windows':
+                try:
+                    os.chmod(filepath, 0o644)
+                except Exception:
+                    pass
             os.remove(filepath)
             return JsonResponse({'success': True, 'message': 'Backup deleted successfully'})
+        except PermissionError:
+            # Last resort: use sudo rm on Linux if running user lacks write permission
+            if platform.system() != 'Windows':
+                try:
+                    result = subprocess.run(['rm', '-f', filepath], capture_output=True, text=True)
+                    if result.returncode == 0:
+                        return JsonResponse({'success': True, 'message': 'Backup deleted successfully'})
+                    else:
+                        return JsonResponse({'success': False, 'message': f'Permission denied: {result.stderr}'}, status=500)
+                except Exception as e2:
+                    return JsonResponse({'success': False, 'message': str(e2)}, status=500)
+            return JsonResponse({'success': False, 'message': 'Permission denied deleting backup file'}, status=500)
         except Exception as e:
             return JsonResponse({'success': False, 'message': str(e)}, status=500)
     
