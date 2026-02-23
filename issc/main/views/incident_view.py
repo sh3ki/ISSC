@@ -9,6 +9,7 @@ from django.contrib.auth.decorators import login_required
 
 from django.core.files.storage import FileSystemStorage
 from django.core.paginator import Paginator
+from django.db.models import Q
 
 from ..models import AccountRegistration, IncidentReport, VehicleRegistration, IncidentUpdate
 
@@ -24,15 +25,19 @@ def incident(request):
     is_archived = request.GET.get('archive', 'false').lower() == 'true'
     if user[0]['privilege'] == 'student':
         template = loader.get_template('incident/student/incident.html')
-        open_incident = IncidentReport.objects.filter(status='open', id_number=user[0]['id_number'] , is_archived=is_archived).order_by('date_joined')
-        pending_incident = IncidentReport.objects.filter(status='pending', id_number=user[0]['id_number'] , is_archived=is_archived).order_by('date_joined')
-        closed_incident = IncidentReport.objects.filter(status='closed', id_number=user[0]['id_number'] , is_archived=is_archived).order_by('date_joined')
+        student_full_name = f"{user[0]['first_name']} {user[0]['last_name']}"
+        student_lookup = Q(id_number=user[0]['id_number']) | Q(reported_by=student_full_name)
+        open_incident = IncidentReport.objects.filter(student_lookup, status='open', is_archived=is_archived).distinct().order_by('date_joined')
+        pending_incident = IncidentReport.objects.filter(student_lookup, status='pending', is_archived=is_archived).distinct().order_by('date_joined')
+        closed_incident = IncidentReport.objects.filter(student_lookup, status='closed', is_archived=is_archived).distinct().order_by('date_joined')
     elif user[0]['privilege'] == 'faculty':
         template = loader.get_template('incident/faculty/incident.html')
         user_department = user[0]['department']
-        open_incident = IncidentReport.objects.filter(status='open', department__iexact=user_department, is_archived=is_archived).order_by('date_joined')
-        pending_incident = IncidentReport.objects.filter(status='pending', department__iexact=user_department, is_archived=is_archived).order_by('date_joined')
-        closed_incident = IncidentReport.objects.filter(status='closed', department__iexact=user_department, is_archived=is_archived).order_by('date_joined')
+        faculty_full_name = f"{user[0]['first_name']} {user[0]['last_name']}"
+        faculty_lookup = Q(department__iexact=user_department) | Q(id_number=user[0]['id_number']) | Q(reported_by=faculty_full_name)
+        open_incident = IncidentReport.objects.filter(faculty_lookup, status='open', is_archived=is_archived).distinct().order_by('date_joined')
+        pending_incident = IncidentReport.objects.filter(faculty_lookup, status='pending', is_archived=is_archived).distinct().order_by('date_joined')
+        closed_incident = IncidentReport.objects.filter(faculty_lookup, status='closed', is_archived=is_archived).distinct().order_by('date_joined')
     else:
         template = loader.get_template('incident/admin/incident.html')
         open_incident = IncidentReport.objects.filter(status='open', is_archived=is_archived).order_by('date_joined')
