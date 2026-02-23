@@ -586,9 +586,9 @@ def download_template(request):
     
     # Add example data
     example_data = [
-        ['student0001', 'Juan', 'Dela', 'Cruz', 'juan.delacruz@example.com', '09123456789', 'M', 'BSIT', 'student'],
-        ['faculty0001', 'Maria', 'Santos', 'Garcia', 'maria.garcia@example.com', '09987654321', 'F', 'BSENT', 'faculty'],
-        ['admin0001', 'Pedro', 'Reyes', 'Lopez', 'pedro.lopez@example.com', '09456789123', 'M', 'BTLED', 'admin'],
+        ['2022-00000-CL-0', 'Juan', 'Dela', 'Cruz', 'juan.delacruz@example.com', '09123456789', 'M', 'BSIT 1-1', 'student'],
+        ['faculty0001', 'Maria', 'Santos', 'Garcia', 'maria.garcia@example.com', '09987654321', 'F', 'BSENT 1-1', 'faculty'],
+        ['admin0001', 'Pedro', 'Reyes', 'Lopez', 'pedro.lopez@example.com', '09456789123', 'M', 'BTLED 1-1', 'admin'],
     ]
     
     for row_num, row_data in enumerate(example_data, 2):
@@ -608,14 +608,15 @@ def download_template(request):
         ["email", "User's email address (must be unique, required)"],
         ["contact_number", "User's contact number (optional)"],
         ["gender", "Gender: M (Male), F (Female), or O (Other) - required"],
-        ["department", "Department: BSIT, BTLED, or BSENT - required"],
+        ["department", "Department: e.g. BSIT 1-1, BSENT 2-2, BTLED 3-1 - required"],
         ["privilege", "User role: admin, faculty, or student - required"],
         [""],
         ["Important Notes:"],
         ["• Passwords will be auto-generated and sent to each user's email"],
         ["• Username and email must be unique"],
+        ["• Student username format: 2022-00000-CL-0, 2022-00001-CL-0, ..."],
         ["• Gender must be: M, F, or O (case insensitive)"],
-        ["• Department must be: BSIT, BTLED, or BSENT"],
+        ["• Department must be one of the section codes e.g. BSIT 1-1"],
         ["• Privilege must be: admin, faculty, or student"],
         ["• All users will have 'allowed' status by default"],
         ["• Delete the example rows before importing your actual data"],
@@ -663,39 +664,46 @@ def download_template(request):
 
 
 def getUser(request):
-    # New format: username and id_number should be <privilege><4-digit counter>
-    # e.g. admin0001, faculty0001, student0001
     user_type = request.GET.get('type', '').strip().lower()
     if user_type not in ['student', 'faculty', 'admin']:
         return JsonResponse({'error': 'Invalid or missing user type'}, status=400)
 
-    # Find the latest username for this privilege and increment numeric suffix
-    prefix = f"{user_type}"
-    latest = (
-        AccountRegistration.objects.filter(
-            username__istartswith=prefix,
-            privilege__iexact=user_type
-        )
-        .order_by('-username')
-        .values('username')
-        .first()
-    )
-
-    if latest and latest.get('username'):
-        latest_username = latest['username']
-        # Extract numeric suffix after the prefix
-        suffix = latest_username[len(prefix):]
-        try:
-            next_num = int(''.join(filter(str.isdigit, suffix))) + 1
-        except (ValueError, TypeError):
-            next_num = 1
+    if user_type == 'student':
+        # Student format: 2022-00000-CL-0, 2022-00001-CL-0, ...
+        import re
+        STUDENT_RE = re.compile(r'^2022-(\d{5})-CL-0$')
+        latest_num = -1
+        for acc in AccountRegistration.objects.filter(privilege='student').values('username'):
+            m = STUDENT_RE.match(acc['username'])
+            if m:
+                num = int(m.group(1))
+                if num > latest_num:
+                    latest_num = num
+        next_num = latest_num + 1
+        new_username = f"2022-{str(next_num).zfill(5)}-CL-0"
     else:
-        next_num = 1
+        # Faculty/admin format: faculty0001, admin0001
+        prefix = user_type
+        latest = (
+            AccountRegistration.objects.filter(
+                username__istartswith=prefix,
+                privilege__iexact=user_type
+            )
+            .order_by('-username')
+            .values('username')
+            .first()
+        )
+        if latest and latest.get('username'):
+            latest_username = latest['username']
+            suffix = latest_username[len(prefix):]
+            try:
+                next_num = int(''.join(filter(str.isdigit, suffix))) + 1
+            except (ValueError, TypeError):
+                next_num = 1
+        else:
+            next_num = 1
+        new_username = f"{prefix}{str(next_num).zfill(4)}"
 
-    new_suffix = str(next_num).zfill(4)
-    new_username = f"{prefix}{new_suffix}"
-
-    # Use same value for id_number as requested
     new_id = new_username
     return JsonResponse({'id_number': new_id, 'username': new_username})
 
