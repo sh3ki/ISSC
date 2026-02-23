@@ -46,15 +46,15 @@ def get_database_config():
 
 def find_mysqldump():
     """Find mysqldump executable on Windows and Linux"""
+    import shutil
+    import glob
     system = platform.system()
     
     # Try to find in PATH first
-    import shutil
     mysqldump_path = shutil.which('mysqldump')
     if mysqldump_path:
         return mysqldump_path
     
-    # Windows: Search common MySQL installation directories
     if system == 'Windows':
         common_paths = [
             r'C:\laragon\bin\mysql\mysql-*\bin\mysqldump.exe',
@@ -66,30 +66,128 @@ def find_mysqldump():
             r'C:\xampp\mysql\bin\mysqldump.exe',
             r'C:\wamp64\bin\mysql\mysql8.0.*\bin\mysqldump.exe',
         ]
-        
         for path in common_paths:
-            # Handle wildcards for version numbers
-            if '*' in path or 'x' in path:
-                import glob
-                matches = glob.glob(path.replace('x', '*'))
+            if '*' in path:
+                matches = glob.glob(path)
                 if matches:
                     return matches[0]
             elif os.path.exists(path):
                 return path
+    else:
+        # Linux: search common locations
+        linux_paths = [
+            '/usr/bin/mysqldump',
+            '/usr/local/bin/mysqldump',
+            '/usr/local/mysql/bin/mysqldump',
+            '/opt/mysql/bin/mysqldump',
+        ]
+        for path in linux_paths:
+            if os.path.exists(path):
+                return path
     
     return None
 
+
+def create_mysql_backup_python(db_config, backup_file):
+    """
+    Pure-Python MySQL backup using Django's DB connection.
+    Works without mysqldump installed — generates a valid SQL dump file.
+    """
+    try:
+        import MySQLdb
+    except ImportError:
+        try:
+            import pymysql as MySQLdb
+        except ImportError:
+            return False, "Neither MySQLdb nor pymysql is available for Python-based backup."
+
+    try:
+        conn = MySQLdb.connect(
+            host=db_config['host'],
+            port=int(db_config['port'] or 3306),
+            user=db_config['user'],
+            passwd=db_config['password'],
+            db=db_config['name'],
+            charset='utf8mb4',
+        )
+        cursor = conn.cursor()
+
+        with open(backup_file, 'w', encoding='utf-8') as f:
+            f.write(f"-- ISSC Database Backup\n")
+            f.write(f"-- Generated: {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')} UTC\n")
+            f.write(f"-- Database: {db_config['name']}\n\n")
+            f.write("SET FOREIGN_KEY_CHECKS=0;\n")
+            f.write("SET SQL_MODE='NO_AUTO_VALUE_ON_ZERO';\n")
+            f.write("SET NAMES utf8mb4;\n\n")
+
+            # Get all tables
+            cursor.execute("SHOW TABLES")
+            tables = [row[0] for row in cursor.fetchall()]
+
+            for table in tables:
+                # Drop + Create statement
+                cursor.execute(f"SHOW CREATE TABLE `{table}`")
+                create_row = cursor.fetchone()
+                f.write(f"DROP TABLE IF EXISTS `{table}`;\n")
+                f.write(create_row[1] + ";\n\n")
+
+                # Data rows
+                cursor.execute(f"SELECT * FROM `{table}`")
+                rows = cursor.fetchall()
+                if rows:
+                    # Column names
+                    col_names = [desc[0] for desc in cursor.description]
+                    cols = ', '.join(f"`{c}`" for c in col_names)
+                    for row in rows:
+                        values = []
+                        for v in row:
+                            if v is None:
+                                values.append('NULL')
+                            elif isinstance(v, (int, float)):
+                                values.append(str(v))
+                            elif isinstance(v, bytes):
+                                values.append("0x" + v.hex())
+                            else:
+                                escaped = str(v).replace("\\", "\\\\").replace("'", "\\'").replace("\n", "\\n").replace("\r", "\\r")
+                                values.append(f"'{escaped}'")
+                        vals = ', '.join(values)
+                        f.write(f"INSERT INTO `{table}` ({cols}) VALUES ({vals});\n")
+                    f.write("\n")
+
+            f.write("SET FOREIGN_KEY_CHECKS=1;\n")
+
+        cursor.close()
+        conn.close()
+
+        # Set permissions on Linux
+        if platform.system() != 'Windows':
+            try:
+                os.chmod(backup_file, 0o666)
+            except Exception:
+                pass
+
+        file_size = os.path.getsize(backup_file)
+        print(f"Python-based backup created: {backup_file} ({file_size} bytes)")
+        return True, "Backup created successfully (Python-based)"
+
+    except Exception as e:
+        if os.path.exists(backup_file):
+            try:
+                os.remove(backup_file)
+            except Exception:
+                pass
+        return False, f"Python backup error: {str(e)}"
+
 def create_mysql_backup(db_config, backup_file):
-    """Create MySQL database backup - works on both Windows and Linux"""
+    """Create MySQL database backup - works on both Windows and Linux.
+    Uses mysqldump if available, otherwise falls back to pure-Python dump."""
     system = platform.system()
     
     # Find mysqldump executable
     mysqldump_cmd = find_mysqldump()
     if not mysqldump_cmd:
-        if system == 'Linux':
-            return False, "mysqldump not found. Install with: sudo apt-get install mysql-client"
-        else:
-            return False, "mysqldump not found. Install MySQL or add MySQL bin directory to system PATH. Common location: C:\\Program Files\\MySQL\\MySQL Server X.X\\bin"
+        print("mysqldump not found, falling back to Python-based backup...")
+        return create_mysql_backup_python(db_config, backup_file)
     
     print(f"Using mysqldump: {mysqldump_cmd}")
     
@@ -152,7 +250,10 @@ def create_mysql_backup(db_config, backup_file):
         
         # Set secure file permissions on Linux
         if system != 'Windows':
-            os.chmod(backup_file, 0o600)
+            try:
+                os.chmod(backup_file, 0o666)
+            except Exception:
+                pass
         
         print(f"Backup created successfully: {backup_file} ({file_size} bytes)")
         return True, "Backup created successfully"
