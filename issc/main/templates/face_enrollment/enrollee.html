@@ -56,12 +56,39 @@
 
 <script>
   $(document).ready(function() {
-    $('#enrollmentTable').DataTable({
+    var table = $('#enrollmentTable').DataTable({
       search: true,
       responsive: true,
       ordering: true,
       paging: true,
-      info: true
+      info: true,
+      initComplete: function() {
+        // Build department options from the department column (index 7)
+        var col = this.api().column(7);
+        var depts = [];
+        col.data().each(function(d) {
+          if (d && $.inArray(d, depts) === -1) depts.push(d);
+        });
+        depts.sort();
+
+        // Build the select
+        var select = $('<select id="dept-filter" class="border border-gray-300 rounded-lg px-3 py-1.5 text-sm text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-400 mr-2">' +
+          '<option value="">All Departments</option>' +
+          '</select>');
+        $.each(depts, function(i, d) {
+          select.append('<option value="' + d + '">' + d + '</option>');
+        });
+
+        // Insert dropdown to the LEFT of the search input
+        var searchWrapper = $('#enrollmentTable_filter');
+        searchWrapper.prepend(select);
+        searchWrapper.css('display', 'flex').css('align-items', 'center');
+
+        // Filter on change
+        select.on('change', function() {
+          col.search($(this).val()).draw();
+        });
+      }
     });
   });
 </script>
