@@ -134,7 +134,7 @@ def signup_forms(request):
         # Validate username format against privilege
         import re as _re_fmt
         _username_errors = {
-            'student': ('student', r'^2022-\d{5}-CL-\d+$', 'Format: 2022-XXXXX-CL-0 (e.g. 2022-00001-CL-0)'),
+            'student': ('student', r'^\d{4}-\d{5}-CL-\d+$', 'Format: XXXX-XXXXX-CL-X (e.g. 2022-00001-CL-0)'),
             'faculty': ('faculty', r'^\d{5}$', 'Format: exactly 5 digits (e.g. 00001)'),
         }
         if privilege in _username_errors:
@@ -407,18 +407,18 @@ def import_data(request):
                         department = str(row['department']).strip().upper()
 
                         # Auto-detect privilege from username format:
-                        #   Student : 2022-XXXXX-CL-0
+                        #   Student : XXXX-XXXXX-CL-X  (e.g. 2022-00001-CL-0)
                         #   Faculty : 00001  (exactly 5 digits)
                         #   Admin   : ADMIN001 (starts with ADMIN, case-insensitive)
                         import re
-                        if re.match(r'^2022-\d{5}-CL-\d+$', username):
+                        if re.match(r'^\d{4}-\d{5}-CL-\d+$', username):
                             privilege = 'student'
                         elif re.match(r'^\d{5}$', username):
                             privilege = 'faculty'
                         elif re.match(r'^ADMIN\d+$', username, re.IGNORECASE):
                             privilege = 'admin'
                         else:
-                            error_msg = f"Row {index + 2}: Cannot determine privilege from username '{username}'. Use format 2022-00000-CL-0 (student), 00001 (faculty), or ADMIN001 (admin)"
+                            error_msg = f"Row {index + 2}: Cannot determine privilege from username '{username}'. Use format XXXX-XXXXX-CL-X (student, e.g. 2022-00001-CL-0), 00001 (faculty), or ADMIN001 (admin)"
                             errors.append(error_msg)
                             error_count += 1
                             continue
@@ -607,7 +607,7 @@ def download_template(request):
     
     # Add example data (no privilege column — auto-detected from username)
     example_data = [
-        ['2022-00000-CL-0', 'Juan', 'Dela', 'Cruz', 'juan.delacruz@example.com', '09123456789', 'M', 'BSIT 1-1'],
+        ['2022-00001-CL-0', 'Juan', 'Dela', 'Cruz', 'juan.delacruz@example.com', '09123456789', 'M', 'BSIT 1-1'],
         ['00001', 'Maria', 'Santos', 'Garcia', 'maria.garcia@example.com', '09987654321', 'F', 'BSENT 1-1'],
         ['ADMIN001', 'Pedro', 'Reyes', 'Lopez', 'pedro.lopez@example.com', '09456789123', 'M', 'BTLED 1-1'],
     ]
@@ -633,7 +633,7 @@ def download_template(request):
         [""],
         ["Important Notes:"],
         ["• Privilege is AUTO-DETECTED from the username format — no privilege column needed"],
-        ["• Student username  : 2022-00000-CL-0  (format: 2022-XXXXX-CL-0)"],
+        ["• Student username  : 2022-00001-CL-0  (format: XXXX-XXXXX-CL-X)"],
         ["• Faculty username  : 00001  (exactly 5 digits)"],
         ["• Admin username    : ADMIN001  (starts with ADMIN followed by digits)"],
         ["• Passwords will be auto-generated and sent to each user's email"],
@@ -692,8 +692,8 @@ def getUser(request):
 
     import re
     if user_type == 'student':
-        # Student format: 2022-00000-CL-0, 2022-00001-CL-0, ...
-        STUDENT_RE = re.compile(r'^2022-(\d{5})-CL-0$')
+        # Student format: XXXX-XXXXX-CL-X  (e.g. 2022-00001-CL-0)
+        STUDENT_RE = re.compile(r'^\d{4}-(\d{5})-CL-\d+$')
         latest_num = -1
         for acc in AccountRegistration.objects.filter(privilege='student').values('username'):
             m = STUDENT_RE.match(acc['username'])
