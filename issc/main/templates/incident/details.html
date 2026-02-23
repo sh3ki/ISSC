@@ -273,14 +273,6 @@
                                 <label><strong>Request for Action</strong></label>
                                 <select name="request_for_action" style="width:100%;padding:8px;border:1px solid #d1d5db;border-radius:6px;">
                                     <option value="Counseling" {% if incident.request_for_action == 'Counseling' %}selected{% endif %}>Counseling</option>
-                                    <option value="Mediation" {% if incident.request_for_action == 'Mediation' %}selected{% endif %}>Mediation</option>
-                                    <option value="Incident Review" {% if incident.request_for_action == 'Incident Review' %}selected{% endif %}>Incident Review</option>
-                                    <option value="Safety Inspection" {% if incident.request_for_action == 'Safety Inspection' %}selected{% endif %}>Safety Inspection</option>
-                                    <option value="Notify Guardian" {% if incident.request_for_action == 'Notify Guardian' %}selected{% endif %}>Notify Guardian</option>
-                                    <option value="Referral to Health Services" {% if incident.request_for_action == 'Referral to Health Services' %}selected{% endif %}>Referral to Health Services</option>
-                                    <option value="Referral to Guidance" {% if incident.request_for_action == 'Referral to Guidance' %}selected{% endif %}>Referral to Guidance</option>
-                                    <option value="Security Escort/Monitoring" {% if incident.request_for_action == 'Security Escort/Monitoring' %}selected{% endif %}>Security Escort/Monitoring</option>
-                                    <option value="Documentation Update" {% if incident.request_for_action == 'Documentation Update' %}selected{% endif %}>Documentation Update</option>
                                     <option value="Other/s" {% if incident.request_for_action == 'Other/s' %}selected{% endif %}>Other/s</option>
                                 </select>
                             </div>
