@@ -367,10 +367,7 @@ def base_print(request):
     
     incidents = IncidentReport.objects.all()
     
-    # Filter incidents based on user privilege
-    if user_privilege == 'faculty':
-        user_department = user[0]['department']
-        incidents = incidents.filter(department__iexact=user_department)
+    # Faculty sees all incidents (same as the incidents list page)
 
     # Apply status filter when provided (for both on-page view and export)
     if status_filter in ['open', 'pending', 'closed']:
