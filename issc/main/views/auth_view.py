@@ -369,8 +369,8 @@ def import_data(request):
             try:
                 df = pd.read_excel(excel_file)
                 
-                # Validate required columns
-                required_columns = ['username', 'first_name', 'middle_name', 'last_name', 'email', 'contact_number', 'gender', 'department', 'privilege']
+                # Validate required columns (privilege is auto-detected from username format)
+                required_columns = ['username', 'first_name', 'middle_name', 'last_name', 'email', 'contact_number', 'gender', 'department']
                 missing_columns = [col for col in required_columns if col not in df.columns]
                 
                 if missing_columns:
@@ -392,8 +392,24 @@ def import_data(request):
                         contact_number = str(row.get('contact_number', '')).strip()
                         gender = str(row['gender']).strip().upper()
                         department = str(row['department']).strip().upper()
-                        privilege = str(row['privilege']).strip().lower()
-                        
+
+                        # Auto-detect privilege from username format:
+                        #   Student : 2022-XXXXX-CL-0
+                        #   Faculty : 00001  (exactly 5 digits)
+                        #   Admin   : ADMIN001 (starts with ADMIN, case-insensitive)
+                        import re
+                        if re.match(r'^2022-\d{5}-CL-\d+$', username):
+                            privilege = 'student'
+                        elif re.match(r'^\d{5}$', username):
+                            privilege = 'faculty'
+                        elif re.match(r'^ADMIN\d+$', username, re.IGNORECASE):
+                            privilege = 'admin'
+                        else:
+                            error_msg = f"Row {index + 2}: Cannot determine privilege from username '{username}'. Use format 2022-00000-CL-0 (student), 00001 (faculty), or ADMIN001 (admin)"
+                            errors.append(error_msg)
+                            error_count += 1
+                            continue
+
                         # Validate gender
                         if gender not in ['M', 'F', 'O', 'MALE', 'FEMALE', 'OTHER']:
                             error_msg = f"Row {index + 2}: Invalid gender '{gender}'. Must be Male, Female, or Other"
@@ -419,14 +435,7 @@ def import_data(request):
                             errors.append(error_msg)
                             error_count += 1
                             continue
-                        
-                        # Validate privilege
-                        if privilege not in ['admin', 'faculty', 'student']:
-                            error_msg = f"Row {index + 2}: Invalid privilege '{privilege}'. Must be Admin, Faculty, or Student"
-                            errors.append(error_msg)
-                            error_count += 1
-                            continue
-                        
+
                         # Check for duplicate username
                         if AccountRegistration.objects.filter(username=username).exists():
                             error_msg = f"Row {index + 2}: Username '{username}' already exists"
@@ -558,7 +567,7 @@ def download_template(request):
     ws = wb.active
     ws.title = "User Import Template"
     
-    # Define headers
+    # Define headers (privilege is auto-detected from username format — no column needed)
     headers = [
         'username',
         'first_name',
@@ -568,7 +577,6 @@ def download_template(request):
         'contact_number',
         'gender',
         'department',
-        'privilege'
     ]
     
     # Style for headers
@@ -584,11 +592,11 @@ def download_template(request):
         cell.font = header_font
         cell.alignment = header_alignment
     
-    # Add example data
+    # Add example data (no privilege column — auto-detected from username)
     example_data = [
-        ['2022-00000-CL-0', 'Juan', 'Dela', 'Cruz', 'juan.delacruz@example.com', '09123456789', 'M', 'BSIT 1-1', 'student'],
-        ['00001', 'Maria', 'Santos', 'Garcia', 'maria.garcia@example.com', '09987654321', 'F', 'BSENT 1-1', 'faculty'],
-        ['admin0001', 'Pedro', 'Reyes', 'Lopez', 'pedro.lopez@example.com', '09456789123', 'M', 'BTLED 1-1', 'admin'],
+        ['2022-00000-CL-0', 'Juan', 'Dela', 'Cruz', 'juan.delacruz@example.com', '09123456789', 'M', 'BSIT 1-1'],
+        ['00001', 'Maria', 'Santos', 'Garcia', 'maria.garcia@example.com', '09987654321', 'F', 'BSENT 1-1'],
+        ['ADMIN001', 'Pedro', 'Reyes', 'Lopez', 'pedro.lopez@example.com', '09456789123', 'M', 'BTLED 1-1'],
     ]
     
     for row_num, row_data in enumerate(example_data, 2):
@@ -609,15 +617,16 @@ def download_template(request):
         ["contact_number", "User's contact number (optional)"],
         ["gender", "Gender: M (Male), F (Female), or O (Other) - required"],
         ["department", "Department: e.g. BSIT 1-1, BSENT 2-2, BTLED 3-1 - required"],
-        ["privilege", "User role: admin, faculty, or student - required"],
         [""],
         ["Important Notes:"],
+        ["• Privilege is AUTO-DETECTED from the username format — no privilege column needed"],
+        ["• Student username  : 2022-00000-CL-0  (format: 2022-XXXXX-CL-0)"],
+        ["• Faculty username  : 00001  (exactly 5 digits)"],
+        ["• Admin username    : ADMIN001  (starts with ADMIN followed by digits)"],
         ["• Passwords will be auto-generated and sent to each user's email"],
         ["• Username and email must be unique"],
-        ["• Student username format: 2022-00000-CL-0, 2022-00001-CL-0, ..."],
         ["• Gender must be: M, F, or O (case insensitive)"],
         ["• Department must be one of the section codes e.g. BSIT 1-1"],
-        ["• Privilege must be: admin, faculty, or student"],
         ["• All users will have 'allowed' status by default"],
         ["• Delete the example rows before importing your actual data"],
     ]
@@ -628,7 +637,7 @@ def download_template(request):
                 cell = ws_instructions.cell(row=row_num, column=col_num, value=value)
                 if row_num == 1:
                     cell.font = Font(bold=True, size=14)
-                elif row_num == 3 or row_num == 14:
+                elif row_num == 3 or row_num == 13:
                     cell.font = Font(bold=True)
     
     # Adjust column widths
