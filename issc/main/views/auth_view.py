@@ -131,6 +131,19 @@ def signup_forms(request):
 
         print(f"Auto-generated passphrase: {password}")
 
+        # Validate username format against privilege
+        import re as _re_fmt
+        _username_errors = {
+            'student': ('student', r'^2022-\d{5}-CL-\d+$', 'Format: 2022-XXXXX-CL-0 (e.g. 2022-00001-CL-0)'),
+            'faculty': ('faculty', r'^\d{5}$', 'Format: exactly 5 digits (e.g. 00001)'),
+        }
+        if privilege in _username_errors:
+            _, _pat, _hint = _username_errors[privilege]
+            if not _re_fmt.match(_pat, username or ''):
+                context['error'] = f"Invalid {privilege} username format. {_hint}"
+                context['form_data'] = request.POST
+                return HttpResponse(template.render(context, request))
+
         # Check for duplicate email
         if AccountRegistration.objects.filter(email=email).exists():
             context['error'] = f"An account with the email '{email}' already exists. Please use a different email address."
