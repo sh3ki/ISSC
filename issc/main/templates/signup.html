@@ -39,6 +39,7 @@
             <th>Last Name</th>
             <th>Email</th>
             <th>ID Number</th>
+            <th style="display:none;">Department</th>
             <th style="text-align: center;">Details</th>
           </tr>
         </thead>
@@ -73,6 +74,7 @@
                 <span class="d-none">{{ user.id_number }}</span>
                 {{ user.id_number }}
               </td>
+              <td style="display:none;">{{ user.department }}</td>
               <td style="text-align: center;">
                 <a href="{% url 'account-details' user.username %}" class="create-new-btn" style="padding: 8px 16px; text-decoration: none; display: inline-block;">View Details</a>
               </td>
@@ -96,12 +98,31 @@
 <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
     <script type="text/javascript">
         $(document).ready(function(){
-        $("#tblusers").DataTable({
+        var table = $("#tblusers").DataTable({
                 "searching": true,
                 "ordering": true,
                 "paging": true,
-                "info": false
+                "info": false,
+                "columnDefs": [
+                    { "targets": 7, "visible": false, "searchable": true }
+                ]
             });
+
+        // Department filter dropdown
+        var $deptFilter = $('<select id="dept-filter" style="padding:6px 10px;border:1px solid #d1d5db;border-radius:5px;font-size:14px;height:35px;"><option value="">All Departments</option></select>');
+        var departments = [];
+        table.column(7).data().each(function(val) {
+            if (val && departments.indexOf(val) === -1) departments.push(val);
+        });
+        departments.sort().forEach(function(dept) {
+            $deptFilter.append('<option value="' + dept + '">' + dept + '</option>');
+        });
+        $deptFilter.on('change', function() {
+            var val = $(this).val();
+            table.column(7).search(val ? '^' + $.fn.dataTable.util.escapeRegex(val) + '$' : '', true, false).draw();
+        });
+        // Insert filter to the left of the DataTables search box
+        $('#tblusers_filter').prepend($deptFilter).css('display','flex').css('align-items','center').css('gap','10px');
         });
 
     </script>
