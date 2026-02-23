@@ -306,6 +306,20 @@ def incident_forms(request):
         status = 'open'
         file = request.FILES.get('file', None)
 
+        # Validate uploaded file type (images and documents only)
+        if file:
+            import os
+            ALLOWED_EXTENSIONS = {
+                'jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'tiff', 'tif', 'svg',
+                'pdf',
+                'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx',
+                'csv', 'txt', 'odt', 'ods', 'odp',
+            }
+            ext = os.path.splitext(file.name)[1].lstrip('.').lower()
+            if ext not in ALLOWED_EXTENSIONS:
+                context['error'] = f"Invalid file type '.{ext}'. Only images (JPEG, PNG, GIF, WEBP, BMP, TIFF, SVG) and documents (PDF, Word, Excel, PowerPoint, CSV, TXT) are allowed."
+                return HttpResponse(template.render(context, request))
+
         # Get faculty_involved IDs from POST (will be a list), filter out empty strings
         faculty_involved_ids = [fid for fid in request.POST.getlist('faculty_involved') if fid]
         

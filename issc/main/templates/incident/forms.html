@@ -8,6 +8,12 @@
 
 <link rel="stylesheet" href="{% static 'css/forms.css' %}">
 
+{% if error %}
+<div style="background-color:#f8d7da;color:#721c24;padding:15px;border:1px solid #f5c6cb;border-radius:5px;margin-bottom:20px;">
+    <strong>Error:</strong> {{ error }}
+</div>
+{% endif %}
+
 <div class = "forms"> 
     <form method="POST" enctype="multipart/form-data" class="space-y-4">
         {% csrf_token %}
@@ -176,7 +182,16 @@
 
             <div class="form-field upload-file">
                 <label>Upload File</label>
-                <input type="file" name="file">
+                <input type="file" name="file" id="upload-file"
+                       accept="image/jpeg,image/png,image/gif,image/webp,image/bmp,image/tiff,image/svg+xml,
+                              application/pdf,
+                              application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,
+                              application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,
+                              application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation,
+                              text/csv,text/plain,
+                              application/vnd.oasis.opendocument.text,application/vnd.oasis.opendocument.spreadsheet,application/vnd.oasis.opendocument.presentation">
+                <small id="file-error" style="color:#dc3545;font-size:12px;display:none;">Only images (JPEG, PNG, GIF, WEBP, BMP, TIFF, SVG) and documents (PDF, Word, Excel, PowerPoint, CSV, TXT, ODP/ODS/ODT) are allowed.</small>
+                <small style="color:#666;font-size:11px;display:block;margin-top:3px;">Accepted: images (JPEG, PNG, GIF, WEBP…) and documents (PDF, Word, Excel, PowerPoint, CSV…)</small>
             </div>
 
             <div  class="register-btn">
@@ -189,6 +204,30 @@
 
 
 <!-- Incident Report Template scripts -->
+<script>
+  // File type validation
+  (function() {
+    var ALLOWED_EXT = [
+      'jpg','jpeg','png','gif','webp','bmp','tiff','tif','svg',
+      'pdf',
+      'doc','docx','xls','xlsx','ppt','pptx',
+      'csv','txt','odt','ods','odp'
+    ];
+    document.getElementById('upload-file').addEventListener('change', function() {
+      var errEl = document.getElementById('file-error');
+      var file  = this.files[0];
+      if (!file) { errEl.style.display = 'none'; return; }
+      var ext = file.name.split('.').pop().toLowerCase();
+      if (ALLOWED_EXT.indexOf(ext) === -1) {
+        errEl.style.display = 'block';
+        this.value = '';  // clear the invalid selection
+      } else {
+        errEl.style.display = 'none';
+      }
+    });
+  })();
+</script>
+
 <script>
   $(document).ready(function() {
     $('#id_number').on('blur', function() {
@@ -220,8 +259,6 @@
     });
   });
 </script>
-
-<!-- subject-other toggle handled in the main script -->
 
 <script>
     // Populate and handle handbook rule display for subjects (inline rule card only)
