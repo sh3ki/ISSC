@@ -406,8 +406,16 @@ def import_data(request):
                         gender = gender_map.get(gender, 'O')
                         
                         # Validate department
-                        if department not in ['BSIT', 'BTLED', 'BSENT']:
-                            error_msg = f"Row {index + 2}: Invalid department '{department}'. Must be BSIT, BTLED, or BSENT"
+                        VALID_DEPARTMENTS = [
+                            'BSIT 1-1', 'BSIT 1-2', 'BSIT 2-1', 'BSIT 2-2',
+                            'BSIT 3-1', 'BSIT 3-2', 'BSIT 4-1',
+                            'BSENT 1-1', 'BSENT 1-2', 'BSENT 2-1', 'BSENT 2-2',
+                            'BSENT 3-1', 'BSENT 3-2', 'BSENT 4-1', 'BSENT 4-2',
+                            'BTLED 1-1', 'BTLED 1-2', 'BTLED 2-1', 'BTLED 2-2',
+                            'BTLED 3-1', 'BTLED 3-2', 'BTLED 4-1', 'BTLED 4-2',
+                        ]
+                        if department not in VALID_DEPARTMENTS:
+                            error_msg = f"Row {index + 2}: Invalid department '{department}'. Must be one of: {', '.join(VALID_DEPARTMENTS)}"
                             errors.append(error_msg)
                             error_count += 1
                             continue
