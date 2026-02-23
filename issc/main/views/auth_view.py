@@ -587,7 +587,7 @@ def download_template(request):
     # Add example data
     example_data = [
         ['2022-00000-CL-0', 'Juan', 'Dela', 'Cruz', 'juan.delacruz@example.com', '09123456789', 'M', 'BSIT 1-1', 'student'],
-        ['faculty0001', 'Maria', 'Santos', 'Garcia', 'maria.garcia@example.com', '09987654321', 'F', 'BSENT 1-1', 'faculty'],
+        ['00001', 'Maria', 'Santos', 'Garcia', 'maria.garcia@example.com', '09987654321', 'F', 'BSENT 1-1', 'faculty'],
         ['admin0001', 'Pedro', 'Reyes', 'Lopez', 'pedro.lopez@example.com', '09456789123', 'M', 'BTLED 1-1', 'admin'],
     ]
     
@@ -668,9 +668,9 @@ def getUser(request):
     if user_type not in ['student', 'faculty', 'admin']:
         return JsonResponse({'error': 'Invalid or missing user type'}, status=400)
 
+    import re
     if user_type == 'student':
         # Student format: 2022-00000-CL-0, 2022-00001-CL-0, ...
-        import re
         STUDENT_RE = re.compile(r'^2022-(\d{5})-CL-0$')
         latest_num = -1
         for acc in AccountRegistration.objects.filter(privilege='student').values('username'):
@@ -681,13 +681,25 @@ def getUser(request):
                     latest_num = num
         next_num = latest_num + 1
         new_username = f"2022-{str(next_num).zfill(5)}-CL-0"
+    elif user_type == 'faculty':
+        # Faculty format: 00001, 00002, ...
+        FACULTY_RE = re.compile(r'^(\d{5})$')
+        latest_num = 0
+        for acc in AccountRegistration.objects.filter(privilege='faculty').values('username'):
+            m = FACULTY_RE.match(acc['username'])
+            if m:
+                num = int(m.group(1))
+                if num > latest_num:
+                    latest_num = num
+        next_num = latest_num + 1
+        new_username = str(next_num).zfill(5)
     else:
-        # Faculty/admin format: faculty0001, admin0001
-        prefix = user_type
+        # Admin format: admin0001, admin0002, ...
+        prefix = 'admin'
         latest = (
             AccountRegistration.objects.filter(
                 username__istartswith=prefix,
-                privilege__iexact=user_type
+                privilege='admin'
             )
             .order_by('-username')
             .values('username')
