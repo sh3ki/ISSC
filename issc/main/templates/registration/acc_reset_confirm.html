@@ -25,18 +25,42 @@
 
     <h2 class="login-title">Set a New Password</h2>
 
+    {% if form.errors %}
+      <div style="margin-bottom:12px;padding:10px 12px;background:#fef2f2;border:1px solid #fecaca;color:#991b1b;border-radius:8px;font-size:14px;">
+        {% for field in form %}
+          {% for error in field.errors %}
+            <div>{{ error }}</div>
+          {% endfor %}
+        {% endfor %}
+        {% for error in form.non_field_errors %}
+          <div>{{ error }}</div>
+        {% endfor %}
+      </div>
+    {% endif %}
+
     <form method="post">
 
       {% csrf_token %}
 
       <div class="form-group">
-        <input class="form-input" type="password" name="new_password1" placeholder="New Password" id="password1" required>
-        <!-- Eye Icon -->
-        <i class="fa-solid fa-eye absolute left-80 top-11 text-gray-500 cursor-pointer" id="togglePassword1"></i>
+        <label for="password1" class="form-label" style="display:block;margin-bottom:6px;font-weight:600;">New Password</label>
+        <div style="position:relative; margin-bottom: 10px;">
+          <input class="form-input" type="password" name="new_password1" placeholder="New Password" id="password1" required>
+          <i class="fa-solid fa-eye" id="togglePassword1" style="position:absolute;right:14px;top:50%;transform:translateY(-50%);color:#6b7280;cursor:pointer;"></i>
+        </div>
 
-        <input class="form-input" type="password" name="new_password2" placeholder="Confirm Password" id="password2" required>
-        <!-- Eye Icon -->
-        <i class="fa-solid fa-eye absolute left-80 bottom-24 text-gray-500 cursor-pointer" id="togglePassword2"></i>
+        <label for="password2" class="form-label" style="display:block;margin-bottom:6px;font-weight:600;">Confirm Password</label>
+        <div style="position:relative; margin-bottom: 10px;">
+          <input class="form-input" type="password" name="new_password2" placeholder="Confirm Password" id="password2" required>
+          <i class="fa-solid fa-eye" id="togglePassword2" style="position:absolute;right:14px;top:50%;transform:translateY(-50%);color:#6b7280;cursor:pointer;"></i>
+        </div>
+
+        <div style="margin-top:8px;">
+          <div style="height:8px;background:#e5e7eb;border-radius:999px;overflow:hidden;">
+            <div id="strengthBar" style="height:100%;width:0%;background:#dc2626;transition:all .2s ease;"></div>
+          </div>
+          <small id="strengthText" style="display:block;margin-top:6px;color:#555;">Password must be at least 8 characters with uppercase, lowercase, number, and special character.</small>
+        </div>
       </div>
 
       <button class="reset-button" type="submit">Reset Password</button>
@@ -69,6 +93,36 @@
         // Toggle eye icon (eye/eye-slash)
         this.classList.toggle('fa-eye');
         this.classList.toggle('fa-eye-slash');
+    });
+
+    function getStrength(password) {
+      let score = 0;
+      if (password.length >= 8) score++;
+      if (/[A-Z]/.test(password)) score++;
+      if (/[a-z]/.test(password)) score++;
+      if (/\d/.test(password)) score++;
+      if (/[^A-Za-z0-9]/.test(password)) score++;
+      return score;
+    }
+
+    const passwordStrengthInput = document.getElementById('password1');
+    const strengthBar = document.getElementById('strengthBar');
+    const strengthText = document.getElementById('strengthText');
+
+    passwordStrengthInput.addEventListener('input', function () {
+      const score = getStrength(passwordStrengthInput.value);
+      const pct = (score / 5) * 100;
+      strengthBar.style.width = pct + '%';
+      if (score <= 2) {
+        strengthBar.style.background = '#dc2626';
+        strengthText.textContent = 'Weak password.';
+      } else if (score <= 4) {
+        strengthBar.style.background = '#f59e0b';
+        strengthText.textContent = 'Moderate password.';
+      } else {
+        strengthBar.style.background = '#16a34a';
+        strengthText.textContent = 'Strong password.';
+      }
     });
   </script>
 
