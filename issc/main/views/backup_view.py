@@ -596,5 +596,36 @@ def restore_backup(request, filename):
     try:
         shutil.move(trash_path, restore_target)
         return JsonResponse({'success': True, 'message': 'Backup restored successfully'})
+    except PermissionError:
+        return JsonResponse({'success': False, 'message': 'Permission denied restoring backup file'}, status=500)
     except Exception as e:
         return JsonResponse({'success': False, 'message': str(e)}, status=500)
+
+
+@login_required
+def permanently_delete_backup(request, filename):
+    """Permanently delete a backup file from recycle-bin folder."""
+    if not request.user.is_staff and not request.user.is_superuser:
+        return JsonResponse({'success': False, 'message': 'Access denied'}, status=403)
+
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'message': 'Invalid request method'}, status=400)
+
+    dirs_ok, dirs_error = ensure_backup_directories()
+    if not dirs_ok:
+        return JsonResponse({'success': False, 'message': dirs_error}, status=500)
+
+    trash_path = os.path.join(BACKUP_TRASH_DIR, filename)
+    if not os.path.exists(trash_path):
+        return JsonResponse({'success': False, 'message': 'Deleted backup file not found'}, status=404)
+
+    if not os.path.abspath(trash_path).startswith(os.path.abspath(BACKUP_TRASH_DIR)):
+        return JsonResponse({'success': False, 'message': 'Invalid file path'}, status=400)
+
+    try:
+        os.remove(trash_path)
+        return JsonResponse({'success': True, 'message': 'Backup permanently deleted'})
+    except PermissionError:
+        return JsonResponse({'success': False, 'message': 'Permission denied deleting backup file'}, status=500)
+    except OSError as exc:
+        return JsonResponse({'success': False, 'message': str(exc)}, status=500)
