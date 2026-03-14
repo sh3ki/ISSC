@@ -505,6 +505,31 @@
         const newUrl = `${window.location.pathname}?${params.toString()}`;
         window.history.replaceState({}, '', newUrl);
       }
+
+      const sensitiveColumnVisibility = {
+        name: true,
+        id: true,
+        reported: true,
+        contact: true,
+      };
+
+      function updateSensitiveColumnIcons() {
+        document.querySelectorAll('[data-col-toggle]').forEach(btn => {
+          const key = btn.getAttribute('data-col-toggle');
+          const visible = sensitiveColumnVisibility[key];
+          btn.textContent = visible ? 'Hide' : 'Show';
+          btn.setAttribute('aria-label', (visible ? 'Hide' : 'Show') + ' ' + key + ' column');
+        });
+      }
+
+      function toggleSensitiveColumn(key) {
+        sensitiveColumnVisibility[key] = !sensitiveColumnVisibility[key];
+        const shouldShow = sensitiveColumnVisibility[key];
+        document.querySelectorAll('.col-sensitive-' + key).forEach(cell => {
+          cell.style.display = shouldShow ? '' : 'none';
+        });
+        updateSensitiveColumnIcons();
+      }
     </script>
 
       <div class="table-wrapper">
@@ -513,15 +538,15 @@
             <tr>
               <th>Date Time</th>
               <th>Runtime</th>
-              <th>First Name</th>
-              <th>Last Name</th>
-              <th>ID Number</th>
-              <th>Contact</th>
+              <th class="col-sensitive-name">First Name <button type="button" data-col-toggle="name" onclick="toggleSensitiveColumn('name')" style="margin-left:6px;font-size:10px;padding:2px 6px;border-radius:999px;border:1px solid #fff;background:transparent;color:#fff;">Hide</button></th>
+              <th class="col-sensitive-name">Last Name</th>
+              <th class="col-sensitive-id">ID Number <button type="button" data-col-toggle="id" onclick="toggleSensitiveColumn('id')" style="margin-left:6px;font-size:10px;padding:2px 6px;border-radius:999px;border:1px solid #fff;background:transparent;color:#fff;">Hide</button></th>
+              <th class="col-sensitive-contact">Contact <button type="button" data-col-toggle="contact" onclick="toggleSensitiveColumn('contact')" style="margin-left:6px;font-size:10px;padding:2px 6px;border-radius:999px;border:1px solid #fff;background:transparent;color:#fff;">Hide</button></th>
               <th>Subject</th>
               <th>Location</th>
               <th>Incident</th>
               <th>Involved</th>
-              <th>Reported By</th>
+              <th class="col-sensitive-reported">Reported By <button type="button" data-col-toggle="reported" onclick="toggleSensitiveColumn('reported')" style="margin-left:6px;font-size:10px;padding:2px 6px;border-radius:999px;border:1px solid #fff;background:transparent;color:#fff;">Hide</button></th>
               <th>Department</th>
               <th>Phone Number</th>
               <th>Status</th>
@@ -540,15 +565,15 @@
                   data-closed="{% for update in incident.updates.all %}{% if update.close_case %}{{ update.created_at|date:'c' }}{% endif %}{% endfor %}">
                 Calculating...
               </td>
-              <td>{{ incident.first_name }}</td>
-              <td>{{ incident.last_name }}</td>
-              <td>{{ incident.id_number }}</td>
-              <td>{{ incident.contact_number }}</td>
+              <td class="col-sensitive-name">{{ incident.first_name }}</td>
+              <td class="col-sensitive-name">{{ incident.last_name }}</td>
+              <td class="col-sensitive-id">{{ incident.id_number }}</td>
+              <td class="col-sensitive-contact">{{ incident.contact_number }}</td>
               <td>{{ incident.subject }}</td>
               <td>{{ incident.location }}</td>
               <td style="max-width:150px; word-wrap:break-word;">{{ incident.incident|truncatewords:10 }}</td>
               <td style="max-width:120px; word-wrap:break-word;">{{ incident.people_involved|truncatewords:8|default:"-" }}</td>
-              <td>{{ incident.reported_by }}</td>
+              <td class="col-sensitive-reported">{{ incident.reported_by }}</td>
               <td>{{ incident.department }}</td>
               <td>{{ incident.phone_number }}</td>
               <td>
@@ -630,6 +655,7 @@
     const params = new URLSearchParams(window.location.search);
     const statusFromUrl = params.get('status') || 'all';
     setStatusFilter(statusFromUrl);
+    updateSensitiveColumnIcons();
     
     // Update every 30 seconds for open/pending cases
     setInterval(calculateAllRuntimes, 30000);
