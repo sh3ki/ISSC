@@ -22,27 +22,205 @@ from django.contrib import messages
 from django.core.mail import send_mail, BadHeaderError, get_connection
 from django.conf import settings
 from django.contrib.auth.hashers import check_password
+from django.utils import timezone
+from datetime import timedelta
+import re
 
 import pandas as pd
 from datetime import datetime
 
 
+PASSWORD_POLICY_MESSAGE = (
+    'Password must be at least 8 characters and include at least 1 uppercase letter, '
+    '1 lowercase letter, 1 number, and 1 special character.'
+)
+
+
+def validate_password_strength(password):
+    if len(password or '') < 8:
+        return False
+    if not re.search(r'[A-Z]', password):
+        return False
+    if not re.search(r'[a-z]', password):
+        return False
+    if not re.search(r'\d', password):
+        return False
+    if not re.search(r'[^A-Za-z0-9]', password):
+        return False
+    return True
+
+
+def generate_login_otp():
+    return ''.join(secrets.choice(string.digits) for _ in range(6))
+
+
+def send_login_otp_email(user, otp_code):
+    subject = 'ISSC Login Verification Code'
+    message = (
+        f'Hello {user.first_name},\n\n'
+        f'Your ISSC one-time verification code is: {otp_code}\n\n'
+        'This code will expire in 10 minutes.\n\n'
+        'If you did not request this login, please contact your administrator immediately.'
+    )
+    from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', settings.EMAIL_HOST_USER)
+    send_mail(subject, message, from_email, [user.email], fail_silently=False)
+
+
 def login(request):
     template = loader.get_template('login.html')
-    context = {}
+    context = {
+        'show_otp_modal': False,
+        'show_force_password_modal': False,
+        'password_policy_message': PASSWORD_POLICY_MESSAGE,
+    }
     if request.user.is_authenticated:
         return redirect('dashboard')
+
+    if request.session.get('otp_pending_user_id'):
+        context['show_otp_modal'] = True
+    if request.session.get('force_password_user_id'):
+        context['show_force_password_modal'] = True
+
     if request.method == 'POST':
+        action = request.POST.get('action', '').strip()
+
+        if action == 'verify_otp':
+            pending_user_id = request.session.get('otp_pending_user_id')
+            if not pending_user_id:
+                context['error'] = 'Your verification session expired. Please login again.'
+                return HttpResponse(template.render(context, request))
+
+            user = AccountRegistration.objects.filter(id=pending_user_id).first()
+            if not user:
+                request.session.pop('otp_pending_user_id', None)
+                context['error'] = 'Account not found. Please login again.'
+                return HttpResponse(template.render(context, request))
+
+            now = timezone.now()
+            if user.login_otp_locked_until and now < user.login_otp_locked_until:
+                remaining_seconds = int((user.login_otp_locked_until - now).total_seconds())
+                remaining_minutes = max(1, (remaining_seconds + 59) // 60)
+                context['error'] = f'Too many failed attempts. Try again in {remaining_minutes} minute(s).'
+                context['show_otp_modal'] = True
+                return HttpResponse(template.render(context, request))
+
+            otp_input = request.POST.get('otp_code', '').strip()
+            if not otp_input:
+                context['error'] = 'Please enter the OTP code.'
+                context['show_otp_modal'] = True
+                return HttpResponse(template.render(context, request))
+
+            if not user.login_otp_code or not user.login_otp_expires_at or now > user.login_otp_expires_at:
+                user.login_otp_code = ''
+                user.login_otp_expires_at = None
+                user.login_otp_failed_attempts = 0
+                user.save(update_fields=['login_otp_code', 'login_otp_expires_at', 'login_otp_failed_attempts'])
+                context['error'] = 'OTP expired. Please login again to request a new code.'
+                request.session.pop('otp_pending_user_id', None)
+                return HttpResponse(template.render(context, request))
+
+            if otp_input != user.login_otp_code:
+                user.login_otp_failed_attempts += 1
+                if user.login_otp_failed_attempts >= 5:
+                    user.login_otp_locked_until = now + timedelta(minutes=5)
+                    user.login_otp_failed_attempts = 0
+                    user.login_otp_code = ''
+                    user.login_otp_expires_at = None
+                    user.save(update_fields=['login_otp_failed_attempts', 'login_otp_locked_until', 'login_otp_code', 'login_otp_expires_at'])
+                    context['error'] = 'Too many failed OTP attempts. Try again after 5 minutes.'
+                    request.session.pop('otp_pending_user_id', None)
+                    return HttpResponse(template.render(context, request))
+
+                remaining_attempts = 5 - user.login_otp_failed_attempts
+                user.save(update_fields=['login_otp_failed_attempts'])
+                context['error'] = f'Invalid OTP. {remaining_attempts} attempt(s) remaining.'
+                context['show_otp_modal'] = True
+                return HttpResponse(template.render(context, request))
+
+            user.login_otp_code = ''
+            user.login_otp_expires_at = None
+            user.login_otp_failed_attempts = 0
+            user.login_otp_locked_until = None
+            user.save(update_fields=['login_otp_code', 'login_otp_expires_at', 'login_otp_failed_attempts', 'login_otp_locked_until'])
+
+            request.session.pop('otp_pending_user_id', None)
+            request.session['force_password_user_id'] = user.id
+            context['show_force_password_modal'] = True
+            context['show_otp_modal'] = False
+            return HttpResponse(template.render(context, request))
+
+        if action == 'set_first_password':
+            force_user_id = request.session.get('force_password_user_id')
+            if not force_user_id:
+                context['error'] = 'Session expired. Please login again.'
+                return HttpResponse(template.render(context, request))
+
+            user = AccountRegistration.objects.filter(id=force_user_id).first()
+            if not user:
+                request.session.pop('force_password_user_id', None)
+                context['error'] = 'Account not found. Please login again.'
+                return HttpResponse(template.render(context, request))
+
+            new_password = request.POST.get('new_password', '')
+            confirm_password = request.POST.get('confirm_password', '')
+
+            if new_password != confirm_password:
+                context['error'] = 'Passwords do not match.'
+                context['show_force_password_modal'] = True
+                return HttpResponse(template.render(context, request))
+
+            if not validate_password_strength(new_password):
+                context['error'] = PASSWORD_POLICY_MESSAGE
+                context['show_force_password_modal'] = True
+                return HttpResponse(template.render(context, request))
+
+            user.set_password(new_password)
+            user.must_change_password = False
+            user.login_otp_code = ''
+            user.login_otp_expires_at = None
+            user.login_otp_failed_attempts = 0
+            user.login_otp_locked_until = None
+            user.save()
+
+            request.session.pop('force_password_user_id', None)
+            auth_login(request, user)
+            return redirect('dashboard')
+
         username = request.POST['username']
         password = request.POST['password']
-        # print(email)
-        # print(password)
-        user = authenticate(request, username=username,password=password)
+        user = authenticate(request, username=username, password=password)
         if user:
-            auth_login(request, user)
-            return redirect('dashboard') 
+            if user.must_change_password:
+                now = timezone.now()
+                if user.login_otp_locked_until and now < user.login_otp_locked_until:
+                    remaining_seconds = int((user.login_otp_locked_until - now).total_seconds())
+                    remaining_minutes = max(1, (remaining_seconds + 59) // 60)
+                    context['error'] = f'Too many failed OTP attempts. Try again in {remaining_minutes} minute(s).'
+                    return HttpResponse(template.render(context, request))
 
-    return HttpResponse(template.render(context,request))
+                otp_code = generate_login_otp()
+                user.login_otp_code = otp_code
+                user.login_otp_expires_at = now + timedelta(minutes=10)
+                user.login_otp_failed_attempts = 0
+                user.save(update_fields=['login_otp_code', 'login_otp_expires_at', 'login_otp_failed_attempts'])
+
+                try:
+                    send_login_otp_email(user, otp_code)
+                except Exception as e:
+                    context['error'] = f'Failed to send OTP email: {e}'
+                    return HttpResponse(template.render(context, request))
+
+                request.session['otp_pending_user_id'] = user.id
+                context['show_otp_modal'] = True
+                context['otp_email'] = user.email
+                return HttpResponse(template.render(context, request))
+
+            auth_login(request, user)
+            return redirect('dashboard')
+
+        context['error'] = 'Invalid username or password.'
+
+    return HttpResponse(template.render(context, request))
 
 
 
@@ -175,6 +353,7 @@ def signup_forms(request):
                 department=department,
                 privilege=privilege,
                 status=status,
+                must_change_password=True,
                 password=password
             )
 
@@ -337,8 +516,8 @@ def profile(request):
                 messages.error(request, 'Current password is incorrect.')
             elif new_password != confirm_password:
                 messages.error(request, 'New passwords do not match.')
-            elif len(new_password) < 8:
-                messages.error(request, 'New password must be at least 8 characters.')
+            elif not validate_password_strength(new_password):
+                messages.error(request, PASSWORD_POLICY_MESSAGE)
             else:
                 account.set_password(new_password)
                 account.save()
@@ -480,6 +659,7 @@ def import_data(request):
                             department=department,
                             privilege=privilege,
                             status='allowed',
+                            must_change_password=True,
                         )
                         user_obj.set_password(password)
                         user_obj.save()
