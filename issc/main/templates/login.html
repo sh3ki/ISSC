@@ -9,6 +9,13 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="{% static 'css/login.css' %}">
     <script src="https://cdn.tailwindcss.com"></script>
+        <style>
+            .required-asterisk {
+                color: #dc2626;
+                margin-left: 4px;
+                font-weight: 700;
+            }
+        </style>
 </head>
 <body>
     <!-- Background Image -->
@@ -34,6 +41,12 @@
         </div>
 
         <h2 class="login-title">Login</h2>
+
+        {% if error %}
+        <div style="margin-bottom:12px;padding:10px 12px;background:#fef2f2;border:1px solid #fecaca;color:#991b1b;border-radius:8px;font-size:14px;">
+            {{ error }}
+        </div>
+        {% endif %}
 
         <form method="POST" action="">
             {% csrf_token %}
@@ -82,6 +95,56 @@
             </div>
         </form>
     </div>
+
+    {% if show_otp_modal %}
+    <div id="otpModal" style="position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9999;display:flex;align-items:center;justify-content:center;">
+        <div style="width:min(92vw,440px);background:#fff;border-radius:12px;padding:22px;box-shadow:0 20px 40px rgba(0,0,0,.25);">
+            <h3 style="margin:0 0 8px;color:#4b0000;font-size:22px;font-weight:700;">Email OTP Verification</h3>
+            <p style="margin:0 0 14px;color:#555;line-height:1.5;">Enter the 6-digit OTP sent to your email{% if otp_email %} ({{ otp_email }}){% endif %}. You have 5 attempts before a 5-minute cooldown.</p>
+            <form method="POST" action="">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="verify_otp">
+                <label for="otp_code" class="form-label" style="font-weight:600;">One-Time Password</label>
+                <input id="otp_code" class="form-input" type="text" name="otp_code" maxlength="6" minlength="6" inputmode="numeric" pattern="[0-9]{6}" required style="letter-spacing:0.2em;text-align:center;font-weight:700;">
+                <button type="submit" class="login-button" style="margin-top:14px;">Verify OTP</button>
+            </form>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if show_force_password_modal %}
+    <div id="forcePasswordModal" style="position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:10000;display:flex;align-items:center;justify-content:center;">
+        <div style="width:min(94vw,520px);background:#fff;border-radius:12px;padding:24px;box-shadow:0 24px 44px rgba(0,0,0,.28);">
+            <h3 style="margin:0 0 8px;color:#4b0000;font-size:22px;font-weight:700;">Set a New Password</h3>
+            <p style="margin:0 0 14px;color:#555;line-height:1.5;">First-time login requires a password update before you can continue.</p>
+            <form method="POST" action="" id="firstPasswordForm">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="set_first_password">
+
+                <label for="first_new_password" class="form-label" style="font-weight:600;">New Password</label>
+                <div style="position:relative;">
+                    <input id="first_new_password" class="form-input" type="password" name="new_password" required autocomplete="new-password">
+                    <i class="fa-solid fa-eye" id="toggleFirstPassword" style="position:absolute;right:14px;top:50%;transform:translateY(-50%);cursor:pointer;color:#6b7280;"></i>
+                </div>
+
+                <label for="first_confirm_password" class="form-label" style="font-weight:600;margin-top:10px;display:block;">Confirm Password</label>
+                <div style="position:relative;">
+                    <input id="first_confirm_password" class="form-input" type="password" name="confirm_password" required autocomplete="new-password">
+                    <i class="fa-solid fa-eye" id="toggleFirstConfirmPassword" style="position:absolute;right:14px;top:50%;transform:translateY(-50%);cursor:pointer;color:#6b7280;"></i>
+                </div>
+
+                <div style="margin-top:10px;">
+                    <div style="height:8px;background:#e5e7eb;border-radius:999px;overflow:hidden;">
+                        <div id="firstStrengthBar" style="height:100%;width:0%;background:#dc2626;transition:all .2s ease;"></div>
+                    </div>
+                    <small id="firstStrengthText" style="display:block;margin-top:6px;color:#555;">{{ password_policy_message }}</small>
+                </div>
+
+                <button type="submit" class="login-button" style="margin-top:14px;">Save New Password</button>
+            </form>
+        </div>
+    </div>
+    {% endif %}
 </body>
 
 <script>
@@ -96,6 +159,94 @@
         // Toggle eye icon (eye/eye-slash)
         this.classList.toggle('fa-eye');
         this.classList.toggle('fa-eye-slash');
+    });
+
+    function toggleVisibility(inputId, iconId) {
+        const input = document.getElementById(inputId);
+        const icon = document.getElementById(iconId);
+        if (!input || !icon) return;
+        icon.addEventListener('click', function() {
+            const type = input.getAttribute('type') === 'password' ? 'text' : 'password';
+            input.setAttribute('type', type);
+            icon.classList.toggle('fa-eye');
+            icon.classList.toggle('fa-eye-slash');
+        });
+    }
+
+    toggleVisibility('first_new_password', 'toggleFirstPassword');
+    toggleVisibility('first_confirm_password', 'toggleFirstConfirmPassword');
+
+    function getStrength(password) {
+        let score = 0;
+        if (password.length >= 8) score++;
+        if (/[A-Z]/.test(password)) score++;
+        if (/[a-z]/.test(password)) score++;
+        if (/\d/.test(password)) score++;
+        if (/[^A-Za-z0-9]/.test(password)) score++;
+        return score;
+    }
+
+    const firstPwd = document.getElementById('first_new_password');
+    const firstBar = document.getElementById('firstStrengthBar');
+    const firstText = document.getElementById('firstStrengthText');
+
+    if (firstPwd && firstBar && firstText) {
+        firstPwd.addEventListener('input', function() {
+            const score = getStrength(firstPwd.value);
+            const pct = (score / 5) * 100;
+            firstBar.style.width = pct + '%';
+            if (score <= 2) {
+                firstBar.style.background = '#dc2626';
+                firstText.textContent = 'Weak: ' + '{{ password_policy_message }}';
+            } else if (score <= 4) {
+                firstBar.style.background = '#f59e0b';
+                firstText.textContent = 'Moderate: add missing requirements for stronger security.';
+            } else {
+                firstBar.style.background = '#16a34a';
+                firstText.textContent = 'Strong password.';
+            }
+        });
+    }
+
+    const forcePasswordForm = document.getElementById('firstPasswordForm');
+    if (forcePasswordForm) {
+        forcePasswordForm.addEventListener('submit', function(e) {
+            const pwd = document.getElementById('first_new_password').value;
+            const confirmPwd = document.getElementById('first_confirm_password').value;
+            const valid = pwd.length >= 8 && /[A-Z]/.test(pwd) && /[a-z]/.test(pwd) && /\d/.test(pwd) && /[^A-Za-z0-9]/.test(pwd);
+            if (!valid) {
+                e.preventDefault();
+                alert('Password must be at least 8 characters and include uppercase, lowercase, number, and special character.');
+                return;
+            }
+            if (pwd !== confirmPwd) {
+                e.preventDefault();
+                alert('Passwords do not match.');
+            }
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        const requiredFields = document.querySelectorAll('input[required], select[required], textarea[required]');
+        requiredFields.forEach(function(field) {
+            const id = field.getAttribute('id');
+            let label = null;
+            if (id) {
+                label = document.querySelector('label[for="' + id + '"]');
+            }
+            if (!label) {
+                const wrapper = field.closest('.form-field, .form-group, div, td');
+                if (wrapper) {
+                    label = wrapper.querySelector('label');
+                }
+            }
+            if (label && !label.querySelector('.required-asterisk')) {
+                const star = document.createElement('span');
+                star.className = 'required-asterisk';
+                star.textContent = '*';
+                label.appendChild(star);
+            }
+        });
     });
 </script>
 </html>
