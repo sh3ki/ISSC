@@ -440,8 +440,9 @@ def get_deleted_backup_list():
 @login_required
 def backup_page(request):
     """Display backup management page"""
-    # Check if user is admin
-    if not request.user.is_staff and not request.user.is_superuser:
+    # Allow admin accounts by privilege even if is_staff was not synced yet.
+    is_admin_priv = getattr(request.user, 'privilege', '') == 'admin'
+    if not request.user.is_staff and not request.user.is_superuser and not is_admin_priv:
         messages.error(request, 'Access denied. Admin privileges required.')
         return redirect('dashboard')
     
@@ -478,8 +479,8 @@ def backup_page(request):
 @login_required
 def create_manual_backup(request):
     """Create a manual backup via AJAX"""
-    # Check if user is admin
-    if not request.user.is_staff and not request.user.is_superuser:
+    is_admin_priv = getattr(request.user, 'privilege', '') == 'admin'
+    if not request.user.is_staff and not request.user.is_superuser and not is_admin_priv:
         return JsonResponse({'success': False, 'message': 'Access denied'}, status=403)
     
     if request.method == 'POST':
@@ -507,8 +508,8 @@ def create_manual_backup(request):
 @login_required
 def download_backup(request, filename):
     """Download a backup file"""
-    # Check if user is admin
-    if not request.user.is_staff and not request.user.is_superuser:
+    is_admin_priv = getattr(request.user, 'privilege', '') == 'admin'
+    if not request.user.is_staff and not request.user.is_superuser and not is_admin_priv:
         messages.error(request, 'Access denied. Admin privileges required.')
         return redirect('backup_page')
     
@@ -534,8 +535,8 @@ def download_backup(request, filename):
 @login_required
 def delete_backup(request, filename):
     """Delete a backup file"""
-    # Check if user is admin
-    if not request.user.is_staff and not request.user.is_superuser:
+    is_admin_priv = getattr(request.user, 'privilege', '') == 'admin'
+    if not request.user.is_staff and not request.user.is_superuser and not is_admin_priv:
         return JsonResponse({'success': False, 'message': 'Access denied'}, status=403)
     
     if request.method == 'POST':
@@ -571,7 +572,8 @@ def delete_backup(request, filename):
 @login_required
 def restore_backup(request, filename):
     """Restore a backup file from recycle-bin folder back to active backups."""
-    if not request.user.is_staff and not request.user.is_superuser:
+    is_admin_priv = getattr(request.user, 'privilege', '') == 'admin'
+    if not request.user.is_staff and not request.user.is_superuser and not is_admin_priv:
         return JsonResponse({'success': False, 'message': 'Access denied'}, status=403)
 
     if request.method != 'POST':
@@ -605,7 +607,8 @@ def restore_backup(request, filename):
 @login_required
 def permanently_delete_backup(request, filename):
     """Permanently delete a backup file from recycle-bin folder."""
-    if not request.user.is_staff and not request.user.is_superuser:
+    is_admin_priv = getattr(request.user, 'privilege', '') == 'admin'
+    if not request.user.is_staff and not request.user.is_superuser and not is_admin_priv:
         return JsonResponse({'success': False, 'message': 'Access denied'}, status=403)
 
     if request.method != 'POST':
