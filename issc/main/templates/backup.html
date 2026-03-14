@@ -327,6 +327,9 @@
                             <button onclick="restoreBackup('{{ deleted_backup.filename }}')" class="action-btn" style="background:#2563eb;color:#fff;">
                                 <i class="fas fa-undo"></i> Restore
                             </button>
+                            <button onclick="permanentlyDeleteBackup('{{ deleted_backup.filename }}')" class="action-btn" style="background:#b91c1c;color:#fff;">
+                                <i class="fas fa-times-circle"></i> Permanently Delete
+                            </button>
                         </td>
                     </tr>
                     {% endfor %}
@@ -571,15 +574,15 @@
         }
         
         try {
-            const response = await fetch(`/backup/delete/${filename}/`, {
+            const response = await fetch(`/backup/delete/${encodeURIComponent(filename)}/`, {
                 method: 'POST',
                 headers: {
                     'X-CSRFToken': '{{ csrf_token }}',
                     'Content-Type': 'application/json',
                 },
             });
-            
-            const data = await response.json();
+
+            const data = await response.json().catch(() => ({ success: false, message: `Server error (${response.status})` }));
             
             if (data.success) {
                 showAlert('Backup moved to restore bin successfully!', 'success');
@@ -620,7 +623,7 @@
         }
 
         try {
-            const response = await fetch(`/backup/restore/${filename}/`, {
+            const response = await fetch(`/backup/restore/${encodeURIComponent(filename)}/`, {
                 method: 'POST',
                 headers: {
                     'X-CSRFToken': '{{ csrf_token }}',
@@ -628,7 +631,33 @@
                 },
             });
 
-            const data = await response.json();
+            const data = await response.json().catch(() => ({ success: false, message: `Server error (${response.status})` }));
+            if (data.success) {
+                showAlert(data.message, 'success');
+                setTimeout(() => location.reload(), 800);
+            } else {
+                showAlert('Error: ' + data.message, 'error');
+            }
+        } catch (error) {
+            showAlert('Network error: ' + error.message, 'error');
+        }
+    }
+
+    async function permanentlyDeleteBackup(filename) {
+        if (!confirm(`Permanently delete "${filename}"? This cannot be undone.`)) {
+            return;
+        }
+
+        try {
+            const response = await fetch(`/backup/permanent-delete/${encodeURIComponent(filename)}/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}',
+                    'Content-Type': 'application/json',
+                },
+            });
+
+            const data = await response.json().catch(() => ({ success: false, message: `Server error (${response.status})` }));
             if (data.success) {
                 showAlert(data.message, 'success');
                 setTimeout(() => location.reload(), 800);
