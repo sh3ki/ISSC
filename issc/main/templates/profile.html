@@ -134,12 +134,18 @@
           </div>
           <div>
             <label style="font-weight: 600;">New Password</label>
-            <input type="password" name="new_password" required style="width:100%; padding:10px; border:1px solid #d1d5db; border-radius:6px;">
+            <input type="password" id="profile_new_password" name="new_password" required style="width:100%; padding:10px; border:1px solid #d1d5db; border-radius:6px;">
           </div>
           <div>
             <label style="font-weight: 600;">Confirm New Password</label>
             <input type="password" name="confirm_password" required style="width:100%; padding:10px; border:1px solid #d1d5db; border-radius:6px;">
           </div>
+        </div>
+        <div style="margin-top:10px;">
+          <div style="height:8px;background:#e5e7eb;border-radius:999px;overflow:hidden;">
+            <div id="profileStrengthBar" style="height:100%;width:0%;background:#dc2626;transition:all .2s ease;"></div>
+          </div>
+          <small id="profileStrengthText" style="display:block;margin-top:6px;color:#555;">Password must be at least 8 characters with uppercase, lowercase, number, and special character.</small>
         </div>
         <div style="margin-top: 14px; text-align: right;">
           <button type="submit" name="password_change" style="background:#374151; color:#fff; padding:10px 16px; border:none; border-radius:6px; cursor:pointer;">Update Password</button>
@@ -162,4 +168,39 @@
     </div>
   </div>
 </div>
+
+<script>
+  (function () {
+    const pwd = document.getElementById('profile_new_password');
+    const bar = document.getElementById('profileStrengthBar');
+    const text = document.getElementById('profileStrengthText');
+    if (!pwd || !bar || !text) return;
+
+    function getStrength(password) {
+      let score = 0;
+      if (password.length >= 8) score++;
+      if (/[A-Z]/.test(password)) score++;
+      if (/[a-z]/.test(password)) score++;
+      if (/\d/.test(password)) score++;
+      if (/[^A-Za-z0-9]/.test(password)) score++;
+      return score;
+    }
+
+    pwd.addEventListener('input', function () {
+      const score = getStrength(pwd.value);
+      const pct = (score / 5) * 100;
+      bar.style.width = pct + '%';
+      if (score <= 2) {
+        bar.style.background = '#dc2626';
+        text.textContent = 'Weak password.';
+      } else if (score <= 4) {
+        bar.style.background = '#f59e0b';
+        text.textContent = 'Moderate password.';
+      } else {
+        bar.style.background = '#16a34a';
+        text.textContent = 'Strong password.';
+      }
+    });
+  })();
+</script>
 {% endblock content %}
