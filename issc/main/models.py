@@ -31,6 +31,11 @@ class AccountRegistration(AbstractUser):
         ('restricted', 'Restricted'),
     ]
     status = models.CharField(max_length=15, choices=STATUS_CHOICES)
+    must_change_password = models.BooleanField(default=False)
+    login_otp_code = models.CharField(max_length=10, blank=True, default='')
+    login_otp_expires_at = models.DateTimeField(null=True, blank=True)
+    login_otp_failed_attempts = models.PositiveSmallIntegerField(default=0)
+    login_otp_locked_until = models.DateTimeField(null=True, blank=True)
 
     def __str__(self):
         return self.username
@@ -141,6 +146,7 @@ class FacesEmbeddings(models.Model):
     front_embedding = models.JSONField(default=dict)
     left_embedding = models.JSONField(default=dict)
     right_embedding = models.JSONField(default=dict)
+    enrolled_by = models.CharField(max_length=150, blank=True, default='')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
