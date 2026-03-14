@@ -22,6 +22,13 @@
     <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
 
     <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <style>
+      .required-asterisk {
+        color: #dc2626;
+        margin-left: 4px;
+        font-weight: 700;
+      }
+    </style>
 
 </head>
 <body>
@@ -331,6 +338,32 @@
           closeLogoutModal();
         }
       }
+
+      document.addEventListener('DOMContentLoaded', function () {
+        const requiredFields = document.querySelectorAll('input[required], select[required], textarea[required]');
+        requiredFields.forEach(function(field) {
+          const id = field.getAttribute('id');
+          let label = null;
+
+          if (id) {
+            label = document.querySelector('label[for="' + id + '"]');
+          }
+
+          if (!label) {
+            const wrapper = field.closest('.form-field, .form-group, div, td');
+            if (wrapper) {
+              label = wrapper.querySelector('label');
+            }
+          }
+
+          if (label && !label.querySelector('.required-asterisk')) {
+            const star = document.createElement('span');
+            star.className = 'required-asterisk';
+            star.textContent = '*';
+            label.appendChild(star);
+          }
+        });
+      });
     </script>
 
   </body>
