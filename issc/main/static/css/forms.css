@@ -172,7 +172,7 @@ select {
 }
 
 
-.register-btn button[type="submit"],
+.register-btn button,
 .form-field button {
     width: 100%;
     padding: 8px 25px;
@@ -189,14 +189,14 @@ select {
 }
 
 
-.register-btn button[type="submit"]:hover,
+.register-btn button:hover,
 .form-field button:hover {
     background: linear-gradient(135deg, #260000, #4B0000);
     transform: translateY(-3px);
     box-shadow: 0 6px 16px rgba(75, 0, 0, 0.7);
 }
 
-.register-btn button[type="submit"]:active,
+.register-btn button:active,
 .form-field button:active {
     transform: translateY(0);
     box-shadow: 0 3px 8px rgba(75, 0, 0, 0.4);
@@ -613,7 +613,7 @@ select {
         padding: 6px 20px;
     }
 
-    .register-btn button[type="submit"],
+    .register-btn button,
     .form-field button {
         font-size: 13px;
         padding: 6px 20px;
