@@ -12,19 +12,29 @@ import platform
 from pathlib import Path
 import pytz
 
-# Create backups directory if it doesn't exist
+# Backups are stored in BASE_DIR/backups with a recycle-bin subfolder.
 BACKUP_DIR = os.path.join(settings.BASE_DIR, 'backups')
-if not os.path.exists(BACKUP_DIR):
-    os.makedirs(BACKUP_DIR, exist_ok=True)
-    # Set secure permissions on Linux/Ubuntu (rwx for owner only)
-    if platform.system() != 'Windows':
-        os.chmod(BACKUP_DIR, 0o700)
-
 BACKUP_TRASH_DIR = os.path.join(BACKUP_DIR, 'deleted')
-if not os.path.exists(BACKUP_TRASH_DIR):
-    os.makedirs(BACKUP_TRASH_DIR, exist_ok=True)
-    if platform.system() != 'Windows':
-        os.chmod(BACKUP_TRASH_DIR, 0o700)
+
+
+def ensure_backup_directories():
+    """Ensure backup and recycle-bin directories exist and are accessible."""
+    try:
+        os.makedirs(BACKUP_DIR, exist_ok=True)
+        os.makedirs(BACKUP_TRASH_DIR, exist_ok=True)
+        if platform.system() != 'Windows':
+            # Owner rwx, group rx to avoid exposing backups publicly.
+            os.chmod(BACKUP_DIR, 0o750)
+            os.chmod(BACKUP_TRASH_DIR, 0o750)
+        return True, ''
+    except PermissionError:
+        return False, f'Permission denied accessing backup directories: {BACKUP_DIR}'
+    except OSError as exc:
+        return False, f'Unable to prepare backup directories: {exc}'
+
+
+# Try to prepare directories at import-time without crashing startup.
+ensure_backup_directories()
 
 def get_manila_time():
     """Get current time in Asia/Manila timezone"""
@@ -292,6 +302,10 @@ def create_sqlite_backup(db_config, backup_file):
 
 def create_backup(backup_type='manual'):
     """Create a database backup"""
+    dirs_ok, dirs_error = ensure_backup_directories()
+    if not dirs_ok:
+        return False, dirs_error, None
+
     db_config = get_database_config()
     
     if not db_config:
@@ -352,16 +366,25 @@ def create_backup(backup_type='manual'):
 def get_backup_list():
     """Get list of all backup files"""
     backups = []
-    
-    if not os.path.exists(BACKUP_DIR):
+
+    dirs_ok, _ = ensure_backup_directories()
+    if not dirs_ok:
         return backups
-    
-    for filename in os.listdir(BACKUP_DIR):
+
+    try:
+        filenames = os.listdir(BACKUP_DIR)
+    except (PermissionError, OSError):
+        return backups
+
+    for filename in filenames:
         if filename == 'deleted':
             continue
         if filename.endswith('.sql'):
             filepath = os.path.join(BACKUP_DIR, filename)
-            file_stats = os.stat(filepath)
+            try:
+                file_stats = os.stat(filepath)
+            except (PermissionError, OSError):
+                continue
             
             # Parse backup type from filename
             backup_type = 'manual'
@@ -388,13 +411,22 @@ def get_deleted_backup_list():
     """Get list of deleted backup files from recycle-bin folder."""
     deleted_backups = []
 
-    if not os.path.exists(BACKUP_TRASH_DIR):
+    dirs_ok, _ = ensure_backup_directories()
+    if not dirs_ok:
         return deleted_backups
 
-    for filename in os.listdir(BACKUP_TRASH_DIR):
+    try:
+        filenames = os.listdir(BACKUP_TRASH_DIR)
+    except (PermissionError, OSError):
+        return deleted_backups
+
+    for filename in filenames:
         if filename.endswith('.sql'):
             filepath = os.path.join(BACKUP_TRASH_DIR, filename)
-            file_stats = os.stat(filepath)
+            try:
+                file_stats = os.stat(filepath)
+            except (PermissionError, OSError):
+                continue
             deleted_backups.append({
                 'filename': filename,
                 'filepath': filepath,
@@ -413,8 +445,14 @@ def backup_page(request):
         messages.error(request, 'Access denied. Admin privileges required.')
         return redirect('dashboard')
     
-    backups = get_backup_list()
-    deleted_backups = get_deleted_backup_list()
+    dirs_ok, dirs_error = ensure_backup_directories()
+    if not dirs_ok:
+        messages.error(request, f'Backup storage is not writable by the app. {dirs_error}')
+        backups = []
+        deleted_backups = []
+    else:
+        backups = get_backup_list()
+        deleted_backups = get_deleted_backup_list()
     manila_time = get_manila_time()
     
     # Get user role for navigation menu
@@ -501,6 +539,10 @@ def delete_backup(request, filename):
         return JsonResponse({'success': False, 'message': 'Access denied'}, status=403)
     
     if request.method == 'POST':
+        dirs_ok, dirs_error = ensure_backup_directories()
+        if not dirs_ok:
+            return JsonResponse({'success': False, 'message': dirs_error}, status=500)
+
         filepath = os.path.join(BACKUP_DIR, filename)
         
         if not os.path.exists(filepath):
@@ -534,6 +576,10 @@ def restore_backup(request, filename):
 
     if request.method != 'POST':
         return JsonResponse({'success': False, 'message': 'Invalid request method'}, status=400)
+
+    dirs_ok, dirs_error = ensure_backup_directories()
+    if not dirs_ok:
+        return JsonResponse({'success': False, 'message': dirs_error}, status=500)
 
     trash_path = os.path.join(BACKUP_TRASH_DIR, filename)
     if not os.path.exists(trash_path):
