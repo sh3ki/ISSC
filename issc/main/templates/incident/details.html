@@ -371,6 +371,21 @@
         
         </form>
 
+    <div id="incidentActionConfirmModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:10050;align-items:center;justify-content:center;">
+        <div style="width:min(96vw,760px);max-height:90vh;overflow:auto;background:#fff;border-radius:10px;padding:20px;box-shadow:0 20px 45px rgba(0,0,0,.25);">
+            <h3 id="incidentActionConfirmTitle" style="margin:0 0 10px;color:#4b0000;">Confirm Action</h3>
+            <div id="incidentActionConfirmBody" style="line-height:1.6;color:#333;"></div>
+            <label id="incidentActionAgreementWrap" style="display:none;align-items:flex-start;gap:8px;margin-top:12px;font-weight:600;">
+                <input type="checkbox" id="incidentActionAgreement">
+                <span id="incidentActionAgreementText"></span>
+            </label>
+            <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px;">
+                <button type="button" id="incidentActionCancelBtn" style="padding:8px 14px;border:1px solid #ddd;border-radius:6px;background:#f3f4f6;">Cancel</button>
+                <button type="button" id="incidentActionProceedBtn" style="padding:8px 14px;border:none;border-radius:6px;background:#7a1818;color:#fff;">Proceed</button>
+            </div>
+        </div>
+    </div>
+
     <script>
     // Set print link if present
     (function(){
@@ -460,12 +475,109 @@
         if(cancelBtnDelete){ cancelBtnDelete.addEventListener('click', function(){ hideModalDelete(); }); }
         if(overlayDelete){ overlayDelete.addEventListener('click', function(){ hideModalDelete(); }); }
 
+        var pendingSubmitButton = null;
+        var actionModal = document.getElementById('incidentActionConfirmModal');
+        var actionTitle = document.getElementById('incidentActionConfirmTitle');
+        var actionBody = document.getElementById('incidentActionConfirmBody');
+        var actionAgreementWrap = document.getElementById('incidentActionAgreementWrap');
+        var actionAgreement = document.getElementById('incidentActionAgreement');
+        var actionAgreementText = document.getElementById('incidentActionAgreementText');
+        var actionCancelBtn = document.getElementById('incidentActionCancelBtn');
+        var actionProceedBtn = document.getElementById('incidentActionProceedBtn');
+
+        function openActionConfirm(config) {
+            if (!actionModal) return;
+            actionTitle.textContent = config.title;
+            actionBody.innerHTML = config.bodyHtml;
+            actionAgreement.checked = false;
+
+            if (config.requireAgreement) {
+                actionAgreementWrap.style.display = 'flex';
+                actionAgreementText.textContent = config.agreementText;
+            } else {
+                actionAgreementWrap.style.display = 'none';
+                actionAgreementText.textContent = '';
+            }
+
+            actionModal.style.display = 'flex';
+        }
+
+        function closeActionConfirm() {
+            if (!actionModal) return;
+            actionModal.style.display = 'none';
+            pendingSubmitButton = null;
+            actionAgreement.checked = false;
+        }
+
+        if (actionCancelBtn) {
+            actionCancelBtn.addEventListener('click', closeActionConfirm);
+        }
+
+        if (actionProceedBtn) {
+            actionProceedBtn.addEventListener('click', function () {
+                if (!pendingSubmitButton) {
+                    closeActionConfirm();
+                    return;
+                }
+
+                if (actionAgreementWrap.style.display !== 'none' && !actionAgreement.checked) {
+                    alert('Please check the agreement before proceeding.');
+                    return;
+                }
+
+                const form = pendingSubmitButton.closest('form');
+                if (form) {
+                    pendingSubmitButton.dataset.confirmed = 'true';
+                    form.requestSubmit(pendingSubmitButton);
+                }
+                closeActionConfirm();
+            });
+        }
+
+        document.querySelectorAll('button[name="update_open_case"], button[name="update_case"]').forEach(function (btn) {
+            btn.addEventListener('click', function (e) {
+                if (btn.dataset.confirmed === 'true') {
+                    btn.dataset.confirmed = 'false';
+                    return;
+                }
+
+                e.preventDefault();
+                pendingSubmitButton = btn;
+
+                if (btn.name === 'update_case') {
+                    const modalRoot = btn.closest('.modal-content');
+                    const statusSelect = modalRoot ? modalRoot.querySelector('select[name="status"]') : null;
+                    const selectedStatus = statusSelect ? statusSelect.value : '';
+
+                    if (selectedStatus === 'closed') {
+                        openActionConfirm({
+                            title: 'Final Case Closure Confirmation',
+                            bodyHtml: '<p>Before proceeding, you acknowledge that you have thoroughly reviewed all case details, findings, and supporting documentation. You confirm that the information recorded is accurate, complete, and finalized to the best of your knowledge.</p>' +
+                                      '<p>By closing this case, you understand and agree that the case will be permanently archived and marked as closed. This action is final and cannot be reverted. Any future modifications will not be permitted unless formally authorized under exceptional circumstances in accordance with applicable policies and regulations.</p>' +
+                                      '<p>You accept full responsibility for the accuracy of the record and the decision to close and archive this case.</p>',
+                            requireAgreement: true,
+                            agreementText: 'I agree to the Terms of Agreement and authorize final case closure and archiving'
+                        });
+                        return;
+                    }
+                }
+
+                openActionConfirm({
+                    title: 'Confirm Incident Update',
+                    bodyHtml: '<p>Please confirm that you reviewed the incident details and want to proceed with this update.</p>',
+                    requireAgreement: false,
+                    agreementText: ''
+                });
+            });
+        });
+
         // close on Esc
         document.addEventListener('keydown', function(e){ 
             if(e.key === 'Escape'){ 
                 hideModal(); 
                 hideModalOpen(); 
                 hideModalDelete(); 
+                closeActionConfirm();
             } 
         });
     })();
