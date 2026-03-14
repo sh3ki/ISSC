@@ -247,6 +247,7 @@ def face_enrollment_view(request, id_number):
                         'front_embedding': embeddings[0],  # Already a list
                         'left_embedding': embeddings[1],   # Already a list
                         'right_embedding': embeddings[2],  # Already a list
+                        'enrolled_by': (request.user.get_full_name().strip() or request.user.username),
                     }
                 )
                 print(f"Embeddings stored for user {id_number}")
@@ -316,9 +317,16 @@ def face_enrollment_view(request, id_number):
 @login_required(login_url='/login')
 def enrollee_view(request):
     user_privilege = AccountRegistration.objects.filter(username=request.user).values()
-    user_data = AccountRegistration.objects.all()
+    user_data = list(AccountRegistration.objects.all())
 
     enrolled_ids = FacesEmbeddings.objects.values_list('id_number', flat=True)
+    enrolled_by_map = {
+        entry.id_number_id: entry.enrolled_by
+        for entry in FacesEmbeddings.objects.select_related('id_number').all()
+    }
+
+    for enrollee in user_data:
+        enrollee.enrolled_by_display = enrolled_by_map.get(enrollee.id_number, '')
 
     return render(request, 'face_enrollment/enrollee.html', {
         'user_role': user_privilege[0]['privilege'] if user_privilege else 'Unknown',
