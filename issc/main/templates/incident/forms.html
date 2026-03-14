@@ -196,11 +196,28 @@
             </div>
 
             <div  class="register-btn">
-                <button type="submit">Submit</button>
+                <button type="button" id="openCreateIncidentConfirm">Submit</button>
             </div>
 
         </div>
     </form>
+</div>
+
+<div id="createIncidentConfirmModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9999;align-items:center;justify-content:center;">
+    <div style="width:min(96vw,760px);max-height:90vh;overflow:auto;background:#fff;border-radius:10px;padding:20px;box-shadow:0 20px 45px rgba(0,0,0,.25);">
+        <h3 style="margin:0 0 10px;color:#4b0000;">Terms of Agreement and Disclosure</h3>
+        <p style="line-height:1.6;color:#333;">By submitting this Incident Report, you acknowledge that you are responsible for the accuracy and completeness of the information provided. You affirm that the statements contained in this report are true, correct, and made to the best of your knowledge.</p>
+        <p style="line-height:1.6;color:#333;">Submission of this report signifies your understanding that any false, misleading, or incomplete information may result in appropriate administrative or legal action in accordance with applicable policies and regulations.</p>
+        <p style="line-height:1.6;color:#333;">By proceeding, you confirm your acceptance of these terms.</p>
+        <label style="display:flex;align-items:flex-start;gap:8px;margin-top:12px;font-weight:600;">
+            <input type="checkbox" id="createIncidentAgreement">
+            <span>I agree to the Terms of Agreement</span>
+        </label>
+        <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px;">
+            <button type="button" id="cancelCreateIncident" style="padding:8px 14px;border:1px solid #ddd;border-radius:6px;background:#f3f4f6;">Cancel</button>
+            <button type="button" id="confirmCreateIncident" style="padding:8px 14px;border:none;border-radius:6px;background:#7a1818;color:#fff;">Submit Incident</button>
+        </div>
+    </div>
 </div>
 
 
@@ -535,6 +552,40 @@
             }
         });
     });
+</script>
+
+<script>
+    (function () {
+        const form = document.querySelector('.forms form');
+        const openBtn = document.getElementById('openCreateIncidentConfirm');
+        const modal = document.getElementById('createIncidentConfirmModal');
+        const cancelBtn = document.getElementById('cancelCreateIncident');
+        const confirmBtn = document.getElementById('confirmCreateIncident');
+        const agreement = document.getElementById('createIncidentAgreement');
+
+        if (!form || !openBtn || !modal || !cancelBtn || !confirmBtn || !agreement) return;
+
+        openBtn.addEventListener('click', function () {
+            if (!form.checkValidity()) {
+                form.reportValidity();
+                return;
+            }
+            modal.style.display = 'flex';
+        });
+
+        cancelBtn.addEventListener('click', function () {
+            modal.style.display = 'none';
+            agreement.checked = false;
+        });
+
+        confirmBtn.addEventListener('click', function () {
+            if (!agreement.checked) {
+                alert('Please check the agreement before submitting.');
+                return;
+            }
+            form.submit();
+        });
+    })();
 </script>
 
 {% endblock content %}
