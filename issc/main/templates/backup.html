@@ -285,13 +285,60 @@
     <!-- Manual Backup Controls -->
     <div class="backup-controls">
         <h3 style="margin: 0 0 1rem 0;"><i class="fas fa-hand-pointer"></i> Manual Backup</h3>
-        <button id="createBackupBtn" class="backup-button">
-            <i class="fas fa-save"></i>
-            <span>Create Backup Now</span>
-        </button>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+            <button id="createBackupBtn" class="backup-button">
+                <i class="fas fa-save"></i>
+                <span>Create Backup Now</span>
+            </button>
+            <button id="openRestoreBinBtn" class="backup-button" style="background:linear-gradient(135deg,#334155 0%,#475569 100%);">
+                <i class="fas fa-recycle"></i>
+                <span>Restore Bin ({{ deleted_backups|length }})</span>
+            </button>
+        </div>
         <p style="margin: 0.5rem 0 0 0; color: #666; font-size: 0.9rem;">
             Click to create an immediate backup of your database
         </p>
+    </div>
+
+    <div id="restoreBinModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9999;align-items:center;justify-content:center;">
+        <div style="width:min(96vw,920px);max-height:90vh;overflow:auto;background:#fff;border-radius:10px;padding:20px;box-shadow:0 20px 45px rgba(0,0,0,.25);">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+                <h3 style="margin:0;color:#4b0000;"><i class="fas fa-recycle"></i> Restore Bin</h3>
+                <button type="button" id="closeRestoreBinBtn" style="border:none;background:transparent;font-size:18px;cursor:pointer;">✕</button>
+            </div>
+
+            {% if deleted_backups %}
+            <table class="backup-table" style="margin-top:8px;">
+                <thead>
+                    <tr>
+                        <th>Filename</th>
+                        <th>Size</th>
+                        <th>Deleted Date</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for deleted_backup in deleted_backups %}
+                    <tr>
+                        <td>{{ deleted_backup.filename }}</td>
+                        <td>{{ deleted_backup.size|filesizeformat }}</td>
+                        <td>{{ deleted_backup.created|date:"Y-m-d H:i:s" }}</td>
+                        <td>
+                            <button onclick="restoreBackup('{{ deleted_backup.filename }}')" class="action-btn" style="background:#2563eb;color:#fff;">
+                                <i class="fas fa-undo"></i> Restore
+                            </button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div class="empty-state" style="padding:2rem 0;">
+                <i class="fas fa-trash-restore"></i>
+                <p>No deleted backups found in restore bin.</p>
+            </div>
+            {% endif %}
+        </div>
     </div>
 
     <!-- Backup Files Table -->
@@ -535,7 +582,7 @@
             const data = await response.json();
             
             if (data.success) {
-                showAlert('Backup deleted successfully!', 'success');
+                showAlert('Backup moved to restore bin successfully!', 'success');
                 
                 // Remove row from table
                 if ($.fn.DataTable.isDataTable('#backupTable')) {
@@ -566,6 +613,53 @@
             showAlert('Network error: ' + error.message, 'error');
         }
     }
+
+    async function restoreBackup(filename) {
+        if (!confirm(`Restore "${filename}" back to active backups?`)) {
+            return;
+        }
+
+        try {
+            const response = await fetch(`/backup/restore/${filename}/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}',
+                    'Content-Type': 'application/json',
+                },
+            });
+
+            const data = await response.json();
+            if (data.success) {
+                showAlert(data.message, 'success');
+                setTimeout(() => location.reload(), 800);
+            } else {
+                showAlert('Error: ' + data.message, 'error');
+            }
+        } catch (error) {
+            showAlert('Network error: ' + error.message, 'error');
+        }
+    }
+
+    (function () {
+        const openBtn = document.getElementById('openRestoreBinBtn');
+        const closeBtn = document.getElementById('closeRestoreBinBtn');
+        const modal = document.getElementById('restoreBinModal');
+        if (!openBtn || !closeBtn || !modal) return;
+
+        openBtn.addEventListener('click', function () {
+            modal.style.display = 'flex';
+        });
+
+        closeBtn.addEventListener('click', function () {
+            modal.style.display = 'none';
+        });
+
+        modal.addEventListener('click', function (e) {
+            if (e.target === modal) {
+                modal.style.display = 'none';
+            }
+        });
+    })();
 
     // Initialize DataTable if jQuery DataTables is available
     $(document).ready(function() {
