@@ -1,6 +1,7 @@
 import os
 import subprocess
 from datetime import datetime
+import shutil
 from django.shortcuts import render, redirect
 from django.http import JsonResponse, FileResponse, HttpResponse
 from django.contrib.auth.decorators import login_required
@@ -18,6 +19,12 @@ if not os.path.exists(BACKUP_DIR):
     # Set secure permissions on Linux/Ubuntu (rwx for owner only)
     if platform.system() != 'Windows':
         os.chmod(BACKUP_DIR, 0o700)
+
+BACKUP_TRASH_DIR = os.path.join(BACKUP_DIR, 'deleted')
+if not os.path.exists(BACKUP_TRASH_DIR):
+    os.makedirs(BACKUP_TRASH_DIR, exist_ok=True)
+    if platform.system() != 'Windows':
+        os.chmod(BACKUP_TRASH_DIR, 0o700)
 
 def get_manila_time():
     """Get current time in Asia/Manila timezone"""
@@ -350,6 +357,8 @@ def get_backup_list():
         return backups
     
     for filename in os.listdir(BACKUP_DIR):
+        if filename == 'deleted':
+            continue
         if filename.endswith('.sql'):
             filepath = os.path.join(BACKUP_DIR, filename)
             file_stats = os.stat(filepath)
@@ -374,6 +383,28 @@ def get_backup_list():
     
     return backups
 
+
+def get_deleted_backup_list():
+    """Get list of deleted backup files from recycle-bin folder."""
+    deleted_backups = []
+
+    if not os.path.exists(BACKUP_TRASH_DIR):
+        return deleted_backups
+
+    for filename in os.listdir(BACKUP_TRASH_DIR):
+        if filename.endswith('.sql'):
+            filepath = os.path.join(BACKUP_TRASH_DIR, filename)
+            file_stats = os.stat(filepath)
+            deleted_backups.append({
+                'filename': filename,
+                'filepath': filepath,
+                'size': file_stats.st_size,
+                'created': datetime.fromtimestamp(file_stats.st_ctime),
+            })
+
+    deleted_backups.sort(key=lambda x: x['created'], reverse=True)
+    return deleted_backups
+
 @login_required
 def backup_page(request):
     """Display backup management page"""
@@ -383,6 +414,7 @@ def backup_page(request):
         return redirect('dashboard')
     
     backups = get_backup_list()
+    deleted_backups = get_deleted_backup_list()
     manila_time = get_manila_time()
     
     # Get user role for navigation menu
@@ -395,6 +427,7 @@ def backup_page(request):
     
     context = {
         'backups': backups,
+        'deleted_backups': deleted_backups,
         'current_time': manila_time,
         'backup_schedule': '00:00 (Asia/Manila)',
         'total_backups': len(backups),
@@ -478,28 +511,44 @@ def delete_backup(request, filename):
             return JsonResponse({'success': False, 'message': 'Invalid file path'}, status=400)
         
         try:
-            # Ensure the file is writable before attempting removal
-            # (handles cases where file was created by a different user/process)
-            if platform.system() != 'Windows':
-                try:
-                    os.chmod(filepath, 0o644)
-                except Exception:
-                    pass
-            os.remove(filepath)
-            return JsonResponse({'success': True, 'message': 'Backup deleted successfully'})
+            trash_target = os.path.join(BACKUP_TRASH_DIR, filename)
+            if os.path.exists(trash_target):
+                base, ext = os.path.splitext(filename)
+                trash_target = os.path.join(BACKUP_TRASH_DIR, f"{base}_deleted_{datetime.now().strftime('%Y%m%d_%H%M%S')}{ext}")
+
+            shutil.move(filepath, trash_target)
+            return JsonResponse({'success': True, 'message': 'Backup moved to restore bin successfully'})
         except PermissionError:
-            # Last resort: use sudo rm on Linux if running user lacks write permission
-            if platform.system() != 'Windows':
-                try:
-                    result = subprocess.run(['rm', '-f', filepath], capture_output=True, text=True)
-                    if result.returncode == 0:
-                        return JsonResponse({'success': True, 'message': 'Backup deleted successfully'})
-                    else:
-                        return JsonResponse({'success': False, 'message': f'Permission denied: {result.stderr}'}, status=500)
-                except Exception as e2:
-                    return JsonResponse({'success': False, 'message': str(e2)}, status=500)
-            return JsonResponse({'success': False, 'message': 'Permission denied deleting backup file'}, status=500)
+            return JsonResponse({'success': False, 'message': 'Permission denied moving backup file'}, status=500)
         except Exception as e:
             return JsonResponse({'success': False, 'message': str(e)}, status=500)
     
     return JsonResponse({'success': False, 'message': 'Invalid request method'}, status=400)
+
+
+@login_required
+def restore_backup(request, filename):
+    """Restore a backup file from recycle-bin folder back to active backups."""
+    if not request.user.is_staff and not request.user.is_superuser:
+        return JsonResponse({'success': False, 'message': 'Access denied'}, status=403)
+
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'message': 'Invalid request method'}, status=400)
+
+    trash_path = os.path.join(BACKUP_TRASH_DIR, filename)
+    if not os.path.exists(trash_path):
+        return JsonResponse({'success': False, 'message': 'Deleted backup file not found'}, status=404)
+
+    if not os.path.abspath(trash_path).startswith(os.path.abspath(BACKUP_TRASH_DIR)):
+        return JsonResponse({'success': False, 'message': 'Invalid file path'}, status=400)
+
+    restore_target = os.path.join(BACKUP_DIR, filename)
+    if os.path.exists(restore_target):
+        base, ext = os.path.splitext(filename)
+        restore_target = os.path.join(BACKUP_DIR, f"{base}_restored_{datetime.now().strftime('%Y%m%d_%H%M%S')}{ext}")
+
+    try:
+        shutil.move(trash_path, restore_target)
+        return JsonResponse({'success': True, 'message': 'Backup restored successfully'})
+    except Exception as e:
+        return JsonResponse({'success': False, 'message': str(e)}, status=500)
