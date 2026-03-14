@@ -8,10 +8,44 @@
 		<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 		<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 		<script src="https://cdn.tailwindcss.com"></script>
+		<style>
+			.required-asterisk {
+				color: #dc2626;
+				margin-left: 4px;
+				font-weight: 700;
+			}
+		</style>
 		
 	</head>
 	<body>
 		{% block content %}
 		{% endblock content %}
+		<script>
+			document.addEventListener('DOMContentLoaded', function () {
+				const requiredFields = document.querySelectorAll('input[required], select[required], textarea[required]');
+				requiredFields.forEach(function(field) {
+					const id = field.getAttribute('id');
+					let label = null;
+
+					if (id) {
+						label = document.querySelector('label[for="' + id + '"]');
+					}
+
+					if (!label) {
+						const wrapper = field.closest('.form-field, .form-group, div, td');
+						if (wrapper) {
+							label = wrapper.querySelector('label');
+						}
+					}
+
+					if (label && !label.querySelector('.required-asterisk')) {
+						const star = document.createElement('span');
+						star.className = 'required-asterisk';
+						star.textContent = '*';
+						label.appendChild(star);
+					}
+				});
+			});
+		</script>
 	</body>
 </html>
