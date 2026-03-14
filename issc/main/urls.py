@@ -139,5 +139,6 @@ urlpatterns = [
     path('backup/create/', backup_view.create_manual_backup, name='create_manual_backup'),
     path('backup/download/<str:filename>/', backup_view.download_backup, name='download_backup'),
     path('backup/delete/<str:filename>/', backup_view.delete_backup, name='delete_backup'),
+    path('backup/restore/<str:filename>/', backup_view.restore_backup, name='restore_backup'),
 ]
 
