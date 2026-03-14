@@ -36,6 +36,22 @@ PASSWORD_POLICY_MESSAGE = (
 )
 
 
+def sync_admin_flags(user_obj, privilege=None):
+    """Keep Django admin flags aligned with custom privilege."""
+    target_privilege = (privilege if privilege is not None else getattr(user_obj, 'privilege', '')) or ''
+    updates = []
+
+    if target_privilege == 'admin' and not user_obj.is_staff:
+        user_obj.is_staff = True
+        updates.append('is_staff')
+    elif target_privilege != 'admin' and user_obj.is_staff and not user_obj.is_superuser:
+        user_obj.is_staff = False
+        updates.append('is_staff')
+
+    if updates:
+        user_obj.save(update_fields=updates)
+
+
 def validate_password_strength(password):
     if len(password or '') < 8:
         return False
@@ -190,6 +206,8 @@ def login(request):
         password = request.POST['password']
         user = authenticate(request, username=username, password=password)
         if user:
+            sync_admin_flags(user)
+
             if user.must_change_password:
                 now = timezone.now()
                 if user.login_otp_locked_until and now < user.login_otp_locked_until:
@@ -275,6 +293,7 @@ def signup(request):
                 user.privilege = request.POST.get('privilege')
                 user.status = request.POST.get('status')
                 user.save()
+                sync_admin_flags(user)
                 messages.success(request, 'Account updated successfully!')
                 print('')
                 return redirect('signup')  # Redirect to the same page after updating
@@ -359,6 +378,7 @@ def signup_forms(request):
 
             user.set_password(password)
             user.save()
+            sync_admin_flags(user, privilege)
             messages.success(request, 'Account created successfully!')
             # Send notification email to the newly created user with their auto-generated passphrase
             try:
@@ -463,6 +483,7 @@ def account_details(request, username):
                 account.privilege = privilege
                 account.status = status
                 account.save()
+                sync_admin_flags(account, privilege)
                 messages.success(request, f'Account {username} has been updated successfully!')
                 return redirect('signup')
             except Exception as e:
@@ -663,6 +684,7 @@ def import_data(request):
                         )
                         user_obj.set_password(password)
                         user_obj.save()
+                        sync_admin_flags(user_obj, privilege)
                         
                         # Store successful user info for email
                         successful_users.append({
