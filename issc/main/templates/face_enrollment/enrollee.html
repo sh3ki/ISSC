@@ -19,6 +19,7 @@
           <th class="px-4 py-3">Gender</th>
           <th class="px-4 py-3">Department</th>
           <th class="px-4 py-3">Action</th>
+            <th class="px-4 py-3">Enrolled By</th>
       </thead>
       <tbody>
         {% for enrollee in user_data %}
@@ -37,6 +38,7 @@
                 Already Enrolled
               </button>
             </td>
+            <td class="px-4 py-3">{{ enrollee.enrolled_by_display|default:"-" }}</td>
           {% else %}
             <td class="px-4 py-3">
               <form method="post" action="{% url 'face_enrollment' id_number=enrollee.id_number %}">
@@ -46,6 +48,7 @@
                 </button>
               </form>
             </td>
+            <td class="px-4 py-3">-</td>
           {% endif %}
         </tr>
         {% endfor %}
