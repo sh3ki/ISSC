@@ -131,25 +131,32 @@ def resolution_time_analysis(selected_year=None):
     }
 
 def incidents_by_category(selected_year=None):
-    """Analyze incidents by category over time using keyword detection"""
+    """Analyze incidents by category over time using incident form subjects."""
     if selected_year is None:
         selected_year = now().year
-    
-    # Define categories with keywords
-    categories = {
-        'Theft': ['theft', 'steal', 'stolen', 'missing', 'lost'],
-        'Vandalism': ['vandalism', 'damage', 'broken', 'destroyed', 'graffiti'],
-        'Emergency': ['emergency', 'urgent', 'accident', 'injury', 'medical'],
-        'Security': ['security', 'suspicious', 'trespassing', 'unauthorized'],
-        'Harassment': ['harassment', 'bullying', 'threat', 'intimidation'],
-        'Other': []  # Will catch everything else
-    }
+
+    categories = [
+        'Theft',
+        'Missing',
+        'Damage of Property',
+        'Vandalism',
+        'Bullying/Fights',
+        'Accidental Injuries',
+        'Threats/Harassment',
+        'Cheating',
+        'Drugs',
+        'Suicide Incident',
+        'Building Maintenance Issues',
+        'Other/s',
+    ]
+    valid_subjects = set(categories[:-1])
+    fallback_subject = 'Other/s'
     
     # Show all 12 months for complete graph
     months = list(range(1, 13))
     
     # Initialize data structure
-    category_data = {cat: [0] * 12 for cat in categories.keys()}
+    category_data = {cat: [0] * 12 for cat in categories}
     
     for month in months:
         reports = IncidentReport.objects.filter(
@@ -159,25 +166,11 @@ def incidents_by_category(selected_year=None):
         )
         
         for report in reports:
-            subject_lower = report.subject.lower()
-            incident_lower = report.incident.lower()
-            combined_text = f"{subject_lower} {incident_lower}"
-            
-            categorized = False
-            for category, keywords in categories.items():
-                if category == 'Other':
-                    continue
-                for keyword in keywords:
-                    if keyword in combined_text:
-                        category_data[category][month - 1] += 1
-                        categorized = True
-                        break
-                if categorized:
-                    break
-            
-            # If not categorized, add to Other
-            if not categorized:
-                category_data['Other'][month - 1] += 1
+            subject = (report.subject or '').strip()
+            if subject in valid_subjects:
+                category_data[subject][month - 1] += 1
+            else:
+                category_data[fallback_subject][month - 1] += 1
     
     return {
         "months": [calendar.month_abbr[m] for m in months],
