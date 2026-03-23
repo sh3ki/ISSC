@@ -28,6 +28,17 @@
         margin-left: 4px;
         font-weight: 700;
       }
+
+      /* Fallback guard: keep student mobile menu hidden on desktop */
+      .mobile-sidebar {
+        display: none;
+      }
+
+      @media (max-width: 768px) {
+        .mobile-sidebar {
+          display: block;
+        }
+      }
     </style>
 
 </head>
@@ -240,7 +251,7 @@
     <script>
       // Mobile Hamburger Menu Functions
       function toggleMobileNav() {
-        const sidebar = document.querySelector('.sidebar');
+        const sidebar = document.querySelector('.mobile-sidebar');
         const overlay = document.querySelector('.mobile-nav-overlay');
         const hamburgerBtn = document.querySelector('.mobile-hamburger-btn');
         if (!sidebar || !overlay || !hamburgerBtn) return;
@@ -252,7 +263,7 @@
       }
 
       function closeMobileNav() {
-        const sidebar = document.querySelector('.sidebar');
+        const sidebar = document.querySelector('.mobile-sidebar');
         const overlay = document.querySelector('.mobile-nav-overlay');
         const hamburgerBtn = document.querySelector('.mobile-hamburger-btn');
         if (!sidebar || !overlay || !hamburgerBtn) return;
@@ -265,7 +276,7 @@
 
       document.addEventListener('DOMContentLoaded', function () {
         const toggleBtn = document.querySelector('.toggle-btn');
-        const sidebar = document.querySelector('.sidebar');
+        const sidebar = document.querySelector('.mobile-sidebar');
   
         if (toggleBtn) {
           toggleBtn.addEventListener('click', () => {
@@ -276,7 +287,7 @@
         }
 
         // Close mobile nav when clicking on a link
-        const sidebarLinks = document.querySelectorAll('.sidebar a');
+        const sidebarLinks = document.querySelectorAll('.mobile-sidebar a');
         sidebarLinks.forEach(link => {
           link.addEventListener('click', closeMobileNav);
         });
