@@ -391,7 +391,8 @@
     (function(){
         var printLink = document.getElementById('print-link');
         if(printLink){
-            printLink.href = window.location.href + 'print';
+            var cleanPath = window.location.pathname.replace(/\/$/, '');
+            printLink.href = cleanPath + '/print';
         }
 
         // Modal open/close behavior for pending cases
