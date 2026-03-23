@@ -19,7 +19,7 @@ DEBUG=False
 ALLOWED_HOSTS=issc.study,www.issc.study,72.62.66.193
 
 # Database Configuration - Production
-DB_NAME=issc
+DB_NAME=issc_db
 DB_USER=issc_user
 DB_PASSWORD=Issc@2024
 DB_HOST=127.0.0.1
@@ -30,9 +30,9 @@ EMAIL_BACKEND=django.core.mail.backends.smtp.EmailBackend
 EMAIL_HOST=smtp.gmail.com
 EMAIL_PORT=587
 EMAIL_USE_TLS=True
-EMAIL_HOST_USER=vinceerickquiozon14@gmail.com
-EMAIL_HOST_PASSWORD=nyfvoswwwjhcyuze
-DEFAULT_FROM_EMAIL=vinceerickquiozon14@gmail.com
+EMAIL_HOST_USER=integratedcampus48@gmail.com
+EMAIL_HOST_PASSWORD=ilqzrymsqbrhcbfx
+DEFAULT_FROM_EMAIL=integratedcampus48@gmail.com
 
 # PhilSMS Configuration
 PHILSMS_API_BASE=https://dashboard.philsms.com/api/v3
@@ -53,7 +53,7 @@ echo "  - Backend: django.core.mail.backends.smtp.EmailBackend"
 echo "  - Host: smtp.gmail.com"
 echo "  - Port: 587"
 echo "  - TLS: Enabled"
-echo "  - User: vinceerickquiozon14@gmail.com"
+echo "  - User: integratedcampus48@gmail.com"
 echo "  - Password: ****************** (configured)"
 echo ""
 
