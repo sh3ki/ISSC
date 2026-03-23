@@ -14,15 +14,15 @@ DEBUG=False
 ALLOWED_HOSTS=issc.study,www.issc.study,72.62.66.193
 
 # Database Configuration - Production
-DB_NAME=issc
+DB_NAME=issc_db
 DB_USER=issc_user
 DB_PASSWORD=Issc@2024
 DB_HOST=127.0.0.1
 DB_PORT=3306
 
 # Email Configuration (Gmail)
-EMAIL_HOST_USER=vinceerickquiozon14@gmail.com
-EMAIL_HOST_PASSWORD=nyfvoswwwjhcyuze
+EMAIL_HOST_USER=integratedcampus48@gmail.com
+EMAIL_HOST_PASSWORD=ilqzrymsqbrhcbfx
 
 # PhilSMS Configuration
 PHILSMS_API_BASE=https://dashboard.philsms.com/api/v3
@@ -37,7 +37,7 @@ chmod 600 "$ENV_FILE"
 chown www-data:www-data "$ENV_FILE"
 
 echo "✓ .env file created with:"
-echo "  - Database: issc"
+echo "  - Database: issc_db"
 echo "  - User: issc_user"
 echo "  - Password: Issc@2024"
 echo ""
