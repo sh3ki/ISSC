@@ -72,19 +72,19 @@
       <canvas id="statusBreakdownChart" class="chart-canvas"></canvas>
     </div>
 
-    <!-- Row 2: Status Trends -->
-    <div class="graph-section graph-wide">
-      <h3 class="chart-title">Case Status Trends - {{ selected_year }} (Open vs Ongoing vs Closed)</h3>
-      <canvas id="statusTrendsChart" class="chart-canvas"></canvas>
-    </div>
-
-    <!-- Row 3: Resolution Analysis and Incident Rate -->
+    <!-- Row 2: Resolution Analysis and Status Trends -->
     <div class="graph-section graph3">
       <h3 class="chart-title">Average Resolution Time ({{ selected_year }})</h3>
       <canvas id="resolutionTimeChart" class="chart-canvas"></canvas>
     </div>
 
     <div class="graph-section graph3">
+      <h3 class="chart-title">Case Status Trends - {{ selected_year }} (Open vs Ongoing vs Closed)</h3>
+      <canvas id="statusTrendsChart" class="chart-canvas"></canvas>
+    </div>
+
+    <!-- Row 3: Incidents by Category -->
+    <div class="graph-section graph-wide">
       <h3 class="chart-title">Incidents by Category ({{ selected_year }})</h3>
       <canvas id="categoryTrendsChart" class="chart-canvas"></canvas>
     </div>
@@ -516,102 +516,45 @@
     });
 
   // Graph: Incidents by Category (Line Chart with Multiple Lines)
+  const categoryStyles = {
+    'Theft': { color: '#e74c3c', dash: [] },
+    'Missing': { color: '#ff6b6b', dash: [3, 3] },
+    'Damage of Property': { color: '#f39c12', dash: [5, 5] },
+    'Vandalism': { color: '#e67e22', dash: [10, 5] },
+    'Bullying/Fights': { color: '#9b59b6', dash: [15, 3, 3, 3] },
+    'Accidental Injuries': { color: '#1abc9c', dash: [8, 3] },
+    'Threats/Harassment': { color: '#8e44ad', dash: [2, 2] },
+    'Cheating': { color: '#3498db', dash: [6, 2] },
+    'Drugs': { color: '#2ecc71', dash: [1, 1] },
+    'Suicide Incident': { color: '#c0392b', dash: [12, 4] },
+    'Building Maintenance Issues': { color: '#16a085', dash: [7, 4] },
+    'Other/s': { color: '#95a5a6', dash: [1, 1] }
+  };
+
+  const categoryDatasets = Object.keys(categoryTrends.categories).map(function(categoryName) {
+    const style = categoryStyles[categoryName] || { color: '#95a5a6', dash: [1, 1] };
+    return {
+      label: categoryName,
+      data: categoryTrends.categories[categoryName],
+      borderColor: style.color,
+      backgroundColor: 'transparent',
+      borderWidth: 3,
+      tension: 0.4,
+      fill: false,
+      pointRadius: 5,
+      pointHoverRadius: 7,
+      pointBackgroundColor: style.color,
+      pointBorderColor: '#fff',
+      pointBorderWidth: 2,
+      borderDash: style.dash
+    };
+  });
+
   new Chart(document.getElementById('categoryTrendsChart'), {
     type: 'line',
     data: {
       labels: categoryTrends.months,
-      datasets: [
-        {
-          label: 'Theft',
-          data: categoryTrends.categories.Theft,
-          borderColor: '#e74c3c',
-          backgroundColor: 'rgba(231, 76, 60, 0.1)',
-          borderWidth: 3,
-          tension: 0.4,
-          fill: true,
-          pointRadius: 5,
-          pointHoverRadius: 7,
-          pointBackgroundColor: '#e74c3c',
-          pointBorderColor: '#fff',
-          pointBorderWidth: 2,
-          borderDash: []
-        },
-        {
-          label: 'Vandalism',
-          data: categoryTrends.categories.Vandalism,
-          borderColor: '#f39c12',
-          backgroundColor: 'rgba(243, 156, 18, 0.1)',
-          borderWidth: 3,
-          tension: 0.4,
-          fill: true,
-          pointRadius: 5,
-          pointHoverRadius: 7,
-          pointBackgroundColor: '#f39c12',
-          pointBorderColor: '#fff',
-          pointBorderWidth: 2,
-          borderDash: [5, 5]
-        },
-        {
-          label: 'Emergency',
-          data: categoryTrends.categories.Emergency,
-          borderColor: '#e67e22',
-          backgroundColor: 'rgba(230, 126, 34, 0.1)',
-          borderWidth: 3,
-          tension: 0.4,
-          fill: true,
-          pointRadius: 5,
-          pointHoverRadius: 7,
-          pointBackgroundColor: '#e67e22',
-          pointBorderColor: '#fff',
-          pointBorderWidth: 2,
-          borderDash: [10, 5]
-        },
-        {
-          label: 'Security',
-          data: categoryTrends.categories.Security,
-          borderColor: '#3498db',
-          backgroundColor: 'rgba(52, 152, 219, 0.1)',
-          borderWidth: 3,
-          tension: 0.4,
-          fill: true,
-          pointRadius: 5,
-          pointHoverRadius: 7,
-          pointBackgroundColor: '#3498db',
-          pointBorderColor: '#fff',
-          pointBorderWidth: 2,
-          borderDash: [2, 2]
-        },
-        {
-          label: 'Harassment',
-          data: categoryTrends.categories.Harassment,
-          borderColor: '#9b59b6',
-          backgroundColor: 'rgba(155, 89, 182, 0.1)',
-          borderWidth: 3,
-          tension: 0.4,
-          fill: true,
-          pointRadius: 5,
-          pointHoverRadius: 7,
-          pointBackgroundColor: '#9b59b6',
-          pointBorderColor: '#fff',
-          pointBorderWidth: 2,
-          borderDash: [15, 3, 3, 3]
-        },
-        {
-          label: 'Other',
-          data: categoryTrends.categories.Other,
-          borderColor: '#95a5a6',
-          backgroundColor: 'rgba(149, 165, 166, 0.1)',
-          borderWidth: 2,
-          tension: 0.4,
-          fill: true,
-          pointRadius: 4,
-          pointHoverRadius: 6,
-          pointBackgroundColor: '#95a5a6',
-          pointBorderColor: '#fff',
-          pointBorderWidth: 2,
-          borderDash: [1, 1]
-        }
-      ]
+      datasets: categoryDatasets
     },
     options: {
       responsive: true,
