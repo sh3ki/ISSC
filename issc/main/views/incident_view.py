@@ -1,6 +1,8 @@
 from django.http import HttpResponse
 from django.template import loader
 from django.shortcuts import render, redirect, get_object_or_404
+from django.urls import reverse
+from django.conf import settings
 
 from django.contrib.auth import authenticate
 from django.contrib.auth import login as auth_login
@@ -9,13 +11,66 @@ from django.contrib.auth.decorators import login_required
 
 from django.core.files.storage import FileSystemStorage
 from django.core.paginator import Paginator
+from django.core.mail import send_mail
 
 from ..models import AccountRegistration, IncidentReport, VehicleRegistration, IncidentUpdate
 
 from .utils import paginate
 
 from django.template.loader import render_to_string
+import logging
 # import pdfkit  # Temporarily commented out
+
+
+logger = logging.getLogger(__name__)
+
+
+def _send_new_incident_notification(request, report):
+    recipients = list(
+        AccountRegistration.objects.filter(
+            privilege__in=['admin', 'faculty'],
+            is_active=True,
+        )
+        .exclude(email='')
+        .values_list('email', flat=True)
+        .distinct()
+    )
+
+    if not recipients:
+        logger.info("No admin/faculty recipients found for incident notification (incident_id=%s)", report.id)
+        return
+
+    detail_url = request.build_absolute_uri(reverse('incident_details', args=[report.id]))
+    subject = f"[ISSC] New Incident Filed: {report.subject} (ID: {report.id})"
+    message = (
+        "A new incident has been filed in ISSC.\n\n"
+        f"Incident ID: {report.id}\n"
+        f"Subject: {report.subject}\n"
+        f"Status: {report.status}\n"
+        f"Date Filed: {report.date}\n"
+        f"Time Filed: {report.time}\n"
+        f"Location: {report.location}\n"
+        f"Reported By: {report.reported_by}\n"
+        f"Reporter ID Number: {report.id_number}\n"
+        f"Reporter Contact: {report.contact_number}\n"
+        f"Department: {report.department}\n"
+        f"Position: {report.position}\n"
+        f"People Involved: {report.people_involved or 'N/A'}\n\n"
+        "Incident Details:\n"
+        f"{report.incident}\n\n"
+        "Request for Action:\n"
+        f"{report.request_for_action}\n\n"
+        f"View full details: {detail_url}\n"
+    )
+
+    from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', None)
+    send_mail(
+        subject,
+        message,
+        from_email,
+        recipients,
+        fail_silently=False,
+    )
 
 @login_required(login_url='/login/')
 def incident(request):
@@ -347,6 +402,15 @@ def incident_forms(request):
         
         # Set the many-to-many relationship after saving (empty list will clear all)
         report.faculty_involved.set(faculty_involved_ids)
+
+        try:
+            _send_new_incident_notification(request, report)
+        except Exception as exc:
+            logger.exception(
+                "Failed to send new incident notification email (incident_id=%s): %s",
+                report.id,
+                exc,
+            )
 
     return HttpResponse(template.render(context, request))
 
