@@ -75,7 +75,7 @@ echo -e "${GREEN}✓ Migrations complete${NC}"
 echo ""
 
 echo -e "${YELLOW}Step 7: Collecting static files (frontend assets)...${NC}"
-python manage.py collectstatic --noinput
+python manage.py collectstatic --noinput --clear
 echo -e "${GREEN}✓ Static files collected${NC}"
 echo ""
 
