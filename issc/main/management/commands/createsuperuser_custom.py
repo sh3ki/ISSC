@@ -1,5 +1,7 @@
 from django.core.management.base import BaseCommand
 from django.contrib.auth import get_user_model
+from django.core.mail import send_mail
+from django.conf import settings
 import getpass
 import sys
 
@@ -19,6 +21,8 @@ class Command(BaseCommand):
         parser.add_argument('--contact-number', help='Contact number', default='000-000-0000')
         parser.add_argument('--gender', choices=['M', 'F', 'O'], help='Gender (M/F/O)', default='M')
         parser.add_argument('--department', help='Department', default='Administration')
+        parser.add_argument('--must-change-password', action='store_true', help='Require password change at first login')
+        parser.add_argument('--send-email', action='store_true', help='Send account details to user email after creation')
         parser.add_argument('--no-input', action='store_true', help='Run non-interactively with defaults')
 
     def handle(self, *args, **options):
@@ -34,6 +38,8 @@ class Command(BaseCommand):
             contact_number = options['contact_number'] or '000-000-0000'
             gender = options['gender'] or 'M'
             department = options['department'] or 'Administration'
+            must_change_password = bool(options['must_change_password'])
+            send_email = bool(options['send_email'])
         else:
             # Interactive mode
             username = options['username'] or input('Username: ') or 'admin'
@@ -57,6 +63,8 @@ class Command(BaseCommand):
             gender = gender_input if gender_input in ['M', 'F', 'O'] else 'M'
             
             department = options['department'] or input('Department (default: Administration): ') or 'Administration'
+            must_change_password = bool(options['must_change_password'])
+            send_email = bool(options['send_email'])
 
         # Check if user already exists
         if User.objects.filter(username=username).exists():
@@ -85,8 +93,29 @@ class Command(BaseCommand):
                 gender=gender,
                 department=department,
                 privilege='admin',
-                status='allowed'
+                status='allowed',
+                must_change_password=must_change_password,
             )
+
+            if send_email:
+                try:
+                    send_mail(
+                        subject='Your ISSC account has been created',
+                        message=(
+                            f"Hello {first_name},\n\n"
+                            "Your ISSC account is now active.\n"
+                            f"Username: {username}\n"
+                            f"Temporary password: {password}\n"
+                            f"Must change password: {'Yes' if must_change_password else 'No'}\n\n"
+                            "Please log in and update your password immediately."
+                        ),
+                        from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', getattr(settings, 'EMAIL_HOST_USER', None)),
+                        recipient_list=[email],
+                        fail_silently=False,
+                    )
+                    self.stdout.write(self.style.SUCCESS(f'Notification email sent to {email}'))
+                except Exception as email_error:
+                    self.stdout.write(self.style.WARNING(f'User created, but failed to send email: {email_error}'))
             
             self.stdout.write(
                 self.style.SUCCESS(
