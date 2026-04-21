@@ -203,7 +203,7 @@ def incident_details(request, id):
     }
 
     if request.method == 'POST':
-        # Handle deletion of incident (only for open cases by creator)
+        # Handle deletion of incident (only for reported cases by creator)
         if 'delete_incident' in request.POST:
             if incident.status == 'open':
                 # Check if user is the creator
@@ -214,7 +214,7 @@ def incident_details(request, id):
                     return redirect('incidents')
             return redirect(request.META.get('HTTP_REFERER', '/'))
 
-        # Handle update for open cases
+        # Handle update for reported cases
         if 'update_open_case' in request.POST:
             # Update the editable fields
             incident.location = request.POST.get('location', incident.location)
@@ -345,7 +345,9 @@ def incident_forms(request):
         location = request.POST['location']
         incident = request.POST['incident']
         people_involved = request.POST.get('people_involved', '').strip()
-        request_for_action = request.POST['request_for_action']
+        request_for_action = request.POST.get('request_for_action', 'N/A').strip()
+        if not request_for_action:
+            request_for_action = 'N/A'
         # If user selected "Other/s", fall back to the free-text field
         if request_for_action == 'Other/s':
             request_for_action_other = request.POST.get('request_for_action_other', '').strip()
