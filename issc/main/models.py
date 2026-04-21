@@ -113,6 +113,7 @@ class IncidentReport(models.Model):
 
     is_archived = models.BooleanField()
     invalidation_reason = models.TextField(null=True, blank=True)
+    raised_to_admin = models.BooleanField(default=False)
     
     def __str__(self):
         return f"{self.first_name} {self.last_name} - {self.subject}"
