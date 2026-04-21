@@ -188,11 +188,22 @@
     let enrollmentFaceApiModelsLoaded = false;
     let enrollmentDetectorOptions = null;
     let enrollmentSelectedCameraId = null;
+    let enrollmentAutoCaptureTimer = null;
+    let enrollmentIsCapturing = false;
+
+    const ENROLLMENT_AUTO_CAPTURE_DELAY_MS = 250;
 
     const ENROLLMENT_FACE_API_MODEL_URL = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.12/model';
     
     // Camera is always mirrored
     let enrollmentCameraFlipped = true;
+
+    function clearAutoCaptureTimer() {
+      if (enrollmentAutoCaptureTimer) {
+        clearTimeout(enrollmentAutoCaptureTimer);
+        enrollmentAutoCaptureTimer = null;
+      }
+    }
 
     // Get available cameras
     async function getAvailableCameras() {
@@ -283,6 +294,7 @@
 
     // Stop camera
     function stopCamera() {
+      clearAutoCaptureTimer();
       if (enrollmentVideoStream) {
         enrollmentVideoStream.getTracks().forEach(track => track.stop());
         enrollmentVideoStream = null;
@@ -345,6 +357,7 @@
 
         if (detections && detections.length > 1) {
           enrollmentLatestFaceDetection = null;
+          clearAutoCaptureTimer();
           captureBtn.disabled = true;
           
           detections.forEach(detection => {
@@ -383,15 +396,26 @@
 
           if (isPoseCorrect) {
             captureBtn.disabled = false;
-            faceStatus.textContent = '✓ Perfect! Ready to capture';
+            faceStatus.textContent = '✓ Perfect! Auto-capturing...';
             faceStatus.className = 'text-xs mt-1 text-green-400 font-semibold';
+
+            if (!enrollmentAutoCaptureTimer && !enrollmentIsCapturing) {
+              enrollmentAutoCaptureTimer = setTimeout(async () => {
+                enrollmentAutoCaptureTimer = null;
+                if (enrollmentIsCapturing || !enrollmentLatestFaceDetection) return;
+                if (!checkFacePose(enrollmentLatestFaceDetection, enrollmentCurrentStep)) return;
+                await captureImage({ silent: true });
+              }, ENROLLMENT_AUTO_CAPTURE_DELAY_MS);
+            }
           } else {
+            clearAutoCaptureTimer();
             captureBtn.disabled = true;
             faceStatus.textContent = getInstructionForStep(enrollmentCurrentStep);
             faceStatus.className = 'text-xs mt-1 text-yellow-400';
           }
         } else {
           enrollmentLatestFaceDetection = null;
+          clearAutoCaptureTimer();
           captureBtn.disabled = true;
           faceStatus.textContent = '⚠ No face detected';
           faceStatus.className = 'text-xs mt-1 text-red-400';
@@ -456,14 +480,22 @@
     }
 
     // Capture image
-    async function captureImage() {
+    async function captureImage(options = {}) {
+      const silent = Boolean(options.silent);
+
+      if (enrollmentIsCapturing) return false;
+      enrollmentIsCapturing = true;
+      clearAutoCaptureTimer();
+
       if (!enrollmentLatestFaceDetection) {
-        alert('Face not detected. Please position in frame.');
-        return;
+        if (!silent) alert('Face not detected. Please position in frame.');
+        enrollmentIsCapturing = false;
+        return false;
       }
       if (!enrollmentLatestFaceDetection.descriptor || !enrollmentLatestFaceDetection.descriptor.length) {
-        alert('Unable to read face embedding. Hold still and try again.');
-        return;
+        if (!silent) alert('Unable to read face embedding. Hold still and try again.');
+        enrollmentIsCapturing = false;
+        return false;
       }
 
       const video = document.getElementById('camera-video');
@@ -488,6 +520,7 @@
       enrollmentCapturedImages[stepKey] = imageData;
 
       updateCapturePreview();
+      updateSubmitButton();
       console.log(`Captured ${stepKey.toUpperCase()} view successfully.`);
 
       const nextMissingIndex = enrollmentFaceEmbeddings.findIndex(value => !Array.isArray(value));
@@ -497,11 +530,14 @@
         enrollmentCurrentStep = 3;
         updateStepIndicator();
         alert('All faces captured! Please submit.');
-        return;
+        enrollmentIsCapturing = false;
+        return true;
       }
 
       enrollmentCurrentStep = nextMissingIndex + 1;
       updateStepIndicator();
+      enrollmentIsCapturing = false;
+      return true;
     }
 
     // Update capture preview
@@ -521,6 +557,7 @@
 
     // Retake image
     function retakeImage(position) {
+      clearAutoCaptureTimer();
       const stepMap = { 'front': 1, 'left': 2, 'right': 3 };
       const step = stepMap[position];
       enrollmentCapturedImages[position] = null;
