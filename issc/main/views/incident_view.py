@@ -73,6 +73,55 @@ def _send_new_incident_notification(request, report):
         fail_silently=False,
     )
 
+
+def _send_raised_to_admin_notification(request, report, raised_by):
+    recipients = list(
+        AccountRegistration.objects.filter(
+            privilege='admin',
+            is_active=True,
+        )
+        .exclude(email='')
+        .values_list('email', flat=True)
+        .distinct()
+    )
+
+    if not recipients:
+        logger.info("No admin recipients found for raised incident notification (incident_id=%s)", report.id)
+        return
+
+    detail_url = request.build_absolute_uri(reverse('incident_details', args=[report.id]))
+    subject = f"[ISSC] Incident Raised to Admin: {report.subject} (ID: {report.id})"
+    message = (
+        "A student-filed incident has been raised to admin for review.\n\n"
+        f"Raised By (Faculty ID): {raised_by}\n"
+        f"Incident ID: {report.id}\n"
+        f"Subject: {report.subject}\n"
+        f"Status: {report.status}\n"
+        f"Date Filed: {report.date}\n"
+        f"Time Filed: {report.time}\n"
+        f"Location: {report.location}\n"
+        f"Reported By: {report.reported_by}\n"
+        f"Reporter ID Number: {report.id_number}\n"
+        f"Reporter Contact: {report.contact_number}\n"
+        f"Department: {report.department}\n"
+        f"Position: {report.position}\n"
+        f"People Involved: {report.people_involved or 'N/A'}\n\n"
+        "Incident Details:\n"
+        f"{report.incident}\n\n"
+        "Request for Action:\n"
+        f"{report.request_for_action}\n\n"
+        f"View full details: {detail_url}\n"
+    )
+
+    from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', None)
+    send_mail(
+        subject,
+        message,
+        from_email,
+        recipients,
+        fail_silently=False,
+    )
+
 @login_required(login_url='/login/')
 def incident(request):
     user = AccountRegistration.objects.filter(username=request.user).values()
@@ -133,9 +182,20 @@ def incident(request):
 
         if 'raise_to_admin' in request.POST:
             if user[0]['privilege'] == 'faculty' and incident and (incident.position or '').strip().lower() == 'student':
+                was_raised = incident.raised_to_admin
                 incident.raised_to_admin = True
                 incident.last_updated_by = user[0]['id_number']
                 incident.save(update_fields=['raised_to_admin', 'last_updated_by', 'last_updated'])
+
+                if not was_raised:
+                    try:
+                        _send_raised_to_admin_notification(request, incident, user[0]['id_number'])
+                    except Exception as exc:
+                        logger.exception(
+                            "Failed to send raised-to-admin notification email (incident_id=%s): %s",
+                            incident.id,
+                            exc,
+                        )
             return redirect('incidents')
             
         if 'invalidate' in request.POST:
@@ -437,14 +497,17 @@ def incident_forms(request):
         # Set the many-to-many relationship after saving (empty list will clear all)
         report.faculty_involved.set(faculty_involved_ids)
 
-        try:
-            _send_new_incident_notification(request, report)
-        except Exception as exc:
-            logger.exception(
-                "Failed to send new incident notification email (incident_id=%s): %s",
-                report.id,
-                exc,
-            )
+        # Student-filed incidents are kept within faculty workflow first.
+        # Admin email is only sent when faculty raises the incident to admin.
+        if user[0]['privilege'] != 'student':
+            try:
+                _send_new_incident_notification(request, report)
+            except Exception as exc:
+                logger.exception(
+                    "Failed to send new incident notification email (incident_id=%s): %s",
+                    report.id,
+                    exc,
+                )
 
     return HttpResponse(template.render(context, request))
 
