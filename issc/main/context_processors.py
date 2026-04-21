@@ -36,10 +36,15 @@ def incident_notifications(request):
     ).filter(Q(last_updated_by__isnull=True) | Q(last_updated_by=""))
 
     if account.privilege == "faculty":
-        incident_qs = incident_qs.filter(department__iexact=account.department).exclude(faculty_involved=account)
+        faculty_department = (account.department or "").strip()
+        department_group = faculty_department.split()[0] if faculty_department else ""
+        if department_group:
+            incident_qs = incident_qs.filter(department__istartswith=department_group)
+        incident_qs = incident_qs.exclude(faculty_involved=account)
     elif account.privilege == "student":
         incident_qs = incident_qs.filter(id_number=account.id_number)
     else:  # admin
+        incident_qs = incident_qs.exclude(Q(position__iexact="student") & Q(raised_to_admin=False))
         incident_qs = incident_qs.exclude(faculty_involved=account)
 
     new_incident_count = incident_qs.count()
