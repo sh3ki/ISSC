@@ -183,7 +183,7 @@
                     <button type="button" id="delete-incident-btn" class="btn" style="background-color:#dc3545;color:white;">Delete Incident</button>
                 </div>
 
-                <!-- Update Modal for Open Cases -->
+                <!-- Update Modal for Reported Cases -->
                     <div id="update-modal-open" class="modal" role="dialog" aria-hidden="true" style="display:none;overflow-y:auto;">
                         <div class="modal-overlay" id="modal-overlay-open" style="position:fixed;inset:0;background:rgba(0,0,0,0.4);"></div>
                         <div class="modal-content" style="position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);background:#fff;padding:24px;border-radius:6px;max-width:800px;width:90%;max-height:85vh;overflow-y:auto;z-index:1001;box-shadow:0 10px 30px rgba(0,0,0,0.2);">
@@ -423,7 +423,7 @@
         if(cancelBtn){ cancelBtn.addEventListener('click', function(){ hideModal(); }); }
         if(overlay){ overlay.addEventListener('click', function(){ hideModal(); }); }
 
-        // Modal handlers for open cases (Update)
+        // Modal handlers for Reported Cases (Update)
         var openBtnOpen = document.getElementById('open-update-modal-open');
         var modalOpen = document.getElementById('update-modal-open');
         var closeBtnOpen = document.getElementById('close-update-modal-open');
