@@ -437,9 +437,9 @@
 
         <div class="status-filter">
           <button class="filter-btn status-filter-btn" data-status="all" onclick="setStatusFilter('all')">All</button>
-          <button class="filter-btn status-filter-btn" data-status="open" onclick="setStatusFilter('open')">Open</button>
-          <button class="filter-btn status-filter-btn" data-status="pending" onclick="setStatusFilter('pending')">Ongoing</button>
-          <button class="filter-btn status-filter-btn" data-status="closed" onclick="setStatusFilter('closed')">Closed</button>
+          <button class="filter-btn status-filter-btn" data-status="open" onclick="setStatusFilter('open')">Reported</button>
+          <button class="filter-btn status-filter-btn" data-status="pending" onclick="setStatusFilter('pending')">Under Investigation</button>
+          <button class="filter-btn status-filter-btn" data-status="closed" onclick="setStatusFilter('closed')">Resolved</button>
         </div>
       </div>
 
@@ -570,7 +570,17 @@
               <td>{{ incident.department }}</td>
               <td>{{ incident.phone_number }}</td>
               <td>
-                <span class="status-badge status-{{ incident.status }}">{{ incident.status }}</span>
+                <span class="status-badge status-{{ incident.status }}">
+                  {% if incident.status == 'open' %}
+                    Reported
+                  {% elif incident.status == 'pending' %}
+                    Under Investigation
+                  {% elif incident.status == 'closed' %}
+                    Resolved
+                  {% else %}
+                    {{ incident.status }}
+                  {% endif %}
+                </span>
               </td>
               <td>{{ incident.last_updated|date:'M. d, Y' }}<br><small>by {{ incident.last_updated_by }}</small></td>
               <td style="max-width:150px;">
