@@ -166,9 +166,9 @@
                         <td>{{ data.phone_number }}</td>
                         <td>
                             <select class="form-input" name="status" style="width: 140px;" disabled>
-                                <option value="open" {% if data.status == 'open' %}selected{% endif %}>Open</option>
-                                <option value="pending" {% if data.status == 'pending' %}selected{% endif %}>Ongoing</option>
-                                <option value="closed" {% if data.status == 'closed' %}selected{% endif %}>Closed</option>
+                                <option value="open" {% if data.status == 'open' %}selected{% endif %}>Reported</option>
+                                <option value="pending" {% if data.status == 'pending' %}selected{% endif %}>Under Investigation</option>
+                                <option value="closed" {% if data.status == 'closed' %}selected{% endif %}>Resolved</option>
                             </select>
                         </td>
                         <td>{{ data.last_updated_by }}</td>
