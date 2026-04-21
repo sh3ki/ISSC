@@ -74,7 +74,7 @@ def _send_new_incident_notification(request, report):
     )
 
 
-def _send_raised_to_admin_notification(request, report, raised_by):
+def _send_raised_to_admin_notification(request, report, raised_by, raise_reason):
     recipients = list(
         AccountRegistration.objects.filter(
             privilege='admin',
@@ -94,6 +94,7 @@ def _send_raised_to_admin_notification(request, report, raised_by):
     message = (
         "A student-filed incident has been raised to admin for review.\n\n"
         f"Raised By (Faculty ID): {raised_by}\n"
+        f"Raise Reason: {raise_reason}\n"
         f"Incident ID: {report.id}\n"
         f"Subject: {report.subject}\n"
         f"Status: {report.status}\n"
@@ -108,8 +109,6 @@ def _send_raised_to_admin_notification(request, report, raised_by):
         f"People Involved: {report.people_involved or 'N/A'}\n\n"
         "Incident Details:\n"
         f"{report.incident}\n\n"
-        "Request for Action:\n"
-        f"{report.request_for_action}\n\n"
         f"View full details: {detail_url}\n"
     )
 
@@ -182,14 +181,19 @@ def incident(request):
 
         if 'raise_to_admin' in request.POST:
             if user[0]['privilege'] == 'faculty' and incident and (incident.position or '').strip().lower() == 'student':
+                raise_reason = (request.POST.get('raise_reason') or '').strip()
+                if not raise_reason:
+                    return redirect('incidents')
+
                 was_raised = incident.raised_to_admin
                 incident.raised_to_admin = True
+                incident.raised_to_admin_reason = raise_reason
                 incident.last_updated_by = user[0]['id_number']
-                incident.save(update_fields=['raised_to_admin', 'last_updated_by', 'last_updated'])
+                incident.save(update_fields=['raised_to_admin', 'raised_to_admin_reason', 'last_updated_by', 'last_updated'])
 
                 if not was_raised:
                     try:
-                        _send_raised_to_admin_notification(request, incident, user[0]['id_number'])
+                        _send_raised_to_admin_notification(request, incident, user[0]['id_number'], raise_reason)
                     except Exception as exc:
                         logger.exception(
                             "Failed to send raised-to-admin notification email (incident_id=%s): %s",
