@@ -295,6 +295,10 @@ def incident_details(request, id):
     }
 
     if request.method == 'POST':
+        # Faculty cannot modify cases once they are raised to admin.
+        if user_role == 'faculty' and incident.raised_to_admin:
+            return redirect(request.META.get('HTTP_REFERER', '/'))
+
         # Handle deletion of incident (only for reported cases by creator)
         if 'delete_incident' in request.POST:
             if incident.status == 'open':
