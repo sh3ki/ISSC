@@ -621,7 +621,7 @@
         
         let endDate;
         
-        // For closed cases, use the close date; otherwise use current time
+        // For Resolved Cases, use the close date; otherwise use current time
         if (status === 'closed' && closedDateStr && closedDateStr.trim() !== '') {
           endDate = new Date(closedDateStr);
         } else {
