@@ -196,7 +196,15 @@
         </div>
 
         
-        {% if incident.status == 'open' %}
+        {% if user_role == 'faculty' and incident.raised_to_admin %}
+            <p style="color: #0c5460; background-color: #d1ecf1; padding: 10px; border-radius: 5px; border: 1px solid #bee5eb; margin-top: 10px;">
+                <strong>Note:</strong> This case was raised to admin.
+            </p>
+
+            <a href="#" id="print-link" class=" text-center inline-block px-6 py-2 bg-blue-500 text-white font-semibold rounded-full shadow-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400">
+                Print
+            </a>
+        {% elif incident.status == 'open' %}
             <!-- When status is OPEN: show Update and Delete buttons only for the creator -->
             {% if incident.reported_by == user_data.first_name|add:' '|add:user_data.last_name or incident.last_updated_by == user_data.id_number %}
                 <div style="margin-top:20px;display:flex;gap:12px;">
