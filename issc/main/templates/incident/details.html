@@ -17,7 +17,18 @@
                     <span>Incident <strong>#{{ incident_number }}</strong> of <strong>{{ total_incidents }}</strong></span>
                 {% endif %}
                 {% if incident_status_number %}
-                    <span style="margin-left:12px;">{{ incident.status|title }} #<strong>{{ incident_status_number }}</strong> of <strong>{{ status_count_for_incident }}</strong></span>
+                    <span style="margin-left:12px;">
+                        {% if incident.status == 'open' %}
+                            Reported
+                        {% elif incident.status == 'pending' %}
+                            Under Investigation
+                        {% elif incident.status == 'closed' %}
+                            Resolved
+                        {% else %}
+                            {{ incident.status|title }}
+                        {% endif %}
+                        #<strong>{{ incident_status_number }}</strong> of <strong>{{ status_count_for_incident }}</strong>
+                    </span>
                     {% if incident.status == 'open' or incident.status == 'pending' %}
                         <span style="margin-left:12px;">Runtime: <strong><span id="runtime-display" data-created="{{ incident.date_joined|date:'c' }}">Calculating...</span></strong></span>
                     {% endif %}
@@ -156,7 +167,17 @@
                     </div>
 
                     <div class="detail-field small-info">
-                        <p><strong>Status:</strong> {{ incident.status }}</p>
+                        <p><strong>Status:</strong>
+                            {% if incident.status == 'open' %}
+                                Reported
+                            {% elif incident.status == 'pending' %}
+                                Under Investigation
+                            {% elif incident.status == 'closed' %}
+                                Resolved
+                            {% else %}
+                                {{ incident.status }}
+                            {% endif %}
+                        </p>
                         <p><strong>Date Joined:</strong> {{ incident.date_joined }}</p>
                         <p><strong>Date:</strong> {{ incident.date }}</p>
                         <p><strong>Time:</strong> {{ incident.time }}</p>
@@ -332,9 +353,9 @@
                         <div>
                             <label><strong>Status</strong></label>
                             <select name="status">
-                                <option value="open" {% if incident.status == 'open' %}selected{% endif %}>Open</option>
-                                <option value="pending" {% if incident.status == 'pending' %}selected{% endif %}>Ongoing</option>
-                                <option value="closed" {% if incident.status == 'closed' %}selected{% endif %}>Closed</option>
+                                <option value="open" {% if incident.status == 'open' %}selected{% endif %}>Reported</option>
+                                <option value="pending" {% if incident.status == 'pending' %}selected{% endif %}>Under Investigation</option>
+                                <option value="closed" {% if incident.status == 'closed' %}selected{% endif %}>Resolved</option>
                             </select>
                         </div>
 
