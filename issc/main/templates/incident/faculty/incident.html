@@ -65,7 +65,7 @@
                                     <button name="approve" class="form-input update-btn" value="{{ data.id }}" style="background-color: #28a745; color: white; padding: 8px 15px; margin: 3px; border: none; border-radius: 4px; cursor: pointer; display: block; width: 120px;">Validate</button>
                                     <button type="button" onclick="showInvalidateModal('{{ data.id }}')" class="form-input delete-btn" style="background-color: #dc3545; color: white; padding: 8px 15px; margin: 3px; border: none; border-radius: 4px; cursor: pointer; display: block; width: 120px;">Invalidate</button>
                                     {% if data.position|lower == 'student' %}
-                                    <button name="raise_to_admin" class="form-input" value="{{ data.id }}" style="background-color: #0ea5e9; color: white; padding: 8px 15px; margin: 3px; border: none; border-radius: 4px; cursor: pointer; display: block; width: 120px;">Raise to Admin</button>
+                                    <button type="button" onclick="showRaiseToAdminModal('{{ data.id }}')" class="form-input" style="background-color: #0ea5e9; color: white; padding: 8px 15px; margin: 3px; border: none; border-radius: 4px; cursor: pointer; display: block; width: 120px;">Raise to Admin</button>
                                     {% endif %}
                                 {% endif %}
                             </td>
@@ -209,6 +209,31 @@
     </div>
 </div>
 
+<!-- Raise To Admin Modal -->
+<div id="raiseToAdminModal" style="display: none; position: fixed; z-index: 1001; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.4);">
+    <div style="background-color: #fefefe; margin: 5% auto; padding: 20px; border: 1px solid #888; width: 80%; max-width: 600px; border-radius: 8px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h2 style="margin: 0; color: #0ea5e9;">Raise Incident to Admin</h2>
+            <span onclick="closeRaiseToAdminModal()" style="cursor: pointer; font-size: 28px; font-weight: bold; color: #aaa;">&times;</span>
+        </div>
+
+        <form id="raiseToAdminForm" method="POST" action="">
+            {% csrf_token %}
+            <input type="hidden" name="incident_id" id="raise_admin_incident_id" value="">
+
+            <div style="margin-bottom: 20px;">
+                <label for="raise_reason" style="display: block; margin-bottom: 8px; font-weight: bold;">Reason for Raising to Admin:</label>
+                <textarea name="raise_reason" id="raise_reason" required style="width: 100%; min-height: 150px; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-family: inherit; resize: vertical;" placeholder="Please explain why this case needs admin review..."></textarea>
+            </div>
+
+            <div style="display: flex; justify-content: flex-end; gap: 10px;">
+                <button type="button" onclick="closeRaiseToAdminModal()" style="background-color: #6c757d; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer;">Cancel</button>
+                <button type="submit" name="raise_to_admin" style="background-color: #0ea5e9; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer;">Raise to Admin</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <script>
     function showSection(type) {
         // Hide all sections
@@ -252,11 +277,26 @@
     function closeInvalidateModal() {
         document.getElementById('invalidateModal').style.display = 'none';
     }
+
+    function showRaiseToAdminModal(incidentId) {
+        document.getElementById('raise_admin_incident_id').value = incidentId;
+        document.getElementById('raise_reason').value = '';
+        document.getElementById('raiseToAdminModal').style.display = 'block';
+    }
+
+    function closeRaiseToAdminModal() {
+        document.getElementById('raiseToAdminModal').style.display = 'none';
+    }
+
     // Close modal when clicking outside of it
     window.onclick = function(event) {
-        const modal = document.getElementById('invalidateModal');
-        if (event.target == modal) {
+        const invalidateModal = document.getElementById('invalidateModal');
+        const raiseModal = document.getElementById('raiseToAdminModal');
+        if (event.target == invalidateModal) {
             closeInvalidateModal();
+        }
+        if (event.target == raiseModal) {
+            closeRaiseToAdminModal();
         }
     }
 
