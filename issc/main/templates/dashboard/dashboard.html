@@ -33,14 +33,14 @@
       <div class="stat-icon">⚠️</div>
       <div class="stat-info">
         <h3>{{ status_breakdown.counts.0 }}</h3>
-        <p>Open Cases</p>
+        <p>Reported Cases</p>
       </div>
     </div>
     <div class="stat-card stat-pending">
       <div class="stat-icon">🔄</div>
       <div class="stat-info">
         <h3>{{ status_breakdown.counts.1 }}</h3>
-        <p>Ongoing Cases</p>
+        <p>Under Investigation</p>
       </div>
     </div>
     <div class="stat-card stat-closed">
@@ -275,7 +275,7 @@
       labels: statusTrends.months,
       datasets: [
         {
-          label: 'Open Cases',
+          label: 'Reported Cases',
           data: statusTrends.open_cases,
           backgroundColor: '#dc3545',
           borderColor: '#dc3545',
@@ -286,7 +286,7 @@
           maxBarThickness: 35
         },
         {
-          label: 'Ongoing Cases',
+          label: 'Under Investigation',
           data: statusTrends.ongoing_cases,
           backgroundColor: '#ffc107',
           borderColor: '#ffc107',
@@ -297,7 +297,7 @@
           maxBarThickness: 35
         },
         {
-          label: 'Closed Cases',
+          label: 'Resolved Cases',
           data: statusTrends.closed_cases,
           backgroundColor: '#28a745',
           borderColor: '#28a745',
