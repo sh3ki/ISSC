@@ -16,12 +16,12 @@
 
     <div class="p-4 mt-2 mb-4rounded">
         <div class="flex justify-end mb-4 space-x-2">
-            <button id="btn-open" onclick="showSection('open')" class="px-4 py-2 bg-red-900 text-white rounded-xl transition-all duration-300 transform shadow-md hover:shadow-xl hover:translate-y-[-3px] active:translate-y-[0px] active:shadow-sm">Open Cases</button>
-            <button id="btn-pending" onclick="showSection('pending')" class="px-4 py-2 bg-white text-gray-700 border-2 border-gray-300 rounded-xl transition-all duration-300 transform shadow-md hover:shadow-xl hover:translate-y-[-3px] active:translate-y-[0px] active:shadow-sm">Ongoing Cases</button>
-            <button id="btn-closed" onclick="showSection('closed')" class="px-4 py-2 bg-white text-gray-700 border-2 border-gray-300 rounded-xl transition-all duration-300 transform shadow-md hover:shadow-xl hover:translate-y-[-3px] active:translate-y-[0px] active:shadow-sm">Closed Cases</button>
+            <button id="btn-open" onclick="showSection('open')" class="px-4 py-2 bg-red-900 text-white rounded-xl transition-all duration-300 transform shadow-md hover:shadow-xl hover:translate-y-[-3px] active:translate-y-[0px] active:shadow-sm">Reported Cases</button>
+            <button id="btn-pending" onclick="showSection('pending')" class="px-4 py-2 bg-white text-gray-700 border-2 border-gray-300 rounded-xl transition-all duration-300 transform shadow-md hover:shadow-xl hover:translate-y-[-3px] active:translate-y-[0px] active:shadow-sm">Under Investigation</button>
+            <button id="btn-closed" onclick="showSection('closed')" class="px-4 py-2 bg-white text-gray-700 border-2 border-gray-300 rounded-xl transition-all duration-300 transform shadow-md hover:shadow-xl hover:translate-y-[-3px] active:translate-y-[0px] active:shadow-sm">Resolved Cases</button>
         </div>
 
-        <!-- Open Cases Section -->
+        <!-- Reported Cases Section -->
         <div id="open-section" class="section">
             <div class="table-container">
             <table class="form-table" id="open">
@@ -121,7 +121,7 @@
     </div>
     </div>
 
-    <!-- Closed Cases Section -->
+    <!-- Resolved Cases Section -->
     <div id="closed-section" class="section hidden">
         <div class="table-container">
         <table class="form-table" id="closed">
