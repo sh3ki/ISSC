@@ -12,6 +12,7 @@ from django.contrib.auth.decorators import login_required
 from django.core.files.storage import FileSystemStorage
 from django.core.paginator import Paginator
 from django.core.mail import send_mail
+from django.db.models import Q
 
 from ..models import AccountRegistration, IncidentReport, VehicleRegistration, IncidentUpdate
 
@@ -84,14 +85,24 @@ def incident(request):
         closed_incident = IncidentReport.objects.filter(status='closed', id_number=user[0]['id_number'], is_archived=is_archived).order_by('date_joined')
     elif user[0]['privilege'] == 'faculty':
         template = loader.get_template('incident/faculty/incident.html')
-        open_incident = IncidentReport.objects.filter(status='open', is_archived=is_archived).order_by('date_joined')
-        pending_incident = IncidentReport.objects.filter(status='pending', is_archived=is_archived).order_by('date_joined')
-        closed_incident = IncidentReport.objects.filter(status='closed', is_archived=is_archived).order_by('date_joined')
+        faculty_department = (user[0].get('department') or '').strip()
+        # Faculty can see all incidents in their department group (e.g., BSIT 1-1 sees all BSIT sections).
+        department_group = faculty_department.split()[0] if faculty_department else ''
+        base_faculty_qs = IncidentReport.objects.filter(is_archived=is_archived)
+        if department_group:
+            base_faculty_qs = base_faculty_qs.filter(department__istartswith=department_group)
+
+        open_incident = base_faculty_qs.filter(status='open').order_by('date_joined')
+        pending_incident = base_faculty_qs.filter(status='pending').order_by('date_joined')
+        closed_incident = base_faculty_qs.filter(status='closed').order_by('date_joined')
     else:
         template = loader.get_template('incident/admin/incident.html')
-        open_incident = IncidentReport.objects.filter(status='open', is_archived=is_archived).order_by('date_joined')
-        pending_incident = IncidentReport.objects.filter(status='pending', is_archived=is_archived).order_by('date_joined')
-        closed_incident = IncidentReport.objects.filter(status='closed', is_archived=is_archived).order_by('date_joined')
+        # Admin cannot see student-filed incidents until a faculty member raises them.
+        admin_visible_q = Q(position__iexact='student', raised_to_admin=True) | ~Q(position__iexact='student')
+        base_admin_qs = IncidentReport.objects.filter(is_archived=is_archived).filter(admin_visible_q)
+        open_incident = base_admin_qs.filter(status='open').order_by('date_joined')
+        pending_incident = base_admin_qs.filter(status='pending').order_by('date_joined')
+        closed_incident = base_admin_qs.filter(status='closed').order_by('date_joined')
 
 
     if request.method == 'POST':
@@ -118,6 +129,13 @@ def incident(request):
             if hasattr(incident, 'invalidation_reason'):
                 incident.invalidation_reason = None  # Clear any previous invalidation reason
             incident.save()
+            return redirect('incidents')
+
+        if 'raise_to_admin' in request.POST:
+            if user[0]['privilege'] == 'faculty' and incident and (incident.position or '').strip().lower() == 'student':
+                incident.raised_to_admin = True
+                incident.last_updated_by = user[0]['id_number']
+                incident.save(update_fields=['raised_to_admin', 'last_updated_by', 'last_updated'])
             return redirect('incidents')
             
         if 'invalidate' in request.POST:
@@ -157,6 +175,20 @@ def incident(request):
 def incident_details(request, id):
     user = AccountRegistration.objects.filter(username=request.user).values()
     incident = get_object_or_404(IncidentReport, id=id)
+    user_role = user[0]['privilege']
+
+    # Keep detail page visibility consistent with incident listing rules.
+    if user_role == 'student' and incident.id_number != user[0]['id_number']:
+        return redirect('incidents')
+    if user_role == 'faculty':
+        faculty_department = (user[0].get('department') or '').strip()
+        department_group = faculty_department.split()[0] if faculty_department else ''
+        incident_department = (incident.department or '').strip()
+        if department_group and not incident_department.upper().startswith(department_group.upper()):
+            return redirect('incidents')
+    if user_role == 'admin' and (incident.position or '').strip().lower() == 'student' and not incident.raised_to_admin:
+        return redirect('incidents')
+
     template = loader.get_template('incident/details.html')
     
     # Get all admin and faculty users for the faculty_involved dropdown
