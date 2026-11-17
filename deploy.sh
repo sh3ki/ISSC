@@ -22,7 +22,7 @@ fail() { log "ERROR: $*" >&2; exit 1; }
 [[ -f "$ENV_FILE" ]] || fail "Missing production environment file: $ENV_FILE"
 
 mkdir -p "$(dirname "$MAINTENANCE_FLAG")"
-exec 9>"$APP_DIR/.deploy.lock"
+exec 9>/run/lock/issc-deploy.lock
 flock -n 9 || fail "Another ISSC deployment is already running."
 
 maintenance_on() {
@@ -43,15 +43,24 @@ on_error() {
 }
 trap on_error ERR
 
+log "Checking the ISSC checkout before taking it offline"
+cd "$APP_DIR"
+git fetch --prune origin "$BRANCH"
+
+if [[ -n "$(git status --porcelain)" ]]; then
+    echo "ERROR: ISSC checkout contains local changes; deployment stopped before maintenance mode." >&2
+    git status --short >&2
+    echo "Commit/push the intended changes, or remove only the unintended ISSC checkout changes, then retry." >&2
+    exit 1
+fi
+
 log "Enabling ISSC maintenance mode"
 maintenance_on
 
 log "Stopping only $SERVICE"
 systemctl stop "$SERVICE" || true
 
-log "Fetching origin/$BRANCH"
-cd "$APP_DIR"
-git fetch --prune origin "$BRANCH"
+log "Pulling origin/$BRANCH"
 git pull --ff-only origin "$BRANCH"
 
 log "Installing Python dependencies"

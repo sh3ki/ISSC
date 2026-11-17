@@ -1,6 +1,7 @@
 .env
 media
 recordings
+issc/static/js/
 
 # Virtual environment
 venv/
