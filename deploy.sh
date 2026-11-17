@@ -78,7 +78,7 @@ log "Checking ISSC through its Unix socket"
 for attempt in {1..20}; do
     code="$(curl --silent --output /dev/null --write-out '%{http_code}' \
         --unix-socket /run/issc-gunicorn/gunicorn.sock \
-        -H 'Host: issc.live' http://localhost/ || true)"
+        -H 'Host: issc.click' http://localhost/ || true)"
     if [[ "$code" =~ ^[23][0-9][0-9]$ ]]; then
         log "ISSC responded with HTTP $code"
         maintenance_off
