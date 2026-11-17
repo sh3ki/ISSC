@@ -218,7 +218,7 @@ PHILSMS_COOLDOWN_SECONDS = int(os.getenv('PHILSMS_COOLDOWN_SECONDS', '900'))
 # PhilSMS configuration (can be overridden via environment variables)
 PHILSMS_API_BASE = os.getenv('PHILSMS_API_BASE', 'https://dashboard.philsms.com/api/v3')
 # Put your PhilSMS API token in the environment or override here
-PHILSMS_API_TOKEN = os.getenv('PHILSMS_API_TOKEN', '377|DT0C9GeHCgLXdNt5oxjajd3QqdLlKcqMHv5KLZcE3b45ab96')
+PHILSMS_API_TOKEN = os.getenv('PHILSMS_API_TOKEN', '')
 # Approved sender id (alphanumeric or phone number). Set this to the sender approved in your dashboard
 PHILSMS_SENDER_ID = os.getenv('PHILSMS_SENDER_ID', 'PhilSMS')
 # Default recipient for unauthorized alerts (local format allowed)
