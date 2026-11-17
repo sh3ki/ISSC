@@ -43,7 +43,7 @@ ALLOWED_HOSTS = [
     host.strip()
     for host in os.getenv(
         "ALLOWED_HOSTS",
-        "issc.live,www.issc.live,localhost,127.0.0.1",
+        "issc.click,www.issc.click,localhost,127.0.0.1",
     ).split(",")
     if host.strip()
 ]
@@ -52,7 +52,7 @@ CSRF_TRUSTED_ORIGINS = [
     origin.strip()
     for origin in os.getenv(
         "CSRF_TRUSTED_ORIGINS",
-        "https://issc.live,https://www.issc.live",
+        "https://issc.click,https://www.issc.click",
     ).split(",")
     if origin.strip()
 ]
