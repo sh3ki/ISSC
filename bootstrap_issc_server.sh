@@ -40,8 +40,8 @@ SQL
 cat > "$APP_DIR/.env" <<EOF
 SECRET_KEY=$SECRET_KEY
 DEBUG=False
-ALLOWED_HOSTS=issc.live,www.issc.live,localhost,127.0.0.1
-CSRF_TRUSTED_ORIGINS=https://issc.live,https://www.issc.live
+ALLOWED_HOSTS=issc.click,www.issc.click,localhost,127.0.0.1
+CSRF_TRUSTED_ORIGINS=https://issc.click,https://www.issc.click
 DB_NAME=$DB_NAME
 DB_USER=$DB_USER
 DB_PASSWORD=$DB_PASSWORD
