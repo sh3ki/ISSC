@@ -1,0 +1,22 @@
+[Unit]
+Description=ISSC Django Gunicorn service
+After=network.target mysql.service
+Requires=mysql.service
+
+[Service]
+Type=notify
+User=isscadmin
+Group=www-data
+WorkingDirectory=/var/www/issc/issc
+EnvironmentFile=/var/www/issc/.env
+Environment=PYTHONUNBUFFERED=1
+RuntimeDirectory=issc-gunicorn
+RuntimeDirectoryMode=0775
+UMask=0007
+ExecStart=/var/www/issc/venv/bin/gunicorn --workers 2 --timeout 120 --graceful-timeout 30 --max-requests 500 --max-requests-jitter 50 --bind unix:/run/issc-gunicorn/gunicorn.sock issc.wsgi:application
+Restart=always
+RestartSec=5
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
