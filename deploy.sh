@@ -75,9 +75,27 @@ cd "$PROJECT_DIR"
 log "Collecting static files"
 "$VENV_DIR/bin/python" manage.py collectstatic --noinput
 
-log "Ensuring writable ISSC data directories"
-install -d -o isscadmin -g www-data -m 2775 "$PROJECT_DIR/media" "$PROJECT_DIR/recordings"
-chown -R isscadmin:www-data "$PROJECT_DIR/media" "$PROJECT_DIR/recordings"
+log "Ensuring writable ISSC runtime directories"
+RUNTIME_DIRS=(
+    "$PROJECT_DIR/media"
+    "$PROJECT_DIR/media/files"
+    "$PROJECT_DIR/media/images"
+    "$PROJECT_DIR/media/recordings"
+    "$PROJECT_DIR/media/unauthorized_faces"
+    "$PROJECT_DIR/recordings"
+    "$PROJECT_DIR/backups"
+    "$PROJECT_DIR/backups/deleted"
+)
+
+for runtime_dir in "${RUNTIME_DIRS[@]}"; do
+    install -d -o isscadmin -g www-data -m 2775 "$runtime_dir"
+done
+
+for runtime_root in "$PROJECT_DIR/media" "$PROJECT_DIR/recordings" "$PROJECT_DIR/backups"; do
+    chown -R isscadmin:www-data "$runtime_root"
+    find "$runtime_root" -type d -exec chmod 2775 {} +
+    find "$runtime_root" -type f -exec chmod 0664 {} +
+done
 
 log "Starting only $SERVICE"
 systemctl start "$SERVICE"
