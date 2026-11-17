@@ -1,7 +1,7 @@
 server {
     listen 80;
     listen [::]:80;
-    server_name issc.live www.issc.live;
+    server_name issc.click www.issc.click;
 
     client_max_body_size 100M;
     access_log /var/log/nginx/issc_access.log;
