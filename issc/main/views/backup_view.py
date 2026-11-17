@@ -22,15 +22,25 @@ def ensure_backup_directories():
     try:
         os.makedirs(BACKUP_DIR, exist_ok=True)
         os.makedirs(BACKUP_TRASH_DIR, exist_ok=True)
-        if platform.system() != 'Windows':
-            # Owner rwx, group rx to avoid exposing backups publicly.
-            os.chmod(BACKUP_DIR, 0o750)
-            os.chmod(BACKUP_TRASH_DIR, 0o750)
-        return True, ''
     except PermissionError:
         return False, f'Permission denied accessing backup directories: {BACKUP_DIR}'
     except OSError as exc:
         return False, f'Unable to prepare backup directories: {exc}'
+
+    if platform.system() != 'Windows':
+        # Best-effort chmod; skip silently if we don't own the directory
+        # (permissions are managed by the sysadmin / deployment setup).
+        try:
+            os.chmod(BACKUP_DIR, 0o750)
+            os.chmod(BACKUP_TRASH_DIR, 0o750)
+        except PermissionError:
+            pass
+
+    # Final check: confirm we can actually write to the directory.
+    if not os.access(BACKUP_DIR, os.W_OK):
+        return False, f'Permission denied accessing backup directories: {BACKUP_DIR}'
+
+    return True, ''
 
 
 # Try to prepare directories at import-time without crashing startup.
