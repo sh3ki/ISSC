@@ -11,6 +11,8 @@ ENV_FILE="$APP_DIR/.env"
 MAINTENANCE_FLAG="/var/lib/issc/maintenance.flag"
 SERVICE="issc-gunicorn.service"
 BRANCH="${1:-master}"
+STASH_CREATED=0
+STASH_NAME=""
 
 log() { printf '\n[%s] %s\n' "$(date '+%F %T')" "$*"; }
 fail() { log "ERROR: $*" >&2; exit 1; }
@@ -39,9 +41,27 @@ on_error() {
     local code=$?
     log "Deployment failed with exit code $code. ISSC remains in maintenance mode for safety."
     log "Inspect: journalctl -u $SERVICE -n 100 --no-pager"
+    if [[ "$STASH_CREATED" -eq 1 ]]; then
+        log "Local changes remain safely stored in stash: $STASH_NAME"
+        log "Review with: git stash list"
+    fi
     exit "$code"
 }
 trap on_error ERR
+
+restore_stash() {
+    if [[ "$STASH_CREATED" -eq 1 ]]; then
+        cd "$APP_DIR"
+        log "Restoring server-local changes from $STASH_NAME"
+        if git stash pop; then
+            STASH_CREATED=0
+            log "Server-local changes restored"
+        else
+            log "WARNING: stash restoration had conflicts; the deployment itself succeeded"
+            log "Review with: git status and git stash list"
+        fi
+    fi
+}
 
 log "Checking the ISSC checkout before taking it offline"
 cd "$APP_DIR"
@@ -52,6 +72,7 @@ if [[ -n "$(git status --porcelain)" ]]; then
     log "Stashing local checkout changes as $STASH_NAME"
     git status --short
     git stash push --include-untracked --message "$STASH_NAME"
+    STASH_CREATED=1
     log "Local changes were stashed. Restore them later with: git stash pop"
 fi
 
@@ -109,6 +130,7 @@ for attempt in {1..20}; do
         -H 'Host: issc.click' http://localhost/ || true)"
     if [[ "$code" =~ ^[23][0-9][0-9]$ ]]; then
         log "ISSC responded with HTTP $code"
+        restore_stash
         maintenance_off
         log "ISSC deployment completed successfully"
         exit 0
