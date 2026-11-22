@@ -380,6 +380,8 @@ footer .copyright {
     .navbar {
         padding: 1rem 4.5rem 1rem 1rem;
         flex-wrap: wrap;
+        background: linear-gradient(135deg, #4B0000, #260000) !important;
+        color: #fff;
     }
 
     .navbar-logo {
@@ -402,6 +404,11 @@ footer .copyright {
 
     .issc {
         font-size: 12px;
+    }
+
+    .navbar .pup,
+    .navbar .issc {
+        color: #fff;
     }
 
     .user-info {
@@ -464,7 +471,7 @@ footer .copyright {
         display: flex;
         align-items: center;
         padding: 20px 25px;
-        color: maroon;
+        color: #fff;
         font-weight: 600;
         font-size: 16px;
         text-decoration: none;
@@ -483,7 +490,7 @@ footer .copyright {
     }
 
     .sidebar ul li a:hover {
-        background: #f8f8f8;
+        background: #6b0000;
         padding-left: 30px;
     }
 
