@@ -202,6 +202,20 @@ select {
     box-shadow: 0 3px 8px rgba(75, 0, 0, 0.4);
 }
 
+/* Primary action on the incident form */
+.register-btn .incident-submit-button {
+    background: linear-gradient(135deg, #4B0000, #260000) !important;
+    color: #fff !important;
+    border: none !important;
+    border-radius: 50px !important;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.register-btn .incident-submit-button:hover {
+    background: linear-gradient(135deg, #260000, #4B0000) !important;
+}
+
 
 .search-container {
     display: flex;
