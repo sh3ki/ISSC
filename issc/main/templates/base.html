@@ -35,6 +35,14 @@
       }
 
       @media (max-width: 768px) {
+        .navbar {
+          display: flex !important;
+          visibility: visible !important;
+          min-height: 64px;
+          background: linear-gradient(135deg, #4b0000, #260000) !important;
+          color: #fff !important;
+        }
+
         .mobile-sidebar {
           display: block !important;
           position: fixed !important;
@@ -189,8 +197,8 @@
         </ul>
     </aside>
 
-    <!-- Mobile Sidebar (Student Hamburger Menu) -->
-    {% if user_role == 'student' %}
+    <!-- Mobile Sidebar (Student and Faculty Hamburger Menu) -->
+    {% if user_role == 'student' or user_role == 'faculty' %}
     <aside class="sidebar mobile-sidebar">
       <ul class="nav-links">
         <li>
@@ -205,6 +213,20 @@
             <span class="text">Incidents</span>
           </a>
         </li>
+        {% if user_role == 'faculty' %}
+        <li>
+          <a href="{% url 'dashboard' %}" class="{% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
+            <span class="icon">📊</span>
+            <span class="text">Dashboard</span>
+          </a>
+        </li>
+        <li>
+          <a href="{% url 'enrollee_view' %}" class="{% if request.resolver_match.url_name == 'enrollee_view' or request.resolver_match.url_name == 'face_enrollment_form' %}active{% endif %}">
+            <span class="icon">👤</span>
+            <span class="text">Face Enrollment</span>
+          </a>
+        </li>
+        {% endif %}
         <li>
           <a href="/profile/" class="{% if request.resolver_match.url_name == 'profile' %}active{% endif %}">
             <span class="icon">👤</span>
