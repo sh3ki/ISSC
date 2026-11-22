@@ -399,7 +399,7 @@ def log_authorized_face(box_id, matched_id):
             return
 
         FaceLogs.objects.create(
-            id_number=account,
+            id_number=account.id_number,
             first_name=account.first_name,
             middle_name=account.middle_name or '',
             last_name=account.last_name,
@@ -645,7 +645,7 @@ def face_logs_simple(request):
     Display face log entries with pagination (20 per page) and search support
     """
     user = AccountRegistration.objects.filter(username=request.user).values()
-    logs_queryset = FaceLogs.objects.select_related('id_number').order_by('-created_at')
+    logs_queryset = FaceLogs.objects.all().order_by('-created_at')
 
     search_query = request.GET.get('q', '').strip()
     if search_query:
@@ -653,7 +653,7 @@ def face_logs_simple(request):
             Q(first_name__icontains=search_query) |
             Q(middle_name__icontains=search_query) |
             Q(last_name__icontains=search_query) |
-            Q(id_number__username__icontains=search_query)
+            Q(id_number__icontains=search_query)
         )
 
     paginator = Paginator(logs_queryset, 20)
