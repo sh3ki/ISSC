@@ -358,13 +358,9 @@ footer .copyright {
 
 
 @media (max-width: 768px) {
-    /* Show mobile hamburger button */
+    /* Use the visible options bar on mobile; no hamburger menu needed. */
     .mobile-hamburger-btn {
-        display: flex !important;
-        position: fixed;
-        top: 14px;
-        right: 14px;
-        margin-left: 0;
+        display: none !important;
     }
 
     /* Hide desktop logout button on mobile */
@@ -423,7 +419,45 @@ footer .copyright {
     }
 
     .secondary-navbar {
+        display: flex !important;
+        background: #fff !important;
+        color: maroon !important;
+        padding: 0 !important;
+        margin-bottom: 12px;
+        overflow: hidden;
+        opacity: 1;
+        animation: none;
+    }
+
+    .secondary-navbar ul {
+        display: flex;
+        width: 100%;
+        overflow-x: auto;
+        flex: 1;
+        scrollbar-width: none;
+    }
+
+    .secondary-navbar ul::-webkit-scrollbar {
         display: none;
+    }
+
+    .secondary-navbar ul li {
+        flex: 0 0 auto;
+    }
+
+    .secondary-navbar ul li a {
+        display: block;
+        color: maroon;
+        background: #fff;
+        padding: 14px 16px;
+        font-size: 12px;
+        white-space: nowrap;
+    }
+
+    .secondary-navbar ul li a.active {
+        color: #fff;
+        background: #4B0000;
+        border-bottom: 3px solid #260000;
     }
 
     .mobile-sidebar {
@@ -552,13 +586,6 @@ footer .copyright {
 }
 
 @media (max-width: 480px) {
-    .mobile-hamburger-btn {
-        width: 45px;
-        height: 45px;
-        top: 12px;
-        right: 12px;
-    }
-
     .hamburger-icon {
         width: 25px;
         height: 2.5px;
