@@ -29,14 +29,31 @@
         font-weight: 700;
       }
 
-      /* Fallback guard: keep student mobile menu hidden on desktop */
+      /* Keep the student mobile menu off-canvas until the hamburger is opened. */
       .mobile-sidebar {
-        display: none;
+        display: none !important;
       }
 
       @media (max-width: 768px) {
         .mobile-sidebar {
-          display: block;
+          display: block !important;
+          position: fixed !important;
+          top: 0 !important;
+          right: -100% !important;
+          width: min(300px, 85vw) !important;
+          height: 100vh !important;
+          background: #4b0000 !important;
+          z-index: 10002 !important;
+          overflow-y: auto !important;
+          transition: right 0.3s ease !important;
+        }
+
+        .mobile-sidebar.mobile-active {
+          right: 0 !important;
+        }
+
+        .mobile-sidebar:not(.mobile-active) {
+          right: -100% !important;
         }
       }
     </style>
