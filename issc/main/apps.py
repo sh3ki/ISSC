@@ -7,6 +7,8 @@ class MainConfig(AppConfig):
     name = 'main'
     
     def ready(self):
+        from . import signals  # noqa: F401
+
         if os.environ.get('ISSC_DISABLE_GPU_INIT') == '1' or 'test' in sys.argv:
             print("Skipping GPU support initialization for tests/disabled mode.")
             return
