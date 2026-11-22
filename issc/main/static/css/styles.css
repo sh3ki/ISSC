@@ -421,12 +421,17 @@ footer .copyright {
     .secondary-navbar {
         display: flex !important;
         background: #fff !important;
+        background-color: #fff !important;
         color: maroon !important;
         padding: 0 !important;
         margin-bottom: 12px;
         overflow: hidden;
         opacity: 1;
         animation: none;
+    }
+
+    .secondary-navbar .sticky-logo {
+        display: none !important;
     }
 
     .secondary-navbar ul {
