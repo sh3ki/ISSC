@@ -390,7 +390,7 @@ def signup_forms(request):
                     f"Passphrase: {password}\n\n"
                     "⚠️ IMPORTANT: Please keep this passphrase secure and do not share it with anyone.\n\n"
                     " It is recommended that you change your passphrase upon your first login.\n\n"
-                    "You can login at: " + ('https://www.issc.study/login/') + "\n\n"
+                    f"You can login at: {settings.SITE_URL}/login/\n\n"
                     "If you need to reset your passphrase, please contact the administrator."
                 )
                 from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', settings.EMAIL_HOST_USER)
@@ -719,7 +719,7 @@ def import_data(request):
                                 f"Passphrase: {password}\n\n"
                                 "⚠️ IMPORTANT: Please keep this passphrase secure and do not share it with anyone.\n\n"
                                 " It is recommended that you change your passphrase upon your first login.\n\n"
-                                "You can login at: " + ('https://www.issc.study/login/') + "\n\n"
+                                f"You can login at: {settings.SITE_URL}/login/\n\n"
                                 "If you need to reset your passphrase, please contact the administrator."
                             )
                             from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', settings.EMAIL_HOST_USER)
@@ -975,6 +975,13 @@ class CustomPasswordResetView(auth_views.PasswordResetView):
     form_class = CustomPasswordResetForm
     email_template_name = 'registration/acc_reset_email.html'
     success_url = reverse_lazy('password_reset_done')
+
+    def get_email_options(self):
+        options = super().get_email_options()
+        options['extra_email_context'] = {
+            'site_url': settings.SITE_URL,
+        }
+        return options
 
 class CustomPasswordResetDoneView(auth_views.PasswordResetDoneView):
     template_name = 'registration/acc_reset_done.html'
