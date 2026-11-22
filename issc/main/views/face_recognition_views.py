@@ -71,7 +71,7 @@ def record_face_log_api(request):
         from datetime import timedelta
         recent_threshold = timezone.now() - timedelta(seconds=2)
         recent_log = FaceLogs.objects.filter(
-            id_number=user,
+            id_number=user.id_number,
             created_at__gte=recent_threshold
         ).first()
         
@@ -85,7 +85,7 @@ def record_face_log_api(request):
         
         # Create face log
         face_log = FaceLogs.objects.create(
-            id_number=user,
+            id_number=user.id_number,
             first_name=user.first_name,
             middle_name=user.middle_name,
             last_name=user.last_name
