@@ -48,10 +48,11 @@ cd "$APP_DIR"
 git fetch --prune origin "$BRANCH"
 
 if [[ -n "$(git status --porcelain)" ]]; then
-    echo "ERROR: ISSC checkout contains local changes; deployment stopped before maintenance mode." >&2
-    git status --short >&2
-    echo "Commit/push the intended changes, or remove only the unintended ISSC checkout changes, then retry." >&2
-    exit 1
+    STASH_NAME="issc-deploy-local-$(date +%Y%m%d_%H%M%S)"
+    log "Stashing local checkout changes as $STASH_NAME"
+    git status --short
+    git stash push --include-untracked --message "$STASH_NAME"
+    log "Local changes were stashed. Restore them later with: git stash pop"
 fi
 
 log "Enabling ISSC maintenance mode"
