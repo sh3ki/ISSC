@@ -339,6 +339,10 @@ footer .copyright {
     display: none;
 }
 
+.mobile-only-logout-tab {
+    display: none;
+}
+
 .toggle-btn {
     display: none;
     background: var(--secondary-color);
@@ -439,6 +443,7 @@ footer .copyright {
         width: 100%;
         overflow-x: auto;
         flex: 1;
+        justify-content: center;
         scrollbar-width: none;
     }
 
