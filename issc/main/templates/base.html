@@ -52,6 +52,10 @@
           display: none !important;
         }
 
+        .mobile-only-logout-tab {
+          display: list-item !important;
+        }
+
         .mobile-sidebar {
           display: block !important;
           position: fixed !important;
@@ -197,6 +201,9 @@
                   </a>
                 </li>
                 {% endif %}
+                <li class="mobile-only-logout-tab">
+                  <a href="#" onclick="showLogoutModal(); return false;">Logout</a>
+                </li>
         </ul>
     </aside>
 
