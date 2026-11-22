@@ -160,7 +160,13 @@ class FacesEmbeddings(models.Model):
         verbose_name_plural = "Faces Embeddings"
 
 class FaceLogs(models.Model):
-    id_number = models.ForeignKey(AccountRegistration, to_field="id_number", on_delete=models.CASCADE)
+    id_number = models.ForeignKey(
+        AccountRegistration,
+        to_field="id_number",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+    )
     first_name = models.CharField(max_length=100)
     middle_name = models.CharField(max_length=100)
     last_name = models.CharField(max_length=100)
@@ -169,7 +175,8 @@ class FaceLogs(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f" Face Log at : {self.id_number.id_number} at {self.created_at}"
+        account_id = self.id_number.id_number if self.id_number else 'Deleted account'
+        return f" Face Log at : {account_id} at {self.created_at}"
 
     class Meta:
         verbose_name = "Face Logs"
