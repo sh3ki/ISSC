@@ -25,6 +25,7 @@ from django.contrib.auth.hashers import check_password
 from django.utils import timezone
 from datetime import timedelta
 import re
+from ..face_cleanup import remove_account_face_data
 
 import pandas as pd
 from datetime import datetime
@@ -262,6 +263,7 @@ def signup(request):
         if 'delete' in request.POST:
             # Handle delete action
             user = AccountRegistration.objects.get(username=username)
+            remove_account_face_data(user)
             user.delete()
             return redirect('signup')  # Redirect to the same page after deleting
 
@@ -442,6 +444,7 @@ def account_details(request, username):
     if request.method == 'POST':
         if 'delete' in request.POST:
             # Handle delete action
+            remove_account_face_data(account)
             account.delete()
             messages.success(request, f'Account {username} has been deleted successfully!')
             return redirect('signup')
@@ -550,6 +553,7 @@ def profile(request):
             confirm_text = request.POST.get('confirm_delete', '').strip().lower()
             if confirm_text in ['delete', account.username.lower()]:
                 auth_logout(request)
+                remove_account_face_data(account)
                 account.delete()
                 return redirect('login')
             else:
