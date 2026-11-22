@@ -54,6 +54,7 @@ cat > "$PRODUCTION_ENV_FILE" << 'EOF'
 SECRET_KEY='django-insecure-prod-key-change-in-production-2026'
 DEBUG=False
 ALLOWED_HOSTS=issc.study,www.issc.study,72.62.66.193
+SITE_URL=https://www.issc.click
 
 # Database Configuration - Production
 DB_NAME=issc_db
