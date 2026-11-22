@@ -48,6 +48,10 @@ ALLOWED_HOSTS = [
     if host.strip()
 ]
 
+# Public URL used in links sent by email. Keep this configurable so links
+# follow the active deployment domain instead of being tied to one hostname.
+SITE_URL = os.getenv("SITE_URL", "http://localhost:8000").rstrip("/")
+
 CSRF_TRUSTED_ORIGINS = [
     origin.strip()
     for origin in os.getenv(
