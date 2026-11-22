@@ -1316,7 +1316,7 @@ def log(id_number):
     try:
         acc_info = AccountRegistration.objects.get(id_number=id_number)
         FaceLogs.objects.create(
-            id_number=acc_info,
+            id_number=acc_info.id_number,
             first_name=acc_info.first_name,
             middle_name=acc_info.middle_name,
             last_name=acc_info.last_name,
