@@ -330,9 +330,9 @@ footer .copyright {
     opacity: 1;
 }
 
-/* Desktop logout button */
+/* Logout is available through the mobile navigation only. */
 .desktop-logout {
-    display: block;
+    display: none !important;
 }
 
 .mobile-sidebar {
@@ -340,7 +340,7 @@ footer .copyright {
 }
 
 .mobile-only-logout-tab {
-    display: none;
+    display: none !important;
 }
 
 .toggle-btn {
@@ -367,9 +367,13 @@ footer .copyright {
         display: none !important;
     }
 
-    /* Hide desktop logout button on mobile */
+    /* Show logout only in the mobile navigation */
     .desktop-logout {
         display: none !important;
+    }
+
+    .mobile-only-logout-tab {
+        display: list-item !important;
     }
 
     /* Hide desktop toggle button */
