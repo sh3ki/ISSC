@@ -330,9 +330,9 @@ footer .copyright {
     opacity: 1;
 }
 
-/* Logout is available through the mobile navigation only. */
+/* Logout below the user role remains visible on desktop. */
 .desktop-logout {
-    display: none !important;
+    display: block;
 }
 
 .mobile-sidebar {
